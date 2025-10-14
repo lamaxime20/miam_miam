@@ -1,0 +1,41 @@
+:
+Livraison: id_livraison, date_livraison, statut_livraison, commentaires, note_livraison
+Etre pret pour, 0N Bon_commande, 11 Livraison
+Bon_commande: id_bon, statut_bon
+:
+:
+
+Livrer, 0N Livreur, 11 Livraison
+Valider, 11 Bon_commande, 0N Employe
+Restaurant: id_restaurant, nom_restaurant, localisation, type_localisation, logo_restaurant, politique
+Appartenir à, 11 Menu, 0N Restaurant
+:
+Devenir, 0N Commande, 11 Bon_commande
+
+Livreur: note_livreur, code_payement
+Employe:
+Choisir_Menu_Jour, 0N Menu, 0N Employe: date_jour
+Menu: id_menu, nom_menu, description_menu, image_menu, prix_menu, fidelity_point, statut_menu
+Contenir, 1N Commande, 0N Menu: quantite
+Commande: id_commande, date_commande, date_heure_livraison, localisation_client, type_localisation, statut_commande
+
+:
+Gerant:
+/XT\ Utilisateur <- Client, Employe, Gerant, Administrateur, Livreur
+Noter, 0N Menu, 0N Client: note, commentaire
+Faire, 0N Client, 11 Commande
+:
+
+:
+Administrateur:
+parrainer, 11 Client, 0N Client
+Client: fidelity, code_parrainage
+:
+:
+
+:
+Utilisateur: id_user, nom_user, email_user, password_user, num_user, date_inscription, last_connexion, statut_account
+:
+:
+:
+:

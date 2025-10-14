@@ -1,0 +1,34 @@
+Créer, 1N Administrateur, 0N Promotion
+Promotion: id_promo, titre, description, date_debut, date_fin, image_promo, pourcentage_reduction
+:
+:
+:
+:
+
+Administrateur:
+Concerner_menu, 0N Promotion, 0N Menu
+:
+Etre devenu, 11 Reponse, 0N Reclamation
+Reponse: id_reponse, statut_reponse
+:
+
+Administrer, 1N Administrateur, 11 Restaurant
+Menu: id_menu, nom_menu, description_menu, image_menu, prix_menu, fidelity_point, statut_menu
+Concerner, 11 Reclamation, 0N Restaurant
+Reclamation: id_reclamation, message, date_soummission, statut_reclamation
+Faire, 0N Client, 11 Reclamation
+Client: fidelity, code_parrainage
+
+Travailler pour, 1N Employe, 0N Restaurant
+Restaurant: id_restaurant, nom_restaurant, localisation, type_localisation, logo_restaurant, politique
+Gerer, 0N Restaurant, 1N Gerant
+Gerant:
+:
+:
+
+Employe:
+Etre livreur, 0N livreur, 0N Restaurant
+Livreur: note_livreur, code_payement
+:
+:
+:

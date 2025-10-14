@@ -1,0 +1,269 @@
+Table Utilisateur {
+  id_user serial [pk]
+  nom_user name
+  email_user email
+  password_user Motpasse
+  num_user Telephone
+  date_inscription datetime
+  last_connexion datetime
+  statut_account userState
+}
+
+Table Client {
+  id_user int [pk, ref: > Utilisateur.id_user]
+  fidelity int
+  code_parrainage varchar
+  parrain int [ref: > Utilisateur.id_user]
+}
+
+Table Administrateur {
+  id_user int [pk, ref: > Utilisateur.id_user]
+}
+
+Table Gerant {
+  id_user int [pk, ref: > Utilisateur.id_user]
+}
+
+Table Employe {
+  id_user int [pk, ref: > Utilisateur.id_user]
+}
+
+Table Livreur {
+  id_user int [pk, ref: > Utilisateur.id_user]
+  code_payement varchar
+}
+
+Table File {
+  id_File serial [pk]
+  nom_fichier name
+  extension varchar
+  chemin text
+}
+
+Table Restaurant {
+  id_restaurant serial [pk]
+  nom_restaurant name
+  localisation text
+  type_localisation location
+  logo_restaurant int [ref: > File.id_File]
+  politique text
+  administrateur int [ref: > Administrateur.id_user]
+}
+
+Table Categorie_menu {
+  libelle typeRepas [pk]
+  description_categorie text
+}
+
+Table Menu {
+  id_menu serial [pk]
+  nom_menu name
+  description_menu text
+  image_menu int [ref: > File.id_File]
+  prix_menu prices
+  fidelity_point pointFidelite
+  statut_menu menuState
+  restaurant_hote int [ref: > Restaurant.id_restaurant]
+  libelle_menu typeRepas [ref: > Categorie_menu.libelle]
+  indexes {
+    (nom_menu, restaurant_hote) [unique]
+  }
+}
+
+Table Commande {
+  id_commande serial [pk]
+  date_commande datetime
+  date_heure_livraison datetime
+  localisation_client text
+  type_localisation location
+  statut_commande commandeState
+  acheteur int [ref: > Client.id_user]
+}
+
+Table Bon_commande {
+  id_bon serial [pk]
+  statut_bon commandeState
+  validateur int [ref: > Utilisateur.id_user]
+  commande_associe int [ref: > Commande.id_commande]
+}
+
+Table Livraison {
+  id_livraison serial [pk]
+  date_livraison datetime
+  statut_livraison commandeState
+  commentaire text
+  note_livraison note
+  livreur int [ref: > Livreur.id_user]
+  bon_associe int [ref: > Bon_commande.id_bon]
+}
+
+Table Promotion {
+  id_promo serial [pk]
+  titre name
+  description text
+  date_debut datetime
+  date_fin datetime
+  image_promo int [ref: > File.id_File]
+  pourcentage_reduction decimal
+}
+
+Table Reclamation {
+  id_reclamation serial [pk]
+  message text
+  date_soummission datetime
+  statut_reclamation reclamationState
+  restaurant_cible int [ref: > Restaurant.id_restaurant]
+  acheteur int [ref: > Client.id_user]
+}
+
+Table Reponse {
+  id_reponse serial [pk]
+  statut_reponse reclamationState
+  reclamation_cible int [ref: > Reclamation.id_reclamation]
+  auteur int [ref: > Utilisateur.id_user]
+  message_reponse text
+}
+
+Table Noter {
+  id_client int [ref: > Client.id_user]
+  id_menu int [ref: > Menu.id_menu]
+  note_menu note
+  commentaire text
+  indexes {
+    (id_client, id_menu) [unique]
+  }
+}
+
+Table Choisir_Menu_Jour {
+  id_menu int [ref: > Menu.id_menu]
+  id_employe int [ref: > Employe.id_user]
+  date_jour date
+  indexes {
+    (id_employe, id_menu, date_jour) [unique]
+  }
+}
+
+Table Contenir {
+  id_commande int [ref: > Commande.id_commande]
+  id_menu int [ref: > Menu.id_menu]
+  quantite int
+  prix_unitaire prices
+  indexes {
+    (id_commande, id_menu) [unique]
+  }
+}
+
+Table Travailler_pour {
+  id_employe int [ref: > Employe.id_user]
+  id_restaurant int [ref: > Restaurant.id_restaurant]
+  date_debut datetime
+  service_employe boolean
+  indexes {
+    (id_employe, id_restaurant) [unique]
+  }
+}
+
+Table Gerer {
+  id_restaurant int [ref: > Restaurant.id_restaurant]
+  id_gerant int [ref: > Gerant.id_user]
+  date_debut datetime
+  service_employe boolean
+  indexes {
+    (id_restaurant, id_gerant) [unique]
+  }
+}
+
+Table Etre_livreur {
+  id_livreur int [ref: > Livreur.id_user]
+  id_restaurant int [ref: > Restaurant.id_restaurant]
+  note_livreur note
+  date_debut datetime
+  service_employe boolean
+  indexes {
+    (id_livreur, id_restaurant) [unique]
+  }
+}
+
+Table Concerner_menu {
+  id_promo int [ref: > Promotion.id_promo]
+  id_menu int [ref: > Menu.id_menu]
+  indexes {
+    (id_promo, id_menu) [unique]
+  }
+}
+
+Table Paiement {
+  id_paiement serial [pk]
+  id_commande int [ref: > Commande.id_commande]
+  montant prices
+  moyen_paiement modePaiement
+  statut_paiement paiementState
+  reference_transaction varchar
+  date_paiement datetime
+}
+
+Table Historique_fidelite {
+  id_historique serial [pk]
+  id_client int [ref: > Client.id_user]
+  changement int
+  raison varchar
+  date_changement datetime
+}
+
+Table Notifications {
+  id_notification serial [pk]
+  message_notification text
+  date_notif datetime
+  restaurant_auteur int [ref: > Restaurant.id_restaurant]
+}
+
+Table Cible_Notifications {
+  id_notification int [ref: > Notifications.id_notification]
+  id_cible int [ref: > Utilisateur.id_user]
+  ouvert boolean
+  indexes {
+    (id_notification, id_cible) [unique]
+  }
+}
+
+Table Consentement {
+  id_consentement serial [pk]
+  id_user int [ref: > Utilisateur.id_user]
+  type_consentement varchar
+  version_texte varchar
+  accepte boolean
+  date_action datetime
+  ip_client varchar
+  user_agent text
+}
+
+Table Session {
+  id_session uuid [pk]
+  id_user int [ref: > Utilisateur.id_user]
+  token varchar
+  ip_client varchar
+  user_agent text
+  date_connexion datetime
+  date_deconnexion datetime
+  actif boolean
+}
+
+Table Password_Reset {
+  id_reset serial [pk]
+  id_user int [ref: > Utilisateur.id_user]
+  token varchar
+  date_creation datetime
+  date_expiration datetime
+  utilise boolean
+}
+
+Table Log_Activite {
+  id_log serial [pk]
+  id_user int [ref: > Utilisateur.id_user]
+  action actionType
+  cible cibleType
+  id_cible int
+  details text
+  ip_client varchar
+  date_action datetime
+}
