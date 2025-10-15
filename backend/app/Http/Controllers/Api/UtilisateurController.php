@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Validation\Rule;
 
 class UtilisateurController extends Controller
 {
@@ -22,13 +23,30 @@ class UtilisateurController extends Controller
      */
     public function store(Request $request)
     {
-        $utilisateurs = DB::select('SELECT * FROM ajouter_utilisateur(?, ?, ?, ?, ?)', [
-            $request->input('nom'),
-            $request->input('email'),
-            Hash::make($request->input('mot_de_passe')),
-            $request->input('telephone'),
-            $request->input('userState'),
+        $validated = $request->validate([
+            'nom' => 'required|string|max:100',
+            'email' => [
+                'required',
+                'email',
+                'max:255',
+                'unique:Utilisateur,email_user'
+            ],
+            'mot_de_passe' => 'required|string|min:6|max:255',
+            'telephone' => [
+                'required',
+                'regex:/^\+?[0-9\s\-()]{7,20}$/'
+            ],
+            'userState' => 'required|in:actif,inactif,suspendu',
         ]);
+
+        $utilisateurs = DB::select('SELECT * FROM ajouter_utilisateur(?, ?, ?, ?, ?)', [
+            $validated['nom'],
+            $validated['email'],
+            Hash::make($validated['mot_de_passe']),
+            $validated['telephone'],
+            $validated['userState'],
+        ]);
+
         return response()->json($utilisateurs, 201);
     }
 
@@ -51,13 +69,29 @@ class UtilisateurController extends Controller
      */
     public function update(Request $request, string $id)
     {
+        $validated = $request->validate([
+            'nom_user' => 'required|string|max:100',
+            'email_user' => [
+                'required',
+                'email',
+                'max:255',
+                Rule::unique('Utilisateur', 'email_user')->ignore($id, 'id_user')
+            ],
+            'num_user' => [
+                'required',
+                'regex:/^\+?[0-9\s\-()]{7,20}$/'
+            ],
+            'statut_account' => 'required|in:actif,inactif,suspendu',
+        ]);
+
         $utilisateurs = DB::select('SELECT * FROM modifier_utilisateur(?, ?, ?, ?, ?)', [
             $id,
-            $request->input('nom_user'),
-            $request->input('email_user'),
-            $request->input('num_user'),
-            $request->input('statut_account'),
+            $validated['nom_user'],
+            $validated['email_user'],
+            $validated['num_user'],
+            $validated['statut_account'],
         ]);
+
         return response()->json($utilisateurs);
     }
 
