@@ -87,11 +87,11 @@ class UtilisateurCRUDTest extends TestCase
     public function testCreationUser()
     {
         $response = $this->post('/api/utilisateurs', [
-            'nom_user' => 'Test User',
-            'email_user' => 'test@gmail.com',
-            'password_user' => Hash::make('password123'),
-            'num_user' => '1234567890',
-            'statut_account' => 'actif',
+            'nom' => 'Test User',
+            'email' => 'test@gmail.com',
+            'mot_de_passe' => Hash::make('password123'),
+            'telephone' => '1234567890',
+            'userState' => 'actif',
         ]);
 
         $response->assertStatus(201);
@@ -116,7 +116,7 @@ class UtilisateurCRUDTest extends TestCase
         $response = $this->put("/api/utilisateurs/{$user}", [
             'nom_user' => 'Nouveau Nom',
             'email_user' => 'nouveau@mail.com',
-            'num_user' => '999999',
+            'num_user' => '690000001',
             'statut_account' => 'actif',
         ]);
 

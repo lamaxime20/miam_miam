@@ -47,8 +47,8 @@ RETURNS TABLE (
 BEGIN
     RETURN QUERY
     SELECT *
-    FROM utilisateur
-    WHERE id_user = p_id;
+    FROM utilisateur u
+    WHERE u.id_user = p_id;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -82,7 +82,6 @@ CREATE OR REPLACE FUNCTION modifier_utilisateur(
     p_id INT,
     p_nom Name DEFAULT NULL,
     p_email Email DEFAULT NULL,
-    p_password Motpasse DEFAULT NULL,
     p_num Telephone DEFAULT NULL,
     p_statut userState DEFAULT NULL
 )
@@ -92,7 +91,6 @@ BEGIN
     SET
         nom_user = COALESCE(p_nom, nom_user),
         email_user = COALESCE(p_email, email_user),
-        password_user = COALESCE(p_password, password_user),
         num_user = COALESCE(p_num, num_user),
         statut_account = COALESCE(p_statut, statut_account),
         updated_at = CURRENT_TIMESTAMP

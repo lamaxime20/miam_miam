@@ -22,7 +22,14 @@ class UtilisateurController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $utilisateurs = DB::select('SELECT * FROM ajouter_utilisateur(?, ?, ?, ?, ?)', [
+            $request->input('nom'),
+            $request->input('email'),
+            Hash::make($request->input('mot_de_passe')),
+            $request->input('telephone'),
+            $request->input('userState'),
+        ]);
+        return response()->json($utilisateurs, 201);
     }
 
     /**
@@ -30,7 +37,13 @@ class UtilisateurController extends Controller
      */
     public function show(string $id)
     {
-        //
+        $utilisateurs = DB::select('SELECT * FROM obtenir_utilisateur_par_id(?)', [$id]);
+        if (empty($utilisateurs)) {
+            return response()->json(['message' => 'Utilisateur non trouvé'], 404);
+        }
+
+        // Renvoie directement le premier élément du tableau
+        return response()->json($utilisateurs[0]);
     }
 
     /**
@@ -38,7 +51,14 @@ class UtilisateurController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        //
+        $utilisateurs = DB::select('SELECT * FROM modifier_utilisateur(?, ?, ?, ?, ?)', [
+            $id,
+            $request->input('nom_user'),
+            $request->input('email_user'),
+            $request->input('num_user'),
+            $request->input('statut_account'),
+        ]);
+        return response()->json($utilisateurs);
     }
 
     /**
@@ -46,6 +66,7 @@ class UtilisateurController extends Controller
      */
     public function destroy(string $id)
     {
-        //
+        $utilisateurs = DB::select('SELECT * FROM supprimer_utilisateur(?)', [$id]);
+        return response()->json($utilisateurs);
     }
 }
