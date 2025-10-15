@@ -59,3 +59,51 @@ If you discover a security vulnerability within Laravel, please send an e-mail t
 ## License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+
+
+
+
+Groupe 2
+
+# 1️⃣ Créer un nouveau projet Laravel
+composer create-project laravel/laravel backend
+# → Télécharge Laravel et crée le dossier 'backend' avec toutes les dépendances
+
+# 2️⃣ Se déplacer dans le dossier du projet
+cd backend
+# → On se place dans le dossier du projet pour lancer les commandes Laravel
+
+# 3️⃣ Créer le modèle et la migration pour l'entité Utilisateur
+php artisan make:model Utilisateur -m
+# → Crée le modèle 'Utilisateur' et un fichier de migration pour la table
+
+# 4️⃣ Créer le contrôleur API pour Utilisateur
+php artisan make:controller Api/UtilisateurController --api
+# → Crée le contrôleur avec les méthodes REST (index, store, show, update, destroy)
+
+# 5️⃣ Lancer les migrations (crée la table Utilisateur dans PostgreSQL)
+php artisan migrate
+# → Exécute les migrations et crée les tables dans la base configurée dans .env
+
+# 6️⃣ Lancer le serveur intégré Laravel
+php artisan serve
+# → Démarre un serveur local sur http://127.0.0.1:8000
+
+# 7️⃣ Lancer tous les tests
+php artisan test
+# → Exécute tous les tests dans 'tests/' et affiche le résultat
+
+# 8️⃣ Lancer un fichier de test spécifique
+php artisan test tests/Feature/UtilisateurCRUDTest.php
+# → Exécute uniquement les tests de ce fichier
+
+# 9️⃣ Lancer une méthode spécifique d’un test
+php artisan test --filter=testUpdateUser
+# → Exécute uniquement la méthode 'testUpdateUser' dans tous les fichiers de test
+
+# 10️⃣ Commandes SQL pour PostgreSQL (via psql ou PgAdmin)
+# Créer la base de test pour TDD
+CREATE DATABASE laravel_test;
+
+# Exemple d’insertion d’un utilisateur via fonction stockée (dans un test)
+SELECT ajouter_utilisateur('Alice Doe','alice@example.com','hashedpass','690000000','actif');

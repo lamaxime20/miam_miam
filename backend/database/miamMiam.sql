@@ -196,7 +196,7 @@ CREATE TABLE IF NOT EXISTS Favoris (
   CONSTRAINT favoris_cc0 PRIMARY KEY (id_menu, id_client),
   CONSTRAINT favoris_cr0 FOREIGN KEY (id_menu) REFERENCES Menu(id_menu) ON DELETE CASCADE,
   CONSTRAINT favoris_cr1 FOREIGN KEY (id_client) REFERENCES Client(id_user) ON DELETE CASCADE
-)
+);
 
 -- TABLE Commande
 CREATE TABLE IF NOT EXISTS Commande (
