@@ -89,6 +89,12 @@ php artisan migrate
 php artisan serve
 # → Démarre un serveur local sur http://127.0.0.1:8000
 
+# Faire un fichier test
+php artisan make:test UtilisateurCRUDTest
+
+# Faire les migrations avant les tests
+php artisan migrate --env=testing
+
 # 7️⃣ Lancer tous les tests
 php artisan test
 # → Exécute tous les tests dans 'tests/' et affiche le résultat

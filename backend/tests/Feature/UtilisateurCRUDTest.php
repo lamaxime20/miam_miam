@@ -17,7 +17,7 @@ class UtilisateurCRUDTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        DB::statement('DELETE FROM utilisateur');
+        DB::statement('DELETE FROM "Utilisateur"');
         DB::statement('ALTER SEQUENCE utilisateur_id_user_seq RESTART WITH 1');
     }
 
@@ -26,7 +26,7 @@ class UtilisateurCRUDTest extends TestCase
      */
     protected function tearDown(): void
     {
-        DB::statement('DELETE FROM utilisateur');
+        DB::statement('DELETE FROM "Utilisateur"');
         DB::statement('ALTER SEQUENCE utilisateur_id_user_seq RESTART WITH 1');
         parent::tearDown();
     }
@@ -96,7 +96,7 @@ class UtilisateurCRUDTest extends TestCase
 
         $response->assertStatus(201);
 
-        $this->assertDatabaseHas('utilisateur', [
+        $this->assertDatabaseHas('Utilisateur', [
             'email_user' => 'test@gmail.com'
         ]);
     }
@@ -122,7 +122,7 @@ class UtilisateurCRUDTest extends TestCase
 
         $response->assertStatus(200);
 
-        $this->assertDatabaseHas('utilisateur', [
+        $this->assertDatabaseHas('Utilisateur', [
             'id_user' => $user,
             'nom_user' => 'Nouveau Nom',
             'email_user' => 'nouveau@mail.com',
@@ -145,7 +145,7 @@ class UtilisateurCRUDTest extends TestCase
         $response = $this->delete("/api/utilisateurs/{$user}");
         $response->assertStatus(200);
 
-        $this->assertDatabaseMissing('utilisateur', [
+        $this->assertDatabaseMissing('Utilisateur', [
             'id_user' => $user
         ]);
     }

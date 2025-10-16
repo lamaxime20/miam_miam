@@ -16,7 +16,7 @@ RETURNS INT AS $$
 DECLARE
     v_id_user INT;
 BEGIN
-    INSERT INTO utilisateur (
+    INSERT INTO "Utilisateur" (
         nom_user, email_user, password_user, num_user,
         date_inscription, last_connexion, statut_account
     )
@@ -47,7 +47,7 @@ RETURNS TABLE (
 BEGIN
     RETURN QUERY
     SELECT *
-    FROM utilisateur u
+    FROM "Utilisateur" u
     WHERE u.id_user = p_id;
 END;
 $$ LANGUAGE plpgsql;
@@ -70,7 +70,7 @@ RETURNS TABLE (
 BEGIN
     RETURN QUERY
     SELECT *
-    FROM utilisateur
+    FROM "Utilisateur"
     ORDER BY id_user ASC;
 END;
 $$ LANGUAGE plpgsql;
@@ -87,7 +87,7 @@ CREATE OR REPLACE FUNCTION modifier_utilisateur(
 )
 RETURNS VOID AS $$
 BEGIN
-    UPDATE utilisateur
+    UPDATE "Utilisateur"
     SET
         nom_user = COALESCE(p_nom, nom_user),
         email_user = COALESCE(p_email, email_user),
@@ -104,7 +104,7 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION supprimer_utilisateur(p_id INT)
 RETURNS VOID AS $$
 BEGIN
-    DELETE FROM utilisateur
+    DELETE FROM "Utilisateur"
     WHERE id_user = p_id;
 END;
 $$ LANGUAGE plpgsql;
