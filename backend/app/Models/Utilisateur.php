@@ -9,7 +9,7 @@ class Utilisateur extends Model
 {
     use HasFactory;
 
-    protected $table = '"Utilisateur"';       // Nom exact de ta table
+    protected $table = 'Utilisateur';       // Nom exact de ta table
     protected $primaryKey = 'id_user';      // Clé primaire personnalisée
     public $incrementing = true;            // La PK est auto-incrémentée (SERIAL)
     protected $keyType = 'int';             // Type entier pour la PK
