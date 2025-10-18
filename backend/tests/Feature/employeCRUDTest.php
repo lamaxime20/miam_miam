@@ -8,9 +8,22 @@ use Illuminate\Support\Facades\DB;
 
 class EmployeCRUDTest extends TestCase
 {
-    public function test_creation_employe()
+    protected function setUp(): void
     {
-        $user = Utilisateur::create([
+        parent::setUp();
+        DB::statement('DELETE FROM employe');
+        DB::statement('DELETE FROM "Utilisateur"');
+    }
+
+    protected function tearDown(): void
+    {
+        DB::statement('DELETE FROM employe');
+        DB::statement('DELETE FROM "Utilisateur"');
+        parent::tearDown();
+    }
+    
+    private function creer_utilisateur(){
+        return Utilisateur::create([
             'nom_user' => 'Employe Test',
             'email_user' => 'employe@test.com',
             'password_user' => 'emp1234',
@@ -19,6 +32,11 @@ class EmployeCRUDTest extends TestCase
             'last_connexion' => now(),
             'statut_account' => 'actif'
         ]);
+    }
+
+    public function test_creation_employe()
+    {
+        $user = $this->creer_utilisateur();
 
         $response = $this->postJson('/api/employe', [
             'id_user' => $user->id_user
@@ -29,6 +47,7 @@ class EmployeCRUDTest extends TestCase
 
     public function test_lecture_employes()
     {
+        $this->creer_utilisateur();
         $response = $this->getJson('/api/employe');
         $response->assertStatus(200);
         $response->assertJsonStructure([
@@ -38,6 +57,7 @@ class EmployeCRUDTest extends TestCase
 
     public function test_suppression_employe()
     {
+        $this->creer_utilisateur();
         $employe = DB::table('employe')->first();
         $response = $this->deleteJson("/api/employe/{$employe->id_user}");
         $response->assertStatus(200);
