@@ -8,9 +8,22 @@ use Illuminate\Support\Facades\DB;
 
 class GerantCRUDTest extends TestCase
 {
-    public function test_creation_gerant()
+    protected function setUp(): void
     {
-        $user = Utilisateur::create([
+        parent::setUp();
+        DB::statement('DELETE FROM gerant');
+        DB::statement('DELETE FROM "Utilisateur"');
+    }
+
+    protected function tearDown(): void
+    {
+        DB::statement('DELETE FROM gerant');
+        DB::statement('DELETE FROM "Utilisateur"');
+        parent::tearDown();
+    }
+
+    private function creer_User(){
+        return Utilisateur::create([
             'nom_user' => 'Gerant Test',
             'email_user' => 'gerant@test.com',
             'password_user' => 'gerant123',
@@ -19,7 +32,11 @@ class GerantCRUDTest extends TestCase
             'last_connexion' => now(),
             'statut_account' => 'actif'
         ]);
+    }
 
+    public function test_creation_gerant()
+    {
+        $user = $this->creer_User();
         $response = $this->postJson('/api/gerant', [
             'id_user' => $user->id_user
         ]);
@@ -29,16 +46,17 @@ class GerantCRUDTest extends TestCase
 
     public function test_lecture_gerants()
     {
+        $this->creer_User();
         $response = $this->getJson('/api/gerant');
         $response->assertStatus(200);
-        $response->assertJsonStructure(
-            [
-                '*' => ['id_user']
-            ]);
+        $response->assertJsonStructure([
+            '*' => ['id_user']
+        ]);
     }
 
     public function test_suppression_gerant()
     {
+        $this->creer_User();
         $gerant = DB::table('gerant')->first();
         $response = $this->deleteJson("/api/gerant/{$gerant->id_user}");
         $response->assertStatus(200);
