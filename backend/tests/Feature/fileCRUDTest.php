@@ -4,9 +4,31 @@ namespace Tests\Feature;
 
 use Tests\TestCase;
 use App\Models\File;
+use Illuminate\Support\Facades\DB;
 
 class FileCRUDTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+        DB::statement('DELETE FROM file'); // Clear the files table before each test
+    }
+
+    protected function tearDown(): void
+    {
+        DB::statement('DELETE FROM file'); // Clear the files table after each test
+        parent::tearDown();
+    }
+
+    private function creerFileTest()
+    {
+        return File::create([
+            'nom_fichier' => 'test_file',
+            'extension' => 'txt',
+            'chemin' => '/uploads/test_file.txt',
+        ]);
+    }
+
     public function testCreationFile()
     {
         $data = [
@@ -24,6 +46,7 @@ class FileCRUDTest extends TestCase
 
     public function testGetAllFiles()
     {
+        $this->creerFileTest(); // Ensure at least one file exists for testing
         $response = $this->getJson('/api/files');
         $response->assertStatus(200);
         $response->assertJsonStructure([
@@ -38,6 +61,7 @@ class FileCRUDTest extends TestCase
 
     public function testGetOneFile()
     {
+        $this->creerFileTest(); // Ensure at least one file exists for testing
         $file = File::first();
         $response = $this->getJson("/api/files/{$file->id_File}");
         $response->assertStatus(200);
@@ -51,6 +75,7 @@ class FileCRUDTest extends TestCase
 
     public function testUpdateFile()
     {
+        $this->creerFileTest(); // Ensure at least one file exists for testing
         $file = File::first();
         $response = $this->putJson("/api/files/{$file->id_File}", [
             'chemin' => '/uploads/updated_logo.png',
