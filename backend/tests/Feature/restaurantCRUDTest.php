@@ -7,9 +7,59 @@ use App\Models\Restaurant;
 use App\Models\Administrateur;
 use App\Models\Utilisateur;
 use App\Models\File;
+use Illuminate\Support\Facades\DB;
 
 class RestaurantCRUDTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+        DB::statement('DELETE FROM restaurant');
+        DB::statement('DELETE FROM administrateur');
+        DB::statement('DELETE FROM "Utilisateur"');
+        DB::statement('DELETE FROM file');
+    }
+
+    protected function tearDown(): void
+    {
+        DB::statement('DELETE FROM restaurant');
+        DB::statement('DELETE FROM administrateur');
+        DB::statement('DELETE FROM "Utilisateur"');
+        DB::statement('DELETE FROM file');
+        parent::tearDown();
+    }
+
+    private function creer_restaurant(){
+        $adminUser = Utilisateur::create([
+            'nom_user' => 'AdminRestau',
+            'email_user' => 'admin@restau.com',
+            'password_user' => bcrypt('123456'),
+            'num_user' => '+237690000003',
+            'date_inscription' => now(),
+            'last_connexion' => now(),
+            'statut_account' => 'actif',
+        ]);
+
+        DB::table('administrateur')->insert([
+            'id_user' => $adminUser->id_user,
+        ]);
+
+        $fileId = DB::table('file')->insertGetId([
+            'nom_fichier' => 'logo_restau',
+            'extension' => 'jpg',
+            'chemin' => '/uploads/resto.jpg',
+        ], 'id_File');
+
+        return Restaurant::create([
+            'nom_restaurant' => 'Le Gourmet',
+            'localisation' => 'Douala Bonapriso',
+            'type_localisation' => 'googleMap',
+            'logo_restaurant' => $fileId,
+            'politique' => 'Satisfait ou remboursé',
+            'administrateur' => $adminUser->id_user,
+        ]);
+    }
+
     public function testCreationRestaurant()
     {
         $adminUser = Utilisateur::create([
@@ -22,14 +72,21 @@ class RestaurantCRUDTest extends TestCase
             'statut_account' => 'actif',
         ]);
 
-        Administrateur::create(['id_user' => $adminUser->id_user]);
-        $file = File::create(['nom_fichier' => 'logo_restau', 'extension' => 'jpg', 'chemin' => '/uploads/resto.jpg']);
+        DB::table('administrateur')->insert([
+            'id_user' => $adminUser->id_user,
+        ]);
+
+        $fileId = DB::table('file')->insertGetId([
+            'nom_fichier' => 'logo_restau',
+            'extension' => 'jpg',
+            'chemin' => '/uploads/resto.jpg',
+        ], 'id_File');
 
         $data = [
             'nom_restaurant' => 'Le Gourmet',
             'localisation' => 'Douala Bonapriso',
             'type_localisation' => 'googleMap',
-            'logo_restaurant' => $file->id_File,
+            'logo_restaurant' => $fileId,
             'politique' => 'Satisfait ou remboursé',
             'administrateur' => $adminUser->id_user,
         ];
@@ -41,6 +98,7 @@ class RestaurantCRUDTest extends TestCase
 
     public function testGetAllRestaurants()
     {
+        $this->creer_restaurant();
         $response = $this->getJson('/api/restaurants');
         $response->assertStatus(200);
         $response->assertJsonStructure([
@@ -50,6 +108,7 @@ class RestaurantCRUDTest extends TestCase
 
     public function testGetOneRestaurant()
     {
+        $this->creer_restaurant();
         $resto = Restaurant::first();
         $response = $this->getJson("/api/restaurants/{$resto->id_restaurant}");
         $response->assertStatus(200);
@@ -58,6 +117,7 @@ class RestaurantCRUDTest extends TestCase
 
     public function testUpdateRestaurant()
     {
+        $this->creer_restaurant();
         $resto = Restaurant::first();
         $response = $this->putJson("/api/restaurants/{$resto->id_restaurant}", ['politique' => 'Politique mise à jour']);
         $response->assertStatus(200);
@@ -66,6 +126,7 @@ class RestaurantCRUDTest extends TestCase
 
     public function testDeleteRestaurant()
     {
+        $this->creer_restaurant();
         $resto = Restaurant::first();
         $response = $this->deleteJson("/api/restaurants/{$resto->id_restaurant}");
         $response->assertStatus(204);
