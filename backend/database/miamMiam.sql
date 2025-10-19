@@ -292,7 +292,7 @@ CREATE TABLE IF NOT EXISTS Choisir_Menu_Jour (
   id_menu INT NOT NULL,
   id_employe INT NOT NULL,
   date_jour DATE NOT NULL,
-  CONSTRAINT choisir_menu_jour_cc0 PRIMARY KEY (id_employe, id_menu, date_jour),
+  CONSTRAINT choisir_menu_jour_cc0 PRIMARY KEY (id_menu, date_jour),
   CONSTRAINT choisir_menu_jour_cr0 FOREIGN KEY (id_menu) REFERENCES Menu(id_menu) ON DELETE CASCADE,
   CONSTRAINT choisir_menu_jour_cr1 FOREIGN KEY (id_employe) REFERENCES Employe(id_user) ON DELETE CASCADE
 );
