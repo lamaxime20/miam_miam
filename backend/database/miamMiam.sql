@@ -66,7 +66,7 @@ CREATE DOMAIN actionType AS VARCHAR(100)
 
 CREATE DOMAIN cibleType AS VARCHAR(100)
   CHECK (VALUE IN (
-    'Utilisateur',
+    '"Utilisateur"',
     'Client',
     'Gerant',
     'Employe',
@@ -87,8 +87,8 @@ CREATE DOMAIN cibleType AS VARCHAR(100)
 -- ################### TABLES ######################
 -- ##################################################
 
--- TABLE Utilisateur
-CREATE TABLE IF NOT EXISTS Utilisateur (
+-- TABLE "Utilisateur"
+CREATE TABLE IF NOT EXISTS "Utilisateur" (
   id_user SERIAL NOT NULL,
   nom_user Name NOT NULL,
   email_user Email NOT NULL,
@@ -110,29 +110,29 @@ CREATE TABLE IF NOT EXISTS Client (
   parrain INT,
   CONSTRAINT client_cc0 PRIMARY KEY (id_user),
   CONSTRAINT client_cc1 UNIQUE (code_parrainage),
-  CONSTRAINT client_cr0 FOREIGN KEY (id_user) REFERENCES Utilisateur(id_user) ON DELETE CASCADE,
-  CONSTRAINT client_cr1 FOREIGN KEY (parrain) REFERENCES Utilisateur(id_user) ON DELETE SET NULL
+  CONSTRAINT client_cr0 FOREIGN KEY (id_user) REFERENCES "Utilisateur"(id_user) ON DELETE CASCADE,
+  CONSTRAINT client_cr1 FOREIGN KEY (parrain) REFERENCES "Utilisateur"(id_user) ON DELETE SET NULL
 );
 
 -- TABLE Administrateur
 CREATE TABLE IF NOT EXISTS Administrateur (
   id_user INT NOT NULL,
   CONSTRAINT administrateur_cc0 PRIMARY KEY (id_user),
-  CONSTRAINT administrateur_cr0 FOREIGN KEY (id_user) REFERENCES Utilisateur(id_user) ON DELETE CASCADE
+  CONSTRAINT administrateur_cr0 FOREIGN KEY (id_user) REFERENCES "Utilisateur"(id_user) ON DELETE CASCADE
 );
 
 -- TABLE Gerant
 CREATE TABLE IF NOT EXISTS Gerant (
   id_user INT NOT NULL,
   CONSTRAINT gerant_cc0 PRIMARY KEY (id_user),
-  CONSTRAINT gerant_cr0 FOREIGN KEY (id_user) REFERENCES Utilisateur(id_user) ON DELETE CASCADE
+  CONSTRAINT gerant_cr0 FOREIGN KEY (id_user) REFERENCES "Utilisateur"(id_user) ON DELETE CASCADE
 );
 
 -- TABLE Employe
 CREATE TABLE IF NOT EXISTS Employe (
   id_user INT NOT NULL,
   CONSTRAINT employe_cc0 PRIMARY KEY (id_user),
-  CONSTRAINT employe_cr0 FOREIGN KEY (id_user) REFERENCES Utilisateur(id_user) ON DELETE CASCADE
+  CONSTRAINT employe_cr0 FOREIGN KEY (id_user) REFERENCES "Utilisateur"(id_user) ON DELETE CASCADE
 );
 
 -- TABLE Livreur
@@ -140,7 +140,7 @@ CREATE TABLE IF NOT EXISTS Livreur (
   id_user INT NOT NULL,
   code_payement VARCHAR(100),
   CONSTRAINT livreur_cc0 PRIMARY KEY (id_user),
-  CONSTRAINT livreur_cr0 FOREIGN KEY (id_user) REFERENCES Utilisateur(id_user) ON DELETE CASCADE
+  CONSTRAINT livreur_cr0 FOREIGN KEY (id_user) REFERENCES "Utilisateur"(id_user) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS File (
@@ -218,7 +218,7 @@ CREATE TABLE IF NOT EXISTS Bon_commande (
   validateur INT NOT NULL,
   commande_associe INT NOT NULL,
   CONSTRAINT bon_commande_cc0 PRIMARY KEY (id_bon),
-  CONSTRAINT bon_commande_cr0 FOREIGN KEY (validateur) REFERENCES Utilisateur(id_user) ON DELETE CASCADE,
+  CONSTRAINT bon_commande_cr0 FOREIGN KEY (validateur) REFERENCES "Utilisateur"(id_user) ON DELETE CASCADE,
   CONSTRAINT bon_commande_cr1 FOREIGN KEY (commande_associe) REFERENCES Commande(id_commande) ON DELETE CASCADE
 );
 
@@ -273,7 +273,7 @@ CREATE TABLE IF NOT EXISTS Reponse (
   message_reponse TEXT NOT NULL,
   CONSTRAINT reponse_cc0 PRIMARY KEY (id_reponse),
   CONSTRAINT reponse_cr0 FOREIGN KEY (reclamation_cible) REFERENCES Reclamation(id_reclamation) ON DELETE CASCADE,
-  CONSTRAINT reponse_cr1 FOREIGN KEY (auteur) REFERENCES Utilisateur(id_user) ON DELETE CASCADE
+  CONSTRAINT reponse_cr1 FOREIGN KEY (auteur) REFERENCES "Utilisateur"(id_user) ON DELETE CASCADE
 );
 
 -- TABLE Noter
@@ -392,7 +392,7 @@ CREATE TABLE IF NOT EXISTS Cible_Notifications (
   ouvert BOOLEAN DEFAULT FALSE,
   CONSTRAINT cible_notifications_cc0 PRIMARY KEY(id_notification, id_cible),
   CONSTRAINT cible_notifications_cr0 FOREIGN KEY(id_notification) REFERENCES Notifications(id_notification),
-  CONSTRAINT cible_notifications_cr1 FOREIGN KEY(id_cible) REFERENCES Utilisateur(id_user)
+  CONSTRAINT cible_notifications_cr1 FOREIGN KEY(id_cible) REFERENCES "Utilisateur"(id_user)
 );
 
 -- Table CONSENTEMENT : enregistre les validations RGPD (cookies, confidentialité, etc.)
@@ -405,7 +405,7 @@ CREATE TABLE IF NOT EXISTS Consentement (
   date_action TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   ip_client VARCHAR(50),
   user_agent TEXT,                          -- navigateur utilisé (facultatif)
-  CONSTRAINT consentement_cr0 FOREIGN KEY (id_user) REFERENCES Utilisateur(id_user) ON DELETE SET NULL
+  CONSTRAINT consentement_cr0 FOREIGN KEY (id_user) REFERENCES "Utilisateur"(id_user) ON DELETE SET NULL
 );
 
 -- Nécessite l’extension UUID pour les identifiants uniques de session
@@ -422,7 +422,7 @@ CREATE TABLE IF NOT EXISTS Session (
   date_connexion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   date_deconnexion TIMESTAMP,
   actif BOOLEAN DEFAULT TRUE,                              -- TRUE = session ouverte
-  CONSTRAINT session_cr0 FOREIGN KEY (id_user) REFERENCES Utilisateur(id_user) ON DELETE CASCADE
+  CONSTRAINT session_cr0 FOREIGN KEY (id_user) REFERENCES "Utilisateur"(id_user) ON DELETE CASCADE
 );
 
 -- Table PASSWORD_RESET : gestion des liens temporaires pour réinitialisation
@@ -433,7 +433,7 @@ CREATE TABLE IF NOT EXISTS Password_Reset (
   date_creation TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   date_expiration TIMESTAMP NOT NULL,          -- durée de validité (ex : 15 min ou 1h)
   utilise BOOLEAN DEFAULT FALSE,               -- TRUE après usage du lien
-  CONSTRAINT password_reset_cr0 FOREIGN KEY (id_user) REFERENCES Utilisateur(id_user) ON DELETE CASCADE,
+  CONSTRAINT password_reset_cr0 FOREIGN KEY (id_user) REFERENCES "Utilisateur"(id_user) ON DELETE CASCADE,
   CONSTRAINT password_reset_ck0 CHECK (date_expiration > date_creation)
 );
 
@@ -442,10 +442,10 @@ CREATE TABLE IF NOT EXISTS Log_Activite (
   id_log SERIAL PRIMARY KEY,
   id_user INT,
   action actionType NOT NULL,               -- ex : 'connexion', 'ajout_menu', 'suppression_compte'
-  cible cibleType NOT NULL,                         -- ex : 'Menu', 'Utilisateur', 'Commande'
+  cible cibleType NOT NULL,                         -- ex : 'Menu', '"Utilisateur"', 'Commande'
   id_cible INT,                               -- identifiant de l’objet concerné
   details TEXT,                               -- infos complémentaires
   ip_client VARCHAR(50),
   date_action TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT log_activite_cr0 FOREIGN KEY (id_user) REFERENCES Utilisateur(id_user) ON DELETE SET NULL
+  CONSTRAINT log_activite_cr0 FOREIGN KEY (id_user) REFERENCES "Utilisateur"(id_user) ON DELETE SET NULL
 );

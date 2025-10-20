@@ -1,5 +1,5 @@
 -- =====================================================
--- TRIGGER : Créer automatiquement un Client après insertion d'un Utilisateur
+-- TRIGGER : Créer automatiquement un Client après insertion d'un "Utilisateur"
 -- =====================================================
 
 -- Étape 1 : Fonction du trigger
@@ -20,8 +20,8 @@ END;
 $$ LANGUAGE plpgsql;
 
 
--- Étape 2 : Trigger lié à la table Utilisateur
+-- Étape 2 : Trigger lié à la table "Utilisateur"
 CREATE TRIGGER trig_creer_client_auto
-AFTER INSERT ON Utilisateur
+AFTER INSERT ON "Utilisateur"
 FOR EACH ROW
 EXECUTE FUNCTION creer_client_auto();
