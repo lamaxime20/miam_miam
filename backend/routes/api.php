@@ -16,3 +16,8 @@ Route::get('/administrateurs/{id}', [administrateurController::class, 'show']);
 Route::post('/administrateurs', [administrateurController::class, 'store']);
 Route::put('/administrateurs/{id}', [administrateurController::class, 'update']);
 Route::delete('/administrateurs/{id}', [administrateurController::class, 'destroy']);
+
+Route::get('/favoris', [App\Http\Controllers\Api\favorisController::class, 'index']);
+Route::get('/favoris/{id_menu}/{id_client}', [App\Http\Controllers\Api\favorisController::class, 'show']);
+Route::post('/favoris', [App\Http\Controllers\Api\favorisController::class, 'store']);
+Route::delete('/favoris/{id_menu}/{id_client}', [App\Http\Controllers\Api\favorisController::class, 'destroy']);
