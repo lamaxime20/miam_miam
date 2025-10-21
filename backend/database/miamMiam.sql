@@ -370,9 +370,11 @@ CREATE TABLE IF NOT EXISTS Historique_fidelite (
   id_client INT NOT NULL,
   changement INT NOT NULL, -- positif ou négatif
   raison VARCHAR(255) NOT NULL,
+  restaurant INT NOT NULL,
   date_changement TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT histo_fidelite_cc0 PRIMARY KEY(id_historique),
-  CONSTRAINT histo_fidelite_cr0 FOREIGN KEY (id_client) REFERENCES Client(id_user) ON DELETE CASCADE
+  CONSTRAINT histo_fidelite_cr0 FOREIGN KEY (id_client) REFERENCES Client(id_user) ON DELETE CASCADE,
+  CONSTRAINT histo_fidelite_cr1 FOREIGN KEY (restaurant) REFERENCES Restaurant(id_restaurant) ON DELETE CASCADE
 );
 
 -- Table Notifications
