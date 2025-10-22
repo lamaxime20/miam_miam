@@ -1,0 +1,569 @@
+:root {
+    --primary-color: #cfbd97;
+    --secondary-color: #000000;
+    --error-color: #dc3545;
+    --input-border: #ccc;
+    --input-focus-shadow: rgba(207, 189, 151, 0.5);
+    --button-hover-shadow: rgba(207, 189, 151, 0.3);
+}
+
+html, body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden; /* supprime la scrollbar */
+    width: 100%;
+    height: 100%;
+}
+
+/* === Bouton "Se connecter" === */
+.signup-login-btn {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  background-color: var(--primary-color);
+  color: var(--secondary-color);
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 10px rgba(207, 189, 151, 0.3);
+  z-index: 1000;
+}
+
+/* Effet au survol */
+.signup-login-btn:hover {
+  background-color: #bba984; /* Doré légèrement plus foncé */
+  color: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(207, 189, 151, 0.45);
+}
+
+/* === Signup — harmonisé avec le thème === */
+.signup-container {
+    display: flex;
+    justify-content: center;      /* centre horizontalement */
+    align-items: center;          /* centre verticalement */
+    min-height: 100vh;            /* hauteur plein écran */
+    padding: 1rem;
+    box-sizing: border-box;
+    background-color: var(--secondary-color); /* fond principal (noir) */
+}
+
+/* Card du formulaire */
+.signup-form-name-container {
+    background-color: #fff;
+    color: var(--secondary-color);
+    padding: 2rem;
+    border-radius: 15px;
+    box-shadow: 0 12px 30px rgba(207, 189, 151, 0.12); /* ombre dorée douce */
+    max-width: 520px;
+    width: 90%;
+    margin: 0 1rem;
+    text-align: center;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+/* Structure des champs */
+.signup-form-group {
+    margin-bottom: 1.25rem;
+    text-align: left;
+}
+
+.signup-form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: var(--secondary-color);
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+/* Inputs */
+.signup-form-group input {
+    width: 100%;
+    padding: 0.8rem 1rem;
+    border: 1px solid var(--input-border);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--secondary-color);
+    box-sizing: border-box;
+    transition: border-color 0.25s ease, box-shadow 0.25s ease;
+    font-size: 1rem;
+}
+
+.signup-form-group input::placeholder {
+    color: #a9a9a9;
+}
+
+.signup-form-group input:focus,
+.signup-form-group input:focus-visible {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 8px var(--input-focus-shadow);
+}
+
+/* Message d'erreur */
+.signup-error-message {
+    color: var(--error-color);
+    font-size: 0.875rem;
+    margin-top: 0.35rem;
+    min-height: 1em; /* évite les sauts de layout */
+}
+
+/* Container bouton */
+.signup-button-container {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 1.5rem;
+    gap: 0.75rem;
+}
+
+/* Bouton principal */
+.signup-btn {
+    padding: 0.8rem 1.5rem;
+    margin-left: 27%;
+    border: none;
+    border-radius: 8px;
+    width: 40em;
+    background-color: var(--primary-color);
+    color: var(--secondary-color);
+    font-size: 1.05rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
+    box-shadow: 0 6px 14px rgba(207, 189, 151, 0.08);
+}
+
+/* Hover / focus */
+.signup-btn:hover {
+    background-color: #bba984;
+    transform: translateY(-3px);
+    box-shadow: 0 10px 20px rgba(207, 189, 151, 0.14);
+}
+.signup-btn:focus-visible {
+    outline: 3px solid rgba(207,189,151,0.18);
+    outline-offset: 2px;
+}
+
+/* Step indicator */
+.step-indicator {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 1.75rem;
+    gap: 0.5rem;
+}
+
+.step-indicator div {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: #e6e6e6;
+    transition: background-color 0.25s ease, transform 0.25s ease;
+}
+
+.step-indicator div.active {
+    background-color: var(--primary-color);
+    transform: scale(1.05);
+}
+
+/* === Signup Verification Form === */
+.signup-verification-form {
+    background-color: white;
+    padding: 2rem;
+    border-radius: 15px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    max-width: 500px;
+    width: 100%;
+    margin: auto;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.signup-verification-title {
+    color: var(--secondary-color);
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 2rem;
+}
+
+.signup-code-inputs {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.signup-code-box {
+    width: 3rem;
+    height: 3rem;
+    text-align: center;
+    font-size: 1.5rem;
+    border: 1px solid var(--input-border);
+    border-radius: 8px;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.signup-code-box:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 5px var(--input-focus-shadow);
+}
+
+.signup-form-buttons {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.signup-btn-previous,
+.signup-btn-next {
+    flex: 1;
+    padding: 0.8rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.signup-btn-previous {
+    background-color: #e0e0e0;
+    color: var(--secondary-color);
+}
+
+.signup-btn-previous:hover {
+    background-color: #ccc;
+    transform: translateY(-2px);
+}
+
+.signup-btn-next {
+    background-color: var(--primary-color);
+    color: var(--secondary-color);
+}
+
+.signup-btn-next:hover {
+    background-color: #bba984;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 10px var(--button-hover-shadow);
+}
+
+/* --- Signup Form Password --- */
+.signup-form-password-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh; /* centre verticalement */
+  width: 100%;
+}
+
+.signup-form-password {
+  background-color: #fff;
+  padding: 2.5rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.signup-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.signup-form-group label {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 0.3rem;
+}
+
+.password-wrapper {
+  position: relative;
+}
+
+.password-wrapper input {
+  width: 100%;
+  padding: 0.8rem 2.5rem 0.8rem 1rem;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: border-color 0.3s ease;
+}
+
+.password-wrapper input:focus {
+  border-color: #007bff;
+  outline: none;
+}
+
+.togglePassword {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  color: #666;
+  font-size: 1.1rem;
+  transition: color 0.3s ease;
+}
+
+.togglePassword:hover {
+  color: #007bff;
+}
+
+.signup-error-message {
+  color: #e74c3c;
+  font-size: 0.9rem;
+  margin-top: 0.3rem;
+}
+
+.signup-button-containers {
+  margin-top: 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+  max-width: 420px;
+}
+
+.signup-btns {
+  flex: 1;
+  padding: 0.9rem;
+  border: none;
+  border-radius: 8px;
+  color: var(--secondary-color);
+  font-size: 1.05rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.3s ease, transform 0.2s ease;
+}
+
+.signup-btns:hover {
+    background-color: #bba984;
+    transform: translateY(-3px);
+    box-shadow: 0 10px 20px rgba(207, 189, 151, 0.14);
+}
+.signup-btns:focus-visible {
+    outline: 3px solid rgba(207,189,151,0.18);
+    outline-offset: 2px;
+}
+
+/* === Conteneur principal centré === */
+.signup-form-password-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;       /* Centre horizontalement */
+  justify-content: center;   /* Centre verticalement */
+  min-height: 100vh;
+}
+
+/* === Le formulaire lui-même === */
+.signup-form-password {
+  background: #fff;
+  padding: 2.5rem;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(207, 189, 151, 0.4); /* Légère ombre dorée */
+  width: 100%;
+  max-width: 400px;
+}
+
+/* === Groupes de champs === */
+.signup-form-group {
+  margin-bottom: 1.5rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.signup-form-group label {
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: var(--secondary-color); /* Texte noir */
+}
+
+/* === Champs input + icône œil === */
+.password-wrapper {
+  position: relative;
+}
+
+.password-wrapper input {
+  width: 100%;
+  padding: 0.75rem 2.5rem 0.75rem 1rem;
+  border: 1px solid var(--primary-color);
+  border-radius: 6px;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.password-wrapper input:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 5px rgba(207, 189, 151, 0.6);
+}
+
+.togglePassword {
+  position: absolute;
+  right: 0.9rem;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  color: var(--primary-color);
+}
+
+/* === Message d’erreur === */
+.signup-error-message {
+  color: #ff4b4b;
+  font-size: 0.9rem;
+  margin-top: 0.3rem;
+}
+
+/* === Boutons === */
+.signup-button-container {
+  margin-top: 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 400px;
+}
+
+.signup-btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* === Bouton précédent === */
+.previous-btn {
+  background-color: #fff;
+  color: var(--secondary-color);
+  border: 1px solid var(--primary-color);
+}
+
+.previous-btn:hover {
+  background-color: var(--primary-color);
+  color: #fff;
+}
+
+/* === Bouton suivant === */
+.next-btn {
+  background-color: var(--primary-color);
+  color: var(--secondary-color);
+}
+
+.next-btn:hover {
+  background-color: #bda873; /* Variante légèrement plus foncée */
+  color: #fff;
+}
+
+/* === Conteneur principal === */
+.continue-create-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
+/* === Formulaire central === */
+.continue-create-form {
+  background: #fff;
+  padding: 2.5rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(207, 189, 151, 0.3); /* ombre dorée douce */
+  width: 20rem;
+  max-width: 500px;
+  height: 30vh;
+  text-align: center;
+}
+
+/* === Groupe du bouton principal === */
+.button-group {
+  margin-bottom: 1.5rem;
+  margin-top: 15%;
+}
+
+.continue-client-btn {
+  width: 100%;
+  background-color: var(--primary-color);
+  color: var(--secondary-color);
+  border: none;
+  border-radius: 6px;
+  padding: 0.9rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.continue-client-btn:hover {
+  background-color: #bda873; /* teinte dorée légèrement plus foncée */
+  color: #fff;
+  transform: translateY(-2px);
+}
+
+/* === Lien secondaire : création restaurant === */
+.link-group {
+  margin-top: 1rem;
+}
+
+.create-restaurant-link {
+  color: var(--primary-color);
+  font-weight: 500;
+  text-decoration: underline;
+  cursor: pointer;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.create-restaurant-link:hover {
+  color: #e2cf9e; /* variation plus claire du doré */
+  transform: scale(1.05);
+}
+
+/* Responsive Design */
+@media (max-width: 480px) {
+    .signup-form-name-container {
+        padding: 1.5rem;
+        width: 90%;
+        box-shadow: none;
+    }
+
+    .signup-btn {
+        width: 100%;
+        font-size: 1rem;
+        padding: 0.7rem;
+    }
+}
+
+
+
+/* Responsive design */
+@media (max-width: 480px) {
+    .signup-code-inputs {
+        gap: 0.5rem;
+    }
+
+    .signup-code-box {
+        width: 2.5rem;
+        height: 2.5rem;
+        font-size: 1.2rem;
+    }
+
+    .signup-form-buttons {
+        flex-direction: column;
+        gap: 0.8rem;
+    }
+
+    .signup-btn-previous,
+    .signup-btn-next {
+        font-size: 1rem;
+        padding: 0.7rem;
+    }
+}

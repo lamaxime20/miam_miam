@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { Routes, Route } from 'react-router-dom';
-import './App.css'
 import Login from './pages/login.jsx'
 import AcceuilStudent from './pages/etudiants/Acceuil.jsx'
 import Signup from './pages/signup.jsx'

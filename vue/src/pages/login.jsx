@@ -25,7 +25,7 @@ const Login = () => {
                         <span>email ou mot de passe incorrect</span>
                     </div>
                 </div>
-                <button type="button">Login</button>
+                <button className="login-btn" type="button">Login</button>
                 <div className="form-links">
                     <div className="signup-link">
                         <a href="/signup">Nouveau ?Créer un compte</a>

@@ -25,6 +25,7 @@ function SignupFormVerification({ onPrevious, onNext }) {
 
   const handleNext = () => {
     const validationErrors = validateVerificationCode(code);
+    console.log(validationErrors);
 
     if (Object.keys(validationErrors).length === 0) {
       onNext(); // ✅ passe à l’étape suivante
@@ -34,10 +35,10 @@ function SignupFormVerification({ onPrevious, onNext }) {
   };
 
   return (
-    <form className="verification-form" onSubmit={(e) => e.preventDefault()}>
-      <h2 className="verification-title">Vérification de l'email</h2>
+    <form className="signup-verification-form" onSubmit={(e) => e.preventDefault()}>
+      <h2 className="signup-verification-title">Vérification de l'email</h2>
 
-      <div className="code-inputs">
+      <div className="signup-code-inputs">
         {code.map((digit, index) => (
           <input
             key={index}
@@ -48,18 +49,18 @@ function SignupFormVerification({ onPrevious, onNext }) {
             value={digit}
             onChange={(e) => handleChange(e, index)}
             onKeyDown={(e) => handleKeyDown(e, index)}
-            className="code-box"
+            className="signup-code-box"
           />
         ))}
       </div>
 
-      {error && <p className="error-message">{error}</p>}
+      {error && <p className="signup-error-message">{error}</p>}
 
-      <div className="form-buttons">
-        <button type="button" className="btn-previous" onClick={onPrevious}>
+      <div className="signup-form-buttons">
+        <button type="button" className="signup-btn-previous" onClick={onPrevious}>
           Previous
         </button>
-        <button type="button" className="btn-next" onClick={handleNext}>
+        <button type="button" className="signup-btn-next" onClick={handleNext}>
           Next
         </button>
       </div>

@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { validateSignupFormName } from '../services/user';
+import { User } from '../services/user';
 
 const SignupFormName = ({ onNext }) => {
-    const [name, setName] = useState('');
-    const [email, setEmail] = useState('');
-    const [phone, setPhone] = useState('');
+    const [name, setName] = useState(User.name || '');
+    const [email, setEmail] = useState(User.email || '');
+    const [phone, setPhone] = useState(User.phone || '');
     const [errors, setErrors] = useState({});
 
     const handleNext = () => {
@@ -21,29 +22,30 @@ const SignupFormName = ({ onNext }) => {
 
     return (
         <div className="signup-form-name-container">
-        <form>
-            <div className="form-group">
-                <label htmlFor="name">Nom</label>
-                <input type="text" id="name" value={name} onChange={(e) => setName(e.target.value)} />
-                {errors.name && <p className="error-message">{errors.name}</p>}
-            </div>
+            <form>
+                <div className="signup-form-group">
+                    <label htmlFor="name">Nom</label>
+                    <input type="text" id="name" value={name} onChange={(e) => setName(e.target.value)} />
+                    {errors.name && <p className="signup-error-message">{errors.name}</p>}
+                </div>
 
-            <div className="form-group">
-                <label htmlFor="email">Email</label>
-                <input type="email" id="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-                {errors.email && <p className="error-message">{errors.email}</p>}
-            </div>
+                <div className="signup-form-group">
+                    <label htmlFor="email">Email</label>
+                    <input type="email" id="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                    {errors.email && <p className="signup-error-message">{errors.email}</p>}
+                </div>
 
-            <div className="form-group">
-                <label htmlFor="phone">Téléphone</label>
-                <input type="tel" id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
-                {errors.phone && <p className="error-message">{errors.phone}</p>}
-            </div>
-        </form>
+                <div className="signup-form-group">
+                    <label htmlFor="phone">Téléphone</label>
+                    <input type="tel" id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
+                    {errors.phone && <p className="signup-error-message">{errors.phone}</p>}
+                </div>
+                {errors.global && <p className="signup-error-message">{errors.global}</p>}
+            </form>
 
-        <div className="button-container">
-            <button type="button" onClick={handleNext}>Next</button>
-        </div>
+            <div className="signup-button-container">
+                <button className="signup-btn" type="button" onClick={handleNext}>Next</button>
+            </div>
         </div>
     );
 };
