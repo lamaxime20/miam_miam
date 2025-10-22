@@ -28,7 +28,7 @@ const Login = () => {
                 <button type="button">Login</button>
                 <div className="form-links">
                     <div className="signup-link">
-                        <a href="#">Nouveau ?Créer un compte</a>
+                        <a href="/signup">Nouveau ?Créer un compte</a>
                     </div>
                     <div className="forgot-password-link">
                         <a href="#">Mot de passe oublié ?</a>
