@@ -1,0 +1,34 @@
+version: "3.9"
+
+services:
+  laravel:
+    image: laravel-app
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: laravel
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    environment:
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+
+  react:
+    image: react-vite-app
+    build:
+      context: ./vue
+      dockerfile: Dockerfile
+    container_name: react
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./vue:/app
+      - /app/node_modules
+    environment:
+    - VITE_API_URL=http://localhost:8000/
+    - CHOKIDAR_USEPOLLING=true
