@@ -13,8 +13,9 @@ Route::put('/utilisateurs/{id}', [UtilisateurController::class, 'update']);
 Route::delete('/utilisateurs/{id}', [UtilisateurController::class, 'destroy']);
 
 // Vérifications et authentification
-Route::get('/checkEmailExiste', [UtilisateurController::class, 'checkEmailExiste']);
-Route::get('/checkPasswordCorrect', [UtilisateurController::class, 'checkPasswordCorrect']);
+Route::post('/checkEmailExiste', [UtilisateurController::class, 'checkEmailExiste']);
+Route::post('/checkPasswordCorrect', [UtilisateurController::class, 'checkPasswordCorrect']);
+Route::post('/codeVerification', [UtilisateurController::class, 'sendCodeVerification']);
 
 // 🛠️ Correction ici : il faut mettre les crochets [] autour du contrôleur et de la méthode
 Route::post('/login', [UtilisateurController::class, 'login']);

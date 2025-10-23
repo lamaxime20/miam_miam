@@ -25,7 +25,7 @@ async function envoyerEmail({ email }) {
     }
 }
 
-export function validateSignupFormName({ name, email, phone }) {
+export async function validateSignupFormName({ name, email, phone }) {
     const errors = {};
 
     User.name = name;
@@ -47,9 +47,12 @@ export function validateSignupFormName({ name, email, phone }) {
     } else if (!envoyerEmail(email)) {
         errors.global = "Vérifies ta connexion";
         User.email = null;
-    } else if (!VerifEmailExist(email)) {
-        errors.email = "L'email existe déjà.";
-        User.email = null;
+    } else {
+        const emailExiste = await VerifEmailExist(email);
+        if (emailExiste){
+            errors.email = "L'email existe déjà.";
+            User.email = null;
+        }
     }
 
     if (!phone.trim()) {
@@ -145,5 +148,32 @@ export async function creerUser(onNext) {
 }
 
 export async function VerifEmailExist(email) {
-    return false;
+    try {
+        const response = await fetch(API_URL +'api/checkEmailExiste', {
+            method: 'POST', // POST pour envoyer un body
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+            },
+            body: JSON.stringify({ email }), // Envoie l'email dans le body
+        });
+
+        if (!response.ok) {
+            return false; // email invalide ou erreur serveur
+        }
+
+        const data = await response.json();
+
+        // Si la fonction SQL retourne un objet, on considère que l'email existe
+        console.log('Vérification email existant :', data.verifier_email_existant);
+        if(data.verifier_email_existant == false){
+            console.log('Vérification email existant :', data.verifier_email_existant);
+            return false;
+        }else{
+            return true;
+        }
+    } catch (error) {
+        console.error('Erreur lors de la vérification de l’email :', error);
+        return false;
+    }
 }
