@@ -108,3 +108,39 @@ BEGIN
     WHERE id_user = p_id;
 END;
 $$ LANGUAGE plpgsql;
+
+-- Verifier si l'email existe
+CREATE OR REPLACE FUNCTION verifier_email_existant(p_email Email)
+RETURNS BOOLEAN AS $$
+DECLARE
+    v_count INT;
+BEGIN
+    SELECT COUNT(*) INTO v_count
+    FROM "Utilisateur"
+    WHERE email_user = p_email;
+
+    IF v_count > 0 THEN
+        RETURN TRUE;
+    ELSE
+        RETURN FALSE;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Verifier si le password est correct
+CREATE OR REPLACE FUNCTION verifier_password_correct(p_email Email, p_password Motpasse)
+RETURNS BOOLEAN AS $$
+DECLARE
+    v_count INT;
+BEGIN
+    SELECT COUNT(Email) INTO v_count
+    FROM "Utilisateur"
+    WHERE email_user = p_email AND password_user = p_password;
+
+    IF v_count > 0 THEN
+        RETURN TRUE;
+    ELSE
+        RETURN FALSE;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
