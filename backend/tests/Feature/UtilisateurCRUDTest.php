@@ -18,7 +18,6 @@ class UtilisateurCRUDTest extends TestCase
     {
         parent::setUp();
         DB::statement('DELETE FROM "Utilisateur"');
-        DB::statement('ALTER SEQUENCE utilisateur_id_user_seq RESTART WITH 1');
     }
 
     /**
@@ -27,7 +26,6 @@ class UtilisateurCRUDTest extends TestCase
     protected function tearDown(): void
     {
         DB::statement('DELETE FROM "Utilisateur"');
-        DB::statement('ALTER SEQUENCE utilisateur_id_user_seq RESTART WITH 1');
         parent::tearDown();
     }
 
@@ -148,5 +146,131 @@ class UtilisateurCRUDTest extends TestCase
         $this->assertDatabaseMissing('Utilisateur', [
             'id_user' => $user
         ]);
+    }
+
+    public function testCheckEmailExiste()
+    {
+        DB::select('SELECT ajouter_utilisateur(:nom, :email, :password, :num, :statut)', [
+            'nom' => 'Test User',
+            'email' => 'test@example.com',
+            'password' => bcrypt('password123'),
+            'num' => '1234567890',
+            'statut' => 'actif',
+        ]);
+
+        // Test with existing email
+        $response = $this->getJson('/api/checkEmailExiste?email=test@example.com');
+        $response->assertStatus(200)->assertJson(['verifier_email_existant' => true]);
+
+        // Test with non-existing email
+        $response = $this->getJson('/api/checkEmailExiste?email=nonexistent@example.com');
+        $response->assertStatus(200)->assertJson(['verifier_email_existant' => false]);
+     }
+
+    public function testCheckPasswordCorrect()
+    {
+        DB::select('SELECT ajouter_utilisateur(:nom, :email, :password, :num, :statut)', [
+            'nom' => 'Test User',
+            'email' => 'testpass@example.com',
+            'password' => bcrypt('password123'),
+            'num' => '1234567890',
+            'statut' => 'actif',
+        ]);
+
+        // Test with correct password
+        $response = $this->getJson('/api/checkPasswordCorrect?email=testpass@example.com&password=password123');
+        $response->assertStatus(200)->assertJson(['correct' => true]);
+
+        // Test with incorrect password
+        $response = $this->getJson('/api/checkPasswordCorrect?email=testpass@example.com&password=wrongpassword');
+        $response->assertStatus(200)->assertJson(['correct' => false]);
+    }
+
+    public function testLogin()
+    {
+        // Ajouter un utilisateur en base
+        DB::select('SELECT ajouter_utilisateur(:nom, :email, :password, :num, :statut)', [
+            'nom' => 'Login User',
+            'email' => 'login@example.com',
+            'password' => bcrypt('password123'),
+            'num' => '1234567890',
+            'statut' => 'actif',
+        ]);
+
+        // Test login réussi
+        $response = $this->postJson('/api/login', [
+            'email' => 'login@example.com',
+            'password' => 'password123',
+            'role' => 'admin',          // Role pour Sanctum
+            'restaurant' => 'resto1',   // Restaurant choisi
+        ]);
+        $response->assertStatus(200)
+                ->assertJsonStructure(['access_token', 'token_type', 'role']);
+    }
+
+    public function testInscription()
+    {
+        $userData = [
+            'nom' => 'Inscription User',
+            'email' => 'inscription@example.com',
+            'mot_de_passe' => 'password123',
+            'telephone' => '0987654321',
+            'userState' => 'actif'
+        ];
+
+        $response = $this->postJson('/api/inscription', $userData);
+
+        $response->assertStatus(205)
+                ->assertJson(['message' => 'Utilisateur crée']);
+
+        $this->assertDatabaseHas('Utilisateur', [
+            'email_user' => 'inscription@example.com'
+        ]);
+    }
+
+    public function testTokenInscription()
+    {
+        // Crée un utilisateur d'abord
+        DB::select('SELECT ajouter_utilisateur(:nom, :email, :password, :num, :statut)', [
+            'nom' => 'Token User',
+            'email' => 'token@example.com',
+            'password' => bcrypt('password123'),
+            'num' => '1234567890',
+            'statut' => 'actif',
+        ]);
+
+        $response = $this->postJson('/api/token_inscription', [
+            'email' => 'token@example.com',
+            'role' => 'admin',
+            'restaurant' => 'resto1'
+        ]);
+
+        $response->assertStatus(200)
+                ->assertJsonStructure(['access_token', 'token_type', 'role']);
+    }
+
+    public function testLogout()
+    {
+        // Crée un utilisateur
+        DB::select('SELECT ajouter_utilisateur(:nom, :email, :password, :num, :statut)', [
+            'nom' => 'Logout User',
+            'email' => 'logout@example.com',
+            'password' => bcrypt('password123'),
+            'num' => '1234567890',
+            'statut' => 'actif',
+        ]);
+
+        $user = \App\Models\Utilisateur::where('email_user', 'logout@example.com')->first();
+
+        // Crée un token pour l'utilisateur
+        $token = $user->createExpiringToken('test_token', ['*'], 2);
+
+        // Test logout avec authentification
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer '.$token
+        ])->postJson('/api/deconnexion');
+
+        $response->assertStatus(200)
+                ->assertJson(['message' => 'Déconnecté avec succès']);
     }
 }

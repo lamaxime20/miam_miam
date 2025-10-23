@@ -3,12 +3,14 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\reponse;
 use App\Models\Utilisateur;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Validation\Rule;
+use Carbon\Carbon;
 
 class UtilisateurController extends Controller
 {
@@ -102,5 +104,112 @@ class UtilisateurController extends Controller
     {
         $utilisateurs = DB::select('SELECT * FROM supprimer_utilisateur(?)', [$id]);
         return response()->json($utilisateurs);
+    }
+
+    public function checkEmailExiste(Request $request) 
+    {
+        $validate = $request->validate([
+            'email' => 'required|email|max:255'
+        ]);
+        $email = $validate['email'];
+        $reponse = DB::select('SELECT * FROM verifier_email_existant(?)', [$email]);
+        return response()->json($reponse[0]);
+    }
+
+    public function checkPasswordCorrect(Request $request) 
+    {
+        $validate = $request->validate([
+            'email' => 'required|email|max:255',
+            'password' => 'required|string|min:6|max:255'
+        ]);
+
+        $user = DB::select('SELECT* FROM "Utilisateur" WHERE email_user = ?', [$validate['email']]);
+        if ($user && Hash::check($validate['password'], $user[0]->password_user)){
+            return response()->json(['correct' => true], 200);
+        } else {
+            return response()->json(['correct' => false], 200);
+        }
+        
+    }
+
+    public function login(Request $request)
+    {
+        $validate = $request->validate([
+            'email' => 'required|email|max:255',
+            'password' => 'required|string|min:6|max:255',
+            'role' => 'required|string',
+            'restaurant' => 'required|string',
+        ]);
+
+        $user = Utilisateur::where('email_user', $validate['email'])->first();
+
+        $role = $validate['role'];
+        $restaurant = $validate['restaurant'];
+        $token = $user->createExpiringToken('auth_token', [$role. ':' .$restaurant], 2);
+
+        return response()->json([
+            'access_token' => $token,
+            'token_type' => 'Bearer',
+            'role' => $role
+        ], 200);
+    }
+
+    public function inscription(Request $request){
+        $validated = $request->validate([
+            'nom' => 'required|string|max:100',
+            'email' => [
+                'required',
+                'email',
+                'max:255',
+                'unique:Utilisateur,email_user'
+            ],
+            'mot_de_passe' => 'required|string|min:6|max:255',
+            'telephone' => [
+                'required',
+                'regex:/^\+?[0-9\s\-()]{7,20}$/'
+            ],
+            'userState' => 'required|in:actif,inactif,suspendu',
+        ]);
+
+        $utilisateurs = DB::select('SELECT * FROM ajouter_utilisateur(?, ?, ?, ?, ?)', [
+            $validated['nom'],
+            $validated['email'],
+            Hash::make($validated['mot_de_passe']),
+            $validated['telephone'],
+            $validated['userState'],
+        ]);
+
+        return response()->json([
+            'message' => 'Utilisateur crée',
+        ], 205);
+    }
+
+    public function token_inscription(Request $request){
+        $validated = $request->validate([
+            'email' => [
+                'required',
+                'email',
+                'max:255'
+            ],
+            'role' => 'required|string',
+            'restaurant' => 'required|string',
+        ]);
+        $user = Utilisateur::where('email_user', $validated['email'])->first();
+
+        $role = $validated['role'];
+        $restaurant = $validated['restaurant'];
+        $token = $user->createExpiringToken('auth_token', [$role. ':' .$restaurant], 2);
+
+        return response()->json([
+            'access_token' => $token,
+            'token_type' => 'Bearer',
+            'role' => $role
+        ], 200);
+    }
+
+    public function logout(Request $request)
+    {
+        $request->user()->currentAccessToken()->delete();
+        return response()->json(['message' => 'Déconnecté avec succès'], 200);
     }
 }

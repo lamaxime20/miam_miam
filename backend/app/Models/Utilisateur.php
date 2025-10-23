@@ -2,12 +2,17 @@
 
 namespace App\Models;
 
+use Illuminate\Auth\Middleware\Authenticate;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
-class Utilisateur extends Model
+use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+
+class Utilisateur extends Authenticatable
 {
-    use HasFactory;
+    use HasApiTokens, Notifiable;
 
     protected $table = 'Utilisateur';       // Nom exact de ta table
     protected $primaryKey = 'id_user';      // Clé primaire personnalisée
@@ -25,4 +30,15 @@ class Utilisateur extends Model
         'statut_account',
         'updated_at',
     ];
+
+    public function createExpiringToken($name, $abilities = [], $hours = 2)
+    {
+        $tokenResult = $this->createToken($name, $abilities);
+        $token = $tokenResult->plainTextToken;
+        $accessToken = $tokenResult->accessToken;
+        $accessToken->expires_at = now()->addHours($hours);
+        $accessToken->save();
+
+        return $token;
+    }
 }
