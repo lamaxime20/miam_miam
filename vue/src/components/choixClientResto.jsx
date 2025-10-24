@@ -6,7 +6,17 @@ const ChoixClientResto = () => {
     const navigate = useNavigate();
 
     const handleContinueClient = () => {
-        navigate('/etudiants'); // redirige vers la page client
+        [
+            'User',
+            'signupStep',
+            'verificationCode',
+            'codeExpiration',
+            'verificationTimer',
+            'isEmailVerified'
+        ].forEach(k => localStorage.removeItem(k));
+
+        console.log('max');
+        navigate('/etudiants');
     };
 
     const handleCreateRestaurant = () => {
