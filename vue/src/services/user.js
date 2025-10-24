@@ -112,6 +112,8 @@ export async function validateSignupFormName({ name, email, phone }) {
     User.email = email;
     User.phone = phone;
 
+    localStorage.setItem('User', JSON.stringify(User));
+
     return errors;
 }
 
@@ -147,6 +149,9 @@ export function validateVerificationCode(codeArray) {
     } else {
         codeVerified = true;
     }
+    
+    User.codeVerified = codeVerified;
+    localStorage.setItem('User', JSON.stringify(User));
 
     return errors;
 }
@@ -172,6 +177,8 @@ export function validateSignupFormPassword({ password, confirmPassword }) {
         User.password = password;
         User.confirmPassword = confirmPassword;
     }
+
+    localStorage.setItem('User', JSON.stringify(User));
 
     return errors;
 }
@@ -271,6 +278,23 @@ export function loadUserFromStorage() {
         User.confirmPassword = data.confirmPassword;
         codeVerified = data.codeVerified || false;
     }
+
+    if(User.name || User.email || User.phone){
+        localStorage.setItem('signupStep', '2');
+        if(codeVerified){
+            localStorage.setItem('signupStep', '3');
+            if(User.password){
+                localStorage.setItem('signupStep', '4');
+            }
+        }
+    } else {
+        localStorage.setItem('signupStep', '1');
+    }
+}
+
+export function infoUserExistsInStorage() {
+    const storedUser = localStorage.getItem('User');
+    return !!storedUser;
 }
 
 export function saveUserToStorage() {
