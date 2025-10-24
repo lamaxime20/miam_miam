@@ -73,7 +73,7 @@ const SignupFormPassword = ({ onPrevious, onNext }) => {
     return (
         <>
             <div className="signup-form-password-container" style={{ position: 'relative' }}>
-                <form onSubmit={(e) => e.preventDefault()}>
+                <form onSubmit={(e) => e.preventDefault()} className='signup-form-password'>
                     <div className="signup-form-group">
                         <label htmlFor="password">Mot de passe</label>
                         <div className="password-wrapper">

@@ -30,8 +30,13 @@ const ChoixClientResto = () => {
         setIsLoading(false); // 🔹 cache le loader
     };
 
-    const handleCreateRestaurant = () => {
-        navigate('/create-restaurant'); // redirige vers la page création restaurant
+    const handleCreateRestaurant = async () => {
+        setIsLoading(true);
+        const tokenCree = await genererTokenInscription({ email: User.email, role: 'client', restaurant: '1' });
+        if(tokenCree){
+            navigate('/create-restaurant'); // redirige vers la page création restaurant
+        }
+        setIsLoading(false);
     };
 
     return (
