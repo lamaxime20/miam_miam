@@ -81,3 +81,61 @@ export const verifierRestaurantFormName = ({
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
 };
+
+// create Restaurant Form Image
+export const verifierChargementImage = (file) => {
+    // Tu implémenteras plus tard (upload ou validation)
+    // Doit retourner true si succès, false sinon.
+    return true;
+};
+
+/**
+ * Hook de gestion du formulaire Logo
+ */
+export const useRestaurantFormLogo = () => {
+    const [image, setImage] = useState(null);
+    const [error, setError] = useState("");
+    const [message, setMessage] = useState("");
+
+    /**
+     * Quand l’utilisateur dépose ou sélectionne une image
+     */
+    const handleImageUpload = (file) => {
+        if (!file) return;
+
+        const isLoaded = verifierChargementImage(file);
+        if (isLoaded) {
+            setImage(URL.createObjectURL(file));
+            setError("");
+            setMessage("");
+        } else {
+            setError("Erreur de connexion lors du chargement de l’image.");
+            setImage(null);
+        }
+    };
+
+    /**
+     * Suppression de l’image
+     */
+    const handleRemoveImage = () => {
+        setImage(null);
+        setError("");
+        setMessage("Une image par défaut sera utilisée.");
+    };
+
+    /**
+     * Changement d’image
+     */
+    const handleChangeImage = (file) => {
+        handleImageUpload(file);
+    };
+
+    return {
+        image,
+        error,
+        message,
+        handleImageUpload,
+        handleRemoveImage,
+        handleChangeImage,
+    };
+};
