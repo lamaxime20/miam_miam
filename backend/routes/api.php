@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\administrateurController;
 use App\Http\Controllers\Api\UtilisateurController;
 use App\Models\Utilisateur;
+use App\Http\Controllers\Api\fileController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -28,3 +29,8 @@ Route::get('/administrateurs/{id}', [administrateurController::class, 'show']);
 Route::post('/administrateurs', [administrateurController::class, 'store']);
 Route::put('/administrateurs/{id}', [administrateurController::class, 'update']);
 Route::delete('/administrateurs/{id}', [administrateurController::class, 'destroy']);
+Route::get('/files', [fileController::class, 'index']);
+Route::get('/files/{id}', [fileController::class, 'show']);
+Route::post('/files', [fileController::class, 'store']);
+Route::put('/files/{id}', [fileController::class, 'update']);
+Route::delete('/files/{id}', [fileController::class, 'destroy']);
