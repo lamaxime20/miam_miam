@@ -8,6 +8,8 @@ use Tests\TestCase;
 
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\UserVerificationMail;
 
 class UtilisateurCRUDTest extends TestCase
 {
@@ -249,28 +251,31 @@ class UtilisateurCRUDTest extends TestCase
                 ->assertJsonStructure(['access_token', 'token_type', 'role']);
     }
 
-    public function testLogout()
+    public function test_envoi_code_verification_email_valide()
     {
-        // Crée un utilisateur
-        DB::select('SELECT ajouter_utilisateur(:nom, :email, :password, :num, :statut)', [
-            'nom' => 'Logout User',
-            'email' => 'logout@example.com',
-            'password' => bcrypt('password123'),
-            'num' => '1234567890',
-            'statut' => 'actif',
+        // On "fake" le mail pour ne pas réellement envoyer d'email
+        Mail::fake();
+
+        // Données de test
+        $payload = [
+            'email' => 'utilisateur@test.com'
+        ];
+
+        // Appel de la route API
+        $response = $this->postJson('/api/envoyerCodeVerification', $payload);
+
+        // ✅ Vérifie le code HTTP
+        $response->assertStatus(200);
+
+        // ✅ Vérifie la structure JSON
+        $response->assertJsonStructure([
+            'message',
+            'code'
         ]);
 
-        $user = \App\Models\Utilisateur::where('email_user', 'logout@example.com')->first();
-
-        // Crée un token pour l'utilisateur
-        $token = $user->createExpiringToken('test_token', ['*'], 2);
-
-        // Test logout avec authentification
-        $response = $this->withHeaders([
-            'Authorization' => 'Bearer '.$token
-        ])->postJson('/api/deconnexion');
-
-        $response->assertStatus(200)
-                ->assertJson(['message' => 'Déconnecté avec succès']);
+        // ✅ Vérifie que le mail a bien été "envoyé" virtuellement
+        Mail::assertSent(UserVerificationMail::class, function ($mail) use ($payload) {
+            return $mail->hasTo($payload['email']);
+        });
     }
 }

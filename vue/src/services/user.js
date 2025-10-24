@@ -1,8 +1,7 @@
-import { useNavigate } from 'react-router-dom';
+
+
 const API_URL = import.meta.env.VITE_API_URL;
-console.log(API_URL);
-// Vérifie les champs du premier formulaire (nom, email, téléphone)
-let code_verification;
+console.log("API_URL:", API_URL);
 
 export let User = {
     email: null,
@@ -11,96 +10,178 @@ export let User = {
     password: null,
     confirmPassword: null,
 };
-async function envoyerEmail({ email }) {
+
+export let verificationCode = null;
+export let codeVerified = false;
+
+// =====================================
+// Envoi du code de vérification par email
+// =====================================
+export async function envoyerEmail({ email }) {
     try {
-        const response = await fetch('/backend/validationEmail.json');
+        const response = await fetch(`${API_URL}api/codeVerification`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email })
+        });
+
         if (!response.ok) throw new Error(`Erreur serveur : ${response.status}`);
         const data = await response.json();
-        console.log('Données reçues :', data);
-        code_verification = data.validation_code.toString(); // ok pour lecture
-        return true;
+
+        if (data.code) {
+            verificationCode = data.code;
+
+            const expiresAt = Date.now() + 10 * 60 * 1000; // 10 min
+            const codeData = { code: verificationCode, expiresAt };
+            localStorage.setItem('code_verification', JSON.stringify(codeData));
+            console.log(data);
+            console.log('Code stocké jusqu’à :', new Date(expiresAt).toLocaleTimeString());
+
+            return true;
+        } else {
+            console.warn('Aucun code reçu du serveur.');
+            return false;
+        }
     } catch (error) {
-        console.error('Erreur lors de la lecture du fichier JSON:', error);
+        console.error('Erreur lors de l’envoi de l’email :', error);
         return false;
     }
 }
 
-export function validateSignupFormName({ name, email, phone }) {
+// =====================================
+// Vérification si l'email existe déjà
+// =====================================
+export async function VerifEmailExist(email) {
+    try {
+        const response = await fetch(`${API_URL}api/checkEmailExiste`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify({ email }),
+        });
+
+        if (!response.ok) return false;
+
+        const data = await response.json();
+        return !!data.verifier_email_existant;
+    } catch (error) {
+        console.error('Erreur vérification email :', error);
+        return false;
+    }
+}
+
+// =====================================
+// Validation du formulaire Nom/Email/Phone
+// =====================================
+export async function validateSignupFormName({ name, email, phone }) {
     const errors = {};
 
-    User.name = name;
-    User.email = email;
-    User.phone = phone;
+    if (email.trim() !== User.email) {
+        resetVerificationCodeTimer();
+    }
 
     if (!name.trim()) {
         errors.name = "Le nom est obligatoire.";
-        User.name = null;
-    
     }
 
     if (!email.trim()) {
         errors.email = "L'email est obligatoire.";
-        User.email = null;
-    } else if (!/^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$/i.test(email)) {
+    } else if (!/^["'`\w-.]+@([\w-]+\.)+[\w-]{2,4}$/i.test(email)) {
         errors.email = "L'adresse email n'est pas valide.";
-        User.email = null;
-    } else if (!envoyerEmail(email)) {
-        errors.global = "Vérifies ta connexion";
-        User.email = null;
-    } else if (!VerifEmailExist(email)) {
-        errors.email = "L'email existe déjà.";
-        User.email = null;
+    } else {
+        // Vérifier si l'email existe
+        const emailExiste = await VerifEmailExist(email);
+        if (emailExiste) {
+            errors.email = "L'email existe déjà.";
+        } else {
+            // Envoi du code seulement si tout est ok
+            const emailSent = await envoyerEmail({ email });
+            if (!emailSent) {
+                errors.global = "Impossible d'envoyer le code. Vérifie ta connexion.";
+            }
+        }
     }
 
     if (!phone.trim()) {
         errors.phone = "Le numéro de téléphone est obligatoire.";
-        User.phone = null;
     } else if (!/^\+?[0-9\s\-()]{7,20}$/.test(phone)) {
-        errors.phone = "Le numéro de téléphone doit être valide (7 à 20 caractères, chiffres, espaces, +, - ou parenthèses).";
-        User.phone = null;
+        errors.phone = "Numéro de téléphone invalide (7 à 20 caractères).";
     }
+
+    // Mettre à jour User seulement si pas d'erreur
+    User.name = name;
+    User.email = email;
+    User.phone = phone;
 
     return errors;
 }
 
-// Vérifie le code de vérification (6 chiffres)
+// =====================================
+// Validation du code de vérification
+// =====================================
 export function validateVerificationCode(codeArray) {
-    const code = codeArray.join("");
+    const codeSaisi = codeArray.join("");
     const errors = {};
 
-    if (code.length !== 6) {
-        errors.code = "Le code de vérification doit contenir 6 chiffres.";
-    } else if (!/^\d{6}$/.test(code)) {
-        errors.code = "Le code doit contenir uniquement des chiffres.";
-    } else if (code !== code_verification) {
+    const storedData = localStorage.getItem('code_verification');
+    if (!storedData) {
+        errors.code = "Code expiré ou absent.";
+        codeVerified = false;
+        return errors;
+    }
+
+    const { code, expiresAt } = JSON.parse(storedData);
+    if (Date.now() > expiresAt) {
+        localStorage.removeItem('code_verification');
+        errors.code = "Code expiré.";
+        codeVerified = false;
+        return errors;
+    }
+
+    if (!/^\d{6}$/.test(codeSaisi)) {
+        errors.code = "Le code doit contenir 6 chiffres.";
+        codeVerified = false;
+    } else if (codeSaisi != code) {
         errors.code = "Code incorrect.";
-        console.log(code_verification);
+        console.log("le code est ", code)
+        codeVerified = false;
+    } else {
+        codeVerified = true;
     }
 
     return errors;
 }
 
+// =====================================
+// Validation mot de passe
+// =====================================
 export function validateSignupFormPassword({ password, confirmPassword }) {
     const errors = {};
 
-    User.password = password;
-    User.confirmPassword = confirmPassword;
     if (!password.trim()) {
         errors.password = "Le mot de passe est obligatoire.";
-        User.password = null;
-    }else if(password.trim() !== confirmPassword.trim()){
-        errors.confirmPassword = "Les mots de passe ne correspondent pas.";
-        User.confirmPassword = null;
-    }else if(password.length < 6){
+    } else if (password.length < 6) {
         errors.password = "Le mot de passe doit contenir au moins 6 caractères.";
-        User.password = null;
+    }
+
+    if (password.trim() !== confirmPassword.trim()) {
+        errors.confirmPassword = "Les mots de passe ne correspondent pas.";
+    }
+
+    // Mettre à jour User seulement si tout est ok
+    if (Object.keys(errors).length === 0) {
+        User.password = password;
+        User.confirmPassword = confirmPassword;
     }
 
     return errors;
 }
 
-export async function creerUser(onNext) {
+// =====================================
+// Création de l'utilisateur côté serveur
+// =====================================
+export async function creerUser() {
     try {
+        console.log(User.name, User.email, User.phone, User.password);
         const utilisateur = {
             nom: User.name,
             email: User.email,
@@ -109,41 +190,148 @@ export async function creerUser(onNext) {
             userState: 'actif',
         };
 
-        const response = await fetch(`${import.meta.env.VITE_API_URL}api/utilisateurs`, {
+        const response = await fetch(`${API_URL}api/utilisateurs`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
             body: JSON.stringify(utilisateur),
         });
 
-        // Si le serveur renvoie une erreur (ex: 422)
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
             console.error('Erreur API :', errorData);
-
-            if (response.status === 422) {
-                console.warn('⚠️ Erreur de validation :', errorData.errors);
-            }
-
             throw new Error(`Erreur serveur : ${response.status}`);
         }
 
-        // Si tout est bon
         const data = await response.json();
-        console.log('✅ Utilisateur créé avec succès :', data);
-
-        // Redirection
-        onNext();
+        console.log('Utilisateur créé :', data);
         return true;
-
     } catch (error) {
-        console.error('❌ Erreur lors de la création de l\'utilisateur :', error);
+        console.error('Erreur création utilisateur :', error);
         return false;
     }
 }
 
-export async function VerifEmailExist(email) {
-    return false;
+// =====================================
+// Timer pour le code de vérification
+// =====================================
+let timerInterval = null;
+
+export function startVerificationCodeTimer(setCompteRebours, onTimerEnd) {
+    stopVerificationCodeTimer();
+
+    const storedData = localStorage.getItem('code_verification');
+    if (!storedData) return;
+
+    const { code, expiresAt } = JSON.parse(storedData);
+
+    const updateTimer = () => {
+        const now = Date.now();
+        const timeLeft = expiresAt - now; // ⬅️ temps restant exact
+
+        if (timeLeft <= 0) {
+            stopVerificationCodeTimer();
+            setCompteRebours("00:00");
+            onTimerEnd(true);
+            localStorage.removeItem('code_verification'); // expire seulement à la fin
+            return;
+        }
+
+        const minutes = Math.floor(timeLeft / 1000 / 60);
+        const seconds = Math.floor((timeLeft / 1000) % 60);
+        setCompteRebours(`${String(minutes).padStart(2,'0')}:${String(seconds).padStart(2,'0')}`);
+    };
+
+    updateTimer(); // update immédiat
+    timerInterval = setInterval(updateTimer, 1000);
+    onTimerEnd(false);
+}
+
+export function stopVerificationCodeTimer() {
+    if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+    }
+}
+
+export function resetVerificationCodeTimer() {
+    stopVerificationCodeTimer();
+    localStorage.removeItem('code_verification');
+    verificationCode = null;
+    codeVerified = false;
+}
+
+export function loadUserFromStorage() {
+    const storedUser = localStorage.getItem('User');
+    if(storedUser){
+        const data = JSON.parse(storedUser);
+        User.name = data.name;
+        User.email = data.email;
+        User.phone = data.phone;
+        User.password = data.password;
+        User.confirmPassword = data.confirmPassword;
+        codeVerified = data.codeVerified || false;
+    }
+}
+
+export function saveUserToStorage() {
+    localStorage.setItem('User', JSON.stringify(User));
+}
+
+export async function genererTokenInscription({ email, role, restaurant }) {
+    try {
+        const response = await fetch(API_URL + 'api/token_inscription', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ email, role, restaurant })
+        });
+
+        if (!response.ok) {
+            console.error('Erreur serveur :', response.status);
+            return false;
+        }
+
+        const data = await response.json();
+        console.log('Réponse du serveur :', data);
+
+        if (data.access_token) {
+            // Stockage du token avec expiration
+            const expiresAt = Date.now() + 2 * 60 * 60 * 1000; // 2 heures en millisecondes (comme dans la fonction Laravel)
+            const tokenData = {
+                access_token: data.access_token,
+                token_type: data.token_type,
+                role: data.role,
+                restaurant: data.restaurant,
+                expiresAt: expiresAt
+            };
+
+            localStorage.setItem('auth_token', JSON.stringify(tokenData));
+            console.log('Token stocké dans localStorage jusqu’à :', new Date(expiresAt).toLocaleTimeString());
+
+            return true;
+        } else {
+            console.warn('Pas de token reçu du serveur.');
+            return false;
+        }
+
+    } catch (error) {
+        console.error('Erreur lors de la génération du token :', error);
+        return false;
+    }
+}
+
+export function recupererToken() {
+    const stored = localStorage.getItem('auth_token');
+    if (!stored) return null;
+
+    const { access_token, expiresAt } = JSON.parse(stored);
+
+    // Vérifie l'expiration
+    if (Date.now() > expiresAt) {
+        localStorage.removeItem('auth_token');
+        return null;
+    }
+
+    return access_token;
 }

@@ -8,9 +8,10 @@ use App\Models\Utilisateur;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\ValidationException;
 use Illuminate\Validation\Rule;
-use Carbon\Carbon;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\UserVerificationMail;
+use App\Models\User;
 
 class UtilisateurController extends Controller
 {
@@ -211,5 +212,24 @@ class UtilisateurController extends Controller
     {
         $request->user()->currentAccessToken()->delete();
         return response()->json(['message' => 'Déconnecté avec succès'], 200);
+    }
+
+    public function sendCodeVerification(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email',
+        ]);
+
+        $code = rand(100000, 999999);
+
+        $email = $request->email;
+        $messageContent = "Ton code de vérification à 06 chiffres est : {$code} . Ce code est valide pendant 10 minutes.";
+
+        Mail::to($email)->send(new UserVerificationMail($messageContent));
+
+        return response()->json([
+            'message' => 'Code de vérification envoyé avec succès',
+            'code' => $code
+        ], 200);
     }
 }
