@@ -1,0 +1,179 @@
+:root {
+    --primary-color: #cfbd97;
+    --secondary-color: #000000;
+    --error-color: #dc3545;
+    --input-border: #ccc;
+    --input-focus-shadow: rgba(207, 189, 151, 0.5);
+    --button-hover-shadow: rgba(207, 189, 151, 0.3);
+}
+
+/* === Page principale === */
+.createRestaurant-page {
+    min-height: 100vh;
+    background-color: var(--background-color);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding-top: 3rem;
+    gap: 2rem;
+    font-family: 'Poppins', sans-serif;
+    position: relative;
+}
+
+/* === Lien "Continuer comme client" === */
+.createRestaurant-link {
+    text-decoration: none;
+    color: var(--secondary-color);
+    font-weight: 600;
+    background-color: #fff;
+    padding: 0.7rem 1.2rem;
+    border-radius: 10px;
+    border: 1px solid var(--primary-color);
+    box-shadow: 0 4px 12px var(--shadow);
+    transition: all 0.25s ease;
+    font-size: 0.95rem;
+}
+
+.createRestaurant-link:hover {
+    background-color: var(--primary-color);
+    color: #fff;
+    transform: translateY(-3px);
+    box-shadow: 0 6px 18px var(--shadow);
+}
+/* ==
+/* ==== Create Restaurant For Name ====
+/* ==
+
+/* === Conteneur principal === */
+.createRestaurantFormName-container {
+    background-color: #fff;
+    color: var(--secondary-color);
+    padding: 2rem;
+    border-radius: 15px;
+    box-shadow: 0 12px 30px rgba(207, 189, 151, 0.12);
+    max-width: 520px;
+    width: 90%;
+    margin: 5rem auto;
+    text-align: center;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.createRestaurantFormName-container:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 34px rgba(207, 189, 151, 0.2);
+}
+
+/* === Titre === */
+.createRestaurantFormName-title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 2rem;
+    color: var(--secondary-color);
+}
+
+/* === Groupes de champs === */
+.createRestaurantFormName-field {
+    margin-bottom: 1.25rem;
+    text-align: left;
+}
+
+.createRestaurantFormName-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: var(--secondary-color);
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+/* === Inputs === */
+.createRestaurantFormName-input {
+    width: 100%;
+    padding: 0.8rem 1rem;
+    border: 1px solid var(--input-border);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--secondary-color);
+    font-size: 1rem;
+    box-sizing: border-box;
+    transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.createRestaurantFormName-input::placeholder {
+    color: #a9a9a9;
+}
+
+.createRestaurantFormName-input:focus,
+.createRestaurantFormName-input:focus-visible {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 8px var(--input-focus-shadow);
+}
+
+/* === Groupe radio === */
+.createRestaurantFormName-radio-group {
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+    margin-top: 0.5rem;
+}
+
+.createRestaurantFormName-radio-option {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    cursor: pointer;
+    font-weight: 500;
+    color: #444;
+    transition: color 0.25s ease, transform 0.2s ease;
+}
+
+.createRestaurantFormName-radio-option input {
+    margin-right: 0.4rem;
+    accent-color: var(--primary-color);
+}
+
+.createRestaurantFormName-radio-option.active {
+    color: var(--primary-color);
+    transform: scale(1.02);
+}
+
+/* === Bouton Next === */
+.createRestaurantFormName-nextButton {
+    width: 100%;
+    background-color: var(--primary-color);
+    color: var(--secondary-color);
+    border: none;
+    padding: 0.9rem;
+    font-size: 1.05rem;
+    font-weight: 700;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    margin-top: 1.5rem;
+    box-shadow: 0 6px 14px rgba(207, 189, 151, 0.08);
+}
+
+.createRestaurantFormName-nextButton:hover {
+    background-color: #bba984;
+    transform: translateY(-3px);
+    box-shadow: 0 10px 20px rgba(207, 189, 151, 0.14);
+}
+
+/* === Validation (check vert sur “estimation”) === */
+.createRestaurantFormName-radio-option i.fa-check {
+    font-size: 0.9rem;
+    color: green;
+}
+
+/* === Message d'erreur générique (si besoin) === */
+.createRestaurantFormName-error-message {
+    color: var(--error-color);
+    font-size: 0.875rem;
+    margin-top: 0.4rem;
+    min-height: 1em;
+}
+
+/* ==
+/* ==== Create Restaurant For Logo ====
+/* ==

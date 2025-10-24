@@ -354,6 +354,9 @@ export function recupererToken() {
     // Vérifie l'expiration
     if (Date.now() > expiresAt) {
         localStorage.removeItem('auth_token');
+        localStorage.removeItem('User');
+        localStorage.removeItem('signupStep');
+        console.log('Token expiré et supprimé.');
         return null;
     }
 
