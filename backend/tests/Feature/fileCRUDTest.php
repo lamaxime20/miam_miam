@@ -40,7 +40,8 @@ class FileCRUDTest extends TestCase
         $response = $this->postJson('/api/files', $data);
         $response->assertStatus(201);
         $response->assertJsonStructure([
-            'message' => 'fichier created successfully',
+            'message',
+            'id',
         ]);
     }
 
@@ -51,7 +52,7 @@ class FileCRUDTest extends TestCase
         $response->assertStatus(200);
         $response->assertJsonStructure([
             '*' => [
-                'id_File',
+                'id_file',
                 'nom_fichier',
                 'extension',
                 'chemin',
@@ -63,10 +64,10 @@ class FileCRUDTest extends TestCase
     {
         $this->creerFileTest(); // Ensure at least one file exists for testing
         $file = File::first();
-        $response = $this->getJson("/api/files/{$file->id_File}");
+        $response = $this->getJson("/api/files/{$file->id_file}");
         $response->assertStatus(200);
         $response->assertJsonStructure([
-            'id_File',
+            'id_file',
             'nom_fichier',
             'extension',
             'chemin',
@@ -77,22 +78,20 @@ class FileCRUDTest extends TestCase
     {
         $this->creerFileTest(); // Ensure at least one file exists for testing
         $file = File::first();
-        $response = $this->putJson("/api/files/{$file->id_File}", [
+        $response = $this->putJson("/api/files/{$file->id_file}", [
             'chemin' => '/uploads/updated_logo.png',
         ]);
         $response->assertStatus(200);
         $response->assertJsonStructure([
-            'message' => 'fichier updated successfully',
+            'message',
         ]);
     }
 
     public function testDeleteFile()
     {
+        $this->creerFileTest(); // Ensure at least one file exists for testing
         $file = File::first();
-        $response = $this->deleteJson("/api/files/{$file->id_File}");
+        $response = $this->deleteJson("/api/files/{$file->id_file}");
         $response->assertStatus(204);
-        $response->assertJsonStructure([
-            'message' => 'fichier deleted successfully',
-        ]);
     }
 }
