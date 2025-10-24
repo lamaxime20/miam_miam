@@ -276,3 +276,62 @@ export function loadUserFromStorage() {
 export function saveUserToStorage() {
     localStorage.setItem('User', JSON.stringify(User));
 }
+
+export async function genererTokenInscription({ email, role, restaurant }) {
+    try {
+        const response = await fetch(API_URL + 'api/token_inscription', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ email, role, restaurant })
+        });
+
+        if (!response.ok) {
+            console.error('Erreur serveur :', response.status);
+            return false;
+        }
+
+        const data = await response.json();
+        console.log('Réponse du serveur :', data);
+
+        if (data.access_token) {
+            // Stockage du token avec expiration
+            const expiresAt = Date.now() + 2 * 60 * 60 * 1000; // 2 heures en millisecondes (comme dans la fonction Laravel)
+            const tokenData = {
+                access_token: data.access_token,
+                token_type: data.token_type,
+                role: data.role,
+                restaurant: data.restaurant,
+                expiresAt: expiresAt
+            };
+
+            localStorage.setItem('auth_token', JSON.stringify(tokenData));
+            console.log('Token stocké dans localStorage jusqu’à :', new Date(expiresAt).toLocaleTimeString());
+
+            return true;
+        } else {
+            console.warn('Pas de token reçu du serveur.');
+            return false;
+        }
+
+    } catch (error) {
+        console.error('Erreur lors de la génération du token :', error);
+        return false;
+    }
+}
+
+export function recupererToken() {
+    const stored = localStorage.getItem('auth_token');
+    if (!stored) return null;
+
+    const { access_token, expiresAt } = JSON.parse(stored);
+
+    // Vérifie l'expiration
+    if (Date.now() > expiresAt) {
+        localStorage.removeItem('auth_token');
+        return null;
+    }
+
+    return access_token;
+}
