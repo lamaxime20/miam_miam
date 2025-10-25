@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { verifierRestaurantFormPolicy, restaurant } from "../services/restaurant";
+import { verifierRestaurantFormPolicy, restaurant, connecterAdmin } from "../services/restaurant";
 import "../assets/styles/createRestaurant.css";
 
 const CreateRestaurantFormPolicy = ({ onNext, onPrevious }) => {
@@ -15,13 +15,19 @@ const CreateRestaurantFormPolicy = ({ onNext, onPrevious }) => {
         onPrevious();
     }
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         const validationError = verifierRestaurantFormPolicy(policy);
         setError(validationError);
 
         if (!validationError) {
-            handleNext();
+            const adminConnected = await connecterAdmin();
+            if (adminConnected) {
+                restaurant.restoCree = true;
+                handleNext();
+            } else {
+                console.error("Impossible de connecter l'admin");
+            }
         }
     };
 

@@ -267,7 +267,17 @@ export function resetVerificationCodeTimer() {
     codeVerified = false;
 }
 
+function clearSignupStorageUser() {
+    localStorage.removeItem('User');
+    localStorage.removeItem('signupStep');
+    localStorage.removeItem('code_verification');
+}
+
 export function loadUserFromStorage() {
+    if(recupererToken() == null){
+        clearSignupStorageUser();
+        return;
+    }
     const storedUser = localStorage.getItem('User');
     if(storedUser){
         const data = JSON.parse(storedUser);
@@ -306,13 +316,16 @@ export async function genererTokenInscription({ email, role, restaurant }) {
         const response = await fetch(API_URL + 'api/token_inscription', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
             },
             body: JSON.stringify({ email, role, restaurant })
         });
 
         if (!response.ok) {
-            console.error('Erreur serveur :', response.status);
+            // Log de la réponse d'erreur pour le débogage
+            const errorData = await response.json().catch(() => ({ message: "Réponse invalide du serveur" }));
+            console.error('Erreur serveur :', response.status, errorData);
             return false;
         }
 
@@ -354,11 +367,159 @@ export function recupererToken() {
     // Vérifie l'expiration
     if (Date.now() > expiresAt) {
         localStorage.removeItem('auth_token');
-        localStorage.removeItem('User');
-        localStorage.removeItem('signupStep');
+        clearSignupStorageUser();
         console.log('Token expiré et supprimé.');
         return null;
     }
 
     return access_token;
+}
+
+export const recupererUser = async () => {
+    try {
+        const token = recupererToken();
+        console.log(token);
+        if (!token) return null;
+
+        const response = await fetch(API_URL + "api/me", {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`, // en-tête pour Sanctum API token
+            },
+        });
+
+        if (!response.ok) {
+            console.error("Erreur lors de la récupération de l'utilisateur :", response.status);
+            return null;
+        }
+
+        const user = await response.json();
+        return user;
+    } catch (err) {
+        console.error("Erreur :", err);
+        return null;
+    }
+};
+
+export const creerAdmin = async () => {
+    console.log("creer admin");    
+    try{
+        const user = await recupererUser();
+        if (!user) return null;
+        const id_user = user.user_id;
+        const token = recupererToken();
+
+        if (!token) return null;
+        if(id_user == null) return null;
+        console.log("id_user");
+
+        const formData = new FormData();
+        formData.append("id_user", id_user);
+
+        const response = await fetch(API_URL + "api/administrateurs", {
+            method: "POST",
+            body: formData, // simple request, pas de JSON
+        });
+
+        if (!response.ok) {
+            console.error("Erreur lors de la création de l'admin :", response.status);
+            return null;
+        }
+
+        return id_user; // retourne l'ID de l'utilisateur
+    } catch (err) {
+        console.error("Erreur :", err);
+        return null;
+    }
+}
+
+export async function logout() {
+    try {
+        // Récupérer le token stocké
+        const token = recupererToken();
+
+        if (!token) {
+            console.warn('Aucun token trouvé');
+            return;
+        }
+
+        // Appel à l'endpoint logout
+        const response = await fetch(`${API_URL}api/deconnexion`, {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+        });
+
+        if (!response.ok) {
+            throw new Error('Échec de la déconnexion');
+        }
+
+        // Supprimer le token du localStorage
+        localStorage.removeItem('auth_token');
+        console.log('Déconnecté avec succès');
+
+        return true;
+    } catch (error) {
+        console.error('Erreur lors de la déconnexion:', error);
+        return false;
+    }
+}
+
+export async function genererTokenConnexion({ email, role, restaurant }) {
+    const deconnecte = await logout();
+
+    if (!deconnecte) return false;
+
+    console.log("Génération du token de connexion pour l’administrateur...");
+    console.log(email, role, restaurant);
+
+
+    try {
+        const response = await fetch(API_URL + 'api/token_inscription', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ email, role, restaurant })
+        });
+
+        if (!response.ok) {
+            // Log de la réponse d'erreur pour le débogage
+            const errorData = await response.json().catch(() => ({ message: "Réponse invalide du serveur" }));
+            console.error('Erreur serveur :', response.status, errorData);
+            return false;
+        }
+
+        const data = await response.json();
+        console.log('Réponse du serveur :', data);
+
+        if (data.access_token) {
+            // Stockage du token avec expiration
+            const expiresAt = Date.now() + 2 * 60 * 60 * 1000; // 2 heures en millisecondes (comme dans Laravel)
+            const tokenData = {
+                access_token: data.access_token,
+                token_type: data.token_type,
+                role: data.role,
+                restaurant: data.restaurant,
+                expiresAt: expiresAt
+            };
+
+            localStorage.setItem('auth_token', JSON.stringify(tokenData));
+            console.log('Token stocké dans localStorage jusqu’à :', new Date(expiresAt).toLocaleTimeString());
+
+            return true;
+        } else {
+            console.warn('Pas de token reçu du serveur.');
+            return false;
+        }
+
+    } catch (error) {
+        console.error('Erreur lors de la génération du token :', error);
+        return false;
+    }
 }

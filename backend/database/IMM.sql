@@ -393,3 +393,68 @@ BEGIN
     RETURN 'Restaurant supprimé avec succès.';
 END;
 $$ LANGUAGE plpgsql;
+
+-- =============================
+--     FONCTIONS CRUD : Administrateur
+-- =============================
+CREATE OR REPLACE FUNCTION lister_admin()
+RETURNS TABLE (
+    id_user INT
+)
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT a.id_user
+    FROM Administrateur a
+    ORDER BY a.id_user;
+END;
+$$ LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE FUNCTION ajouter_admin(p_id_user INT)
+RETURNS TABLE (
+    id_user INT,
+    message TEXT
+)
+AS $$
+DECLARE
+    existing INT;
+BEGIN
+    -- Vérifie si l'utilisateur est déjà administrateur
+    SELECT COUNT(*) INTO existing
+    FROM Administrateur a
+    WHERE a.id_user = p_id_user;
+
+    IF existing > 0 THEN
+        RETURN QUERY SELECT p_id_user, 'Utilisateur est déjà administrateur'::TEXT;
+    ELSE
+        INSERT INTO Administrateur(id_user)
+        VALUES (p_id_user);
+        RETURN QUERY SELECT p_id_user, 'Administrateur créé avec succès'::TEXT;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION supprimer_admin(p_id_user INT)
+RETURNS TABLE (
+    id_user INT,
+    message TEXT
+)
+AS $$
+DECLARE
+    existing INT;
+BEGIN
+    -- Vérifie si l'utilisateur existe
+    SELECT COUNT(*) INTO existing
+    FROM Administrateur
+    WHERE id_user = p_id_user;
+
+    IF existing = 0 THEN
+        RETURN QUERY SELECT p_id_user, 'Administrateur introuvable'::TEXT;
+    ELSE
+        DELETE FROM Administrateur
+        WHERE id_user = p_id_user;
+        RETURN QUERY SELECT p_id_user, 'Administrateur supprimé avec succès'::TEXT;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;

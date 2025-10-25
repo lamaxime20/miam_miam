@@ -83,6 +83,8 @@ php artisan make:controller Api/UtilisateurController --api
 
 # 5️⃣ Lancer les migrations (crée la table Utilisateur dans PostgreSQL)
 php artisan migrate
+
+php artisan migrate:fresh --path=database/migrations/2025_10_19_000030_create_session_table.php
 # → Exécute les migrations et crée les tables dans la base configurée dans .env
 
 # 6️⃣ Lancer le serveur intégré Laravel

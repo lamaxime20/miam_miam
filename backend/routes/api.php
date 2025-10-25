@@ -18,12 +18,17 @@ Route::delete('/utilisateurs/{id}', [UtilisateurController::class, 'destroy']);
 Route::post('/checkEmailExiste', [UtilisateurController::class, 'checkEmailExiste']);
 Route::post('/checkPasswordCorrect', [UtilisateurController::class, 'checkPasswordCorrect']);
 Route::post('/codeVerification', [UtilisateurController::class, 'sendCodeVerification']);
+Route::middleware('auth:sanctum')->group(function () {
+    // Toutes les routes ici sont protégées ET bénéficient du CORS
+    Route::get('/me', [UtilisateurController::class, 'getUserId']);
+    Route::post('/deconnexion', [UtilisateurController::class, 'logout']); // ✅ Correct
+});
+
 
 // 🛠️ Correction ici : il faut mettre les crochets [] autour du contrôleur et de la méthode
 Route::post('/login', [UtilisateurController::class, 'login']);
 Route::post('/inscription', [UtilisateurController::class, 'inscription']);
 Route::post('/token_inscription', [UtilisateurController::class, 'token_inscription']);
-Route::post('/deconnexion', [UtilisateurController::class, 'logout']);
 
 Route::get('/administrateurs', [administrateurController::class, 'index']);
 Route::get('/administrateurs/{id}', [administrateurController::class, 'show']);

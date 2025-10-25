@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { creerAdmin, recupererUser, genererTokenConnexion } from "./user";
 
 export let restaurant = JSON.parse(localStorage.getItem("restaurant")) || {
     restoName: "",
@@ -9,6 +10,7 @@ export let restaurant = JSON.parse(localStorage.getItem("restaurant")) || {
     restoLogo: null,
     imagechoisi: false,
     restoPolicy: "",
+    restoCree: false,
 };
 
 const enregistrerRestaurantLocalStorage = () => {
@@ -296,9 +298,96 @@ export const getRestaurantStep = () => {
     }
 
     // Step 3 : Politique
-    if (!restaurant.restoPolicy || restaurant.restoPolicy.trim() === "") {
+    if (!restaurant.restoPolicy || restaurant.restoPolicy.trim() === "" || !restaurant.restoCree) {
         console.log(4);
         return 3;
     }
     return 4
 };
+
+export const createRestaurant = async (administrateur) => {
+    console.log("create restaurant")
+    const restaurantData = restaurant;
+    try {
+        // Préparer le corps de la requête
+        const formData = new FormData();
+        formData.append("nom_restaurant", restaurantData.restoName);
+        formData.append("localisation", restaurantData.restoManualLocation || "yatchika");
+        formData.append("type_localisation", restaurantData.restoLocalisationType);
+        formData.append("logo_restaurant", restaurantData.restoIdFileLogo || 1);
+        formData.append("politique", restaurantData.restoPolicy);
+        formData.append("administrateur", administrateur);
+
+        console.log("Données restaurant à envoyer :", {
+            nom_restaurant: restaurantData.restoName,
+            localisation: restaurantData.restoManualLocation || "yatchika",
+            type_localisation: restaurantData.restoLocalisationType,
+            logo_restaurant: restaurantData.restoIdFileLogo || 1,
+            politique: restaurantData.restoPolicy,
+            administrateur: administrateur,
+        });
+
+
+        // Appel à l'API Laravel
+        const response = await fetch(`${import.meta.env.VITE_API_URL}api/restaurants`, {
+            method: "POST",
+            body: formData,
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.message || "Erreur lors de la création du restaurant.");
+        }
+
+        console.log("Restaurant créé avec succès :", data);
+
+        // Retourner les données du restaurant créé
+        return {
+            success: true,
+            restaurant: data, // On retourne directement l'objet restaurant
+        };
+    } catch (error) {
+        console.error("Erreur création restaurant :", error);
+        return {
+            success: false,
+            message: error.message,
+        };
+    }
+};
+
+export const connecterAdmin = async () => {
+    console.log("connecter admin")
+    const id_admin = await creerAdmin();
+    if (!id_admin) return false;
+
+    const createRes = await createRestaurant(id_admin);
+    if (!createRes.success) return false;
+
+    const user = await recupererUser();
+    if (!user) return false;
+
+    console.log("Génération du token de connexion pour l’administrateur...");
+    console.log(user);
+
+    console.log(createRes);
+
+    const restaurant = createRes.restaurant;
+    const restaurantId = restaurant.id_restaurant;
+
+    const tokenGenerated = await genererTokenConnexion({
+        email: user.email,
+        role: 'administrateur',
+        restaurant: restaurantId.toString(),
+    });
+
+    return tokenGenerated; // true si succès, false sinon
+}
+
+export const setIdRestaurant = (id) => {
+    localStorage.setItem("id_restaurant", id);
+}
+
+export const getIdRestaurant = () => {
+    return localStorage.getItem("id_restaurant");
+}

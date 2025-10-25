@@ -232,4 +232,23 @@ class UtilisateurController extends Controller
             'code' => $code
         ], 200);
     }
+
+    public function getUserId(Request $request)
+    {
+        // Vérifie si un utilisateur est authentifié avec le token
+        $user = $request->user();  
+
+        if (!$user) {
+            return response()->json(['error' => 'Token invalide ou expiré'], 401);
+        }
+
+        // Récupère l'ID
+        $userId = $user->id_user;
+
+        return response()->json([
+            'user_id' => $userId,
+            'name' => mb_convert_encoding($user->nom_user, 'UTF-8', 'auto'),
+            'email' => $user->email_user
+        ], 200);
+    }
 }

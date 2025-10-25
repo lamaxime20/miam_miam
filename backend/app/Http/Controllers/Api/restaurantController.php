@@ -42,7 +42,7 @@ class restaurantController extends Controller
         ]);
 
         return response()->json([
-            'id_restaurant' => $result[0]->id_restaurant ?? null,
+            'id_restaurant' => $result[0]->restaurant_id ?? 1,
             'message' => $result[0]->message ?? 'Restaurant créé avec succès.',
         ], 201);
     }
