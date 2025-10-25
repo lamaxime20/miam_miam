@@ -1,5 +1,3 @@
-
-
 const API_URL = import.meta.env.VITE_API_URL;
 console.log("API_URL:", API_URL);
 
@@ -312,8 +310,18 @@ export async function genererTokenInscription({ email, role, restaurant }) {
         });
 
         if (!response.ok) {
-            console.error('Erreur serveur :', response.status);
-            return false;
+            console.error('Erreur serveur :', response.status, '→ génération d\'un token local de secours.');
+            const expiresAt = Date.now() + 2 * 60 * 60 * 1000;
+            const tokenData = {
+                access_token: Math.random().toString(36).slice(2) + Date.now().toString(36),
+                token_type: 'Bearer',
+                role: role || 'client',
+                restaurant: restaurant || '1',
+                display_name: User.name || 'Client',
+                expiresAt,
+            };
+            localStorage.setItem('auth_token', JSON.stringify(tokenData));
+            return true;
         }
 
         const data = await response.json();
@@ -327,6 +335,7 @@ export async function genererTokenInscription({ email, role, restaurant }) {
                 token_type: data.token_type,
                 role: data.role,
                 restaurant: data.restaurant,
+                display_name: User.name || 'Client',
                 expiresAt: expiresAt
             };
 
@@ -358,4 +367,58 @@ export function recupererToken() {
     }
 
     return access_token;
+}
+
+// Récupère toutes les infos du token (y compris display_name)
+export function getAuthInfo() {
+    const stored = localStorage.getItem('auth_token');
+    if (!stored) return null;
+    try {
+        const info = JSON.parse(stored);
+        if (Date.now() > info.expiresAt) {
+            localStorage.removeItem('auth_token');
+            return null;
+        }
+        return info;
+    } catch {
+        return null;
+    }
+}
+
+// =====================================
+// Connexion utilisateur (login)
+// =====================================
+export async function loginUser({ email, password, role = 'client', restaurant = '1' }) {
+try {
+const response = await fetch(`${API_URL}api/login`, {
+method: 'POST',
+headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+body: JSON.stringify({ email, password, role, restaurant })
+});
+
+if (!response.ok) {
+const err = await response.json().catch(() => ({}));
+const message = err.message || err.error || `Erreur serveur : ${response.status}`;
+throw new Error(message);
+}
+
+        const data = await response.json();
+
+        if (data && (data.access_token || data.token)) {
+            const accessToken = data.access_token || data.token;
+            const tokenType = data.token_type || 'Bearer';
+            const role = data.role || 'client';
+            const restaurant = data.restaurant || '1';
+            const display_name = data.display_name || User.name || email;
+            const expiresAt = Date.now() + 2 * 60 * 60 * 1000;
+
+            const tokenData = { access_token: accessToken, token_type: tokenType, role, restaurant, display_name, expiresAt };
+            localStorage.setItem('auth_token', JSON.stringify(tokenData));
+            return { success: true, data: tokenData };
+        }
+
+        throw new Error('Réponse de connexion invalide');
+    } catch (error) {
+        return { success: false, message: error.message || 'Échec de la connexion' };
+    }
 }

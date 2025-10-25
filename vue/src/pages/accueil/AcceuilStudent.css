@@ -1,0 +1,63 @@
+.home{background:#0c0c0c;color:#e8e0d1;min-height:100dvh;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji"}
+
+/* Header */
+.navbar{position:sticky;top:0;z-index:30;display:flex;align-items:center;justify-content:space-between;padding:14px 28px;background:#0c0c0c80;backdrop-filter:blur(6px);border-bottom:1px solid #1e1e1e}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700}
+.logo{width:28px;height:28px;border-radius:6px;background:radial-gradient(circle at 30% 30%,#ff7c38,transparent 60%),radial-gradient(circle at 70% 70%,#f1c78d,transparent 60%),#1a1a1a;border:1px solid #2a2a2a}
+.navlinks{display:flex;gap:22px}
+.navlinks a{color:#e8e0d1;text-decoration:none;opacity:.9}
+.navlinks a:hover{opacity:1}
+.actions{display:flex;gap:10px}
+.btn{cursor:pointer;border:1px solid #3a3a3a;background:transparent;color:#e8e0d1;padding:10px 14px;border-radius:8px}
+.btn:hover{background:#1a1a1a}
+.btn-solid{background:#d7bb84;color:#0c0c0c;border-color:#d7bb84}
+.btn-solid:hover{filter:brightness(.95)}
+.btn-outline{border-color:#d7bb84;color:#d7bb84;background:transparent}
+.btn-pill{background:#d7bb84;color:#0c0c0c;border:none;border-radius:999px;padding:12px 18px}
+
+/* Hero */
+.hero{position:relative;height:60vh;min-height:420px;display:grid;place-items:center;background:url('https://images.unsplash.com/photo-1544025162-d76694265947?q=80&w=1600&auto=format&fit=crop') center/cover no-repeat}
+.hero .overlay{position:absolute;inset:0;background:#00000070}
+.hero-content{position:relative;text-align:center;max-width:900px;padding:0 18px}
+.hero h1{font-size:48px;margin:0 0 10px}
+.subtitle{font-size:20px;margin:0 0 8px;color:#e8e0d1}
+.desc{max-width:760px;margin:0 auto 18px;color:#d3c9b9}
+
+/* Menu */
+.menu{padding:48px 20px;max-width:1150px;margin:0 auto}
+.menu h2{font-size:40px;text-align:center;margin:0 0 4px}
+.menu .under{font-style:italic;text-align:center;color:#d7bb84;margin:0 0 16px}
+.menu-desc{color:#c8bca7;text-align:center;max-width:900px;margin:0 auto 28px}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.card{background:#121212;border:1px solid #242424;border-radius:14px;padding:16px;display:flex;flex-direction:column;align-items:center;text-align:center}
+.thumb{width:220px;height:220px;border-radius:50%;background-size:cover;background-position:center;margin-bottom:12px;border:6px solid #0c0c0c;box-shadow:0 0 0 1px #2a2a2a}
+.card h3{margin:6px 0}
+.stars{color:#f5d171;margin-bottom:6px}
+
+.cta-center{display:flex;justify-content:center;margin:24px 0 4px}
+
+/* Why */
+.why{padding:42px 20px;border-top:1px solid #1b1b1b}
+.why h2{text-align:center;margin:0 0 6px;font-size:32px}
+.why .under{text-align:center;color:#c9bfae;margin:0 0 22px}
+.features{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;max-width:1100px;margin:0 auto}
+.feature{background:#121212;border:1px solid #242424;border-radius:12px;padding:18px;text-align:center}
+.icon{font-size:24px;margin-bottom:6px}
+
+/* Footer */
+.footer{border-top:1px solid #1b1b1b;padding:28px 20px;background:#0b0b0b}
+.footer-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;max-width:1100px;margin:0 auto}
+.footer h5{margin:0 0 8px;color:#d7bb84}
+.footer p{margin:6px 0;color:#c8bca7}
+
+/* Responsive */
+@media (max-width:900px){
+  .cards{grid-template-columns:1fr 1fr}
+  .features{grid-template-columns:1fr 1fr}
+}
+@media (max-width:640px){
+  .navbar{flex-wrap:wrap;gap:10px}
+  .cards{grid-template-columns:1fr}
+  .features{grid-template-columns:1fr}
+  .hero h1{font-size:36px}
+}

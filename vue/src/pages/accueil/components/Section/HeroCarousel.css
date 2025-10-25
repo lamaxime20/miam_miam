@@ -1,0 +1,156 @@
+.hero-carousel {
+  margin: 1rem 0;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.carousel-content {
+  position: relative;
+  height: 550px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.carousel-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  position: absolute;
+  top: 0;
+  left: 0;
+  transition: transform 0.3s ease;
+}
+
+.carousel-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.7));
+  z-index: 1;
+  transition: transform 0.3s ease;
+}
+
+.carousel-caption-custom {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  color: #ffffff;
+  max-width: 700px;
+  padding: 2rem;
+  transition: transform 0.3s ease;
+}
+
+.carousel-title {
+  font-size: 3rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  color: #cfbd97;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.carousel-subtitle {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+  color: #ffffff;
+}
+
+.carousel-description {
+  font-size: 1.1rem;
+  line-height: 1.6;
+  margin-bottom: 2rem;
+  color: #f0f0f0;
+}
+
+.btn-carousel {
+  background-color: #cfbd97;
+  color: #000000;
+  border: none;
+  padding: 0.75rem 2rem;
+  border-radius: 25px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 1rem;
+}
+
+.btn-carousel:hover {
+  background-color: #d9cda7;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(207, 189, 151, 0.4);
+}
+
+.carousel-indicators button {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: #cfbd97;
+  opacity: 0.5;
+  border: none;
+}
+
+.carousel-indicators button.active {
+  opacity: 1;
+}
+
+.carousel-control-prev-icon,
+.carousel-control-next-icon {
+  filter: invert(1);
+}
+
+@media (max-width: 768px) {
+  .carousel-content {
+    height: 400px;
+  }
+
+  .carousel-title {
+    font-size: 2rem;
+  }
+
+  .carousel-subtitle {
+    font-size: 1.2rem;
+  }
+
+  .carousel-description {
+    font-size: 0.95rem;
+  }
+
+  .carousel-caption-custom {
+    padding: 1rem;
+  }
+}
+/* === Animation d'apparition des plats === */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Animation appliquée à chaque carte */
+.menu-card {
+  opacity: 0;
+  animation: fadeInUp 0.8s ease forwards;
+}
+
+/* Délai progressif selon la position dans la grille */
+.menu-card:nth-child(1) {
+  animation-delay: 0.1s;
+}
+.menu-card:nth-child(2) {
+  animation-delay: 0.3s;
+}
+.menu-card:nth-child(3) {
+  animation-delay: 0.5s;
+}
+.menu-card:nth-child(4) {
+  animation-delay: 0.7s;
+}
+
+

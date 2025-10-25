@@ -138,20 +138,37 @@ class UtilisateurController extends Controller
         $validate = $request->validate([
             'email' => 'required|email|max:255',
             'password' => 'required|string|min:6|max:255',
-            'role' => 'required|string',
-            'restaurant' => 'required|string',
+            'role' => 'sometimes|string',
+            'restaurant' => 'sometimes|string',
         ]);
 
+        // Rechercher l'utilisateur par email
         $user = Utilisateur::where('email_user', $validate['email'])->first();
 
-        $role = $validate['role'];
-        $restaurant = $validate['restaurant'];
-        $token = $user->createExpiringToken('auth_token', [$role. ':' .$restaurant], 2);
+        // Utilisateur non trouvé
+        if (!$user) {
+            return response()->json([
+                'message' => 'Identifiants invalides.'
+            ], 401);
+        }
+
+        // Vérifier le mot de passe
+        if (!Hash::check($validate['password'], $user->password_user)) {
+            return response()->json([
+                'message' => 'Identifiants invalides.'
+            ], 401);
+        }
+
+        // Générer un token valable 2h avec rôle et restaurant
+        $role = $validate['role'] ?? 'client';
+        $restaurant = $validate['restaurant'] ?? '1';
+        $token = $user->createExpiringToken('auth_token', [$role . ':' . $restaurant], 2);
 
         return response()->json([
             'access_token' => $token,
             'token_type' => 'Bearer',
-            'role' => $role
+            'role' => $role,
+            'restaurant' => $restaurant
         ], 200);
     }
 

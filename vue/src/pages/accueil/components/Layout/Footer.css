@@ -1,0 +1,180 @@
+.footer {
+  background-color: #0a0a0a;
+  color: #cfbd97;
+  padding: 1rem 0 1rem;
+  margin-top: 1rem;
+  border-top: 1px solid #222;
+}
+
+.footer-content {
+  margin-bottom: 2rem;
+}
+
+.footer-column {
+  margin-bottom: 0.2rem;
+}
+
+.footer-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #cfbd97;
+  margin-bottom: 1.5rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.footer-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.footer-list li {
+  margin-bottom: 1rem;
+}
+
+.footer-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  color: #aaaaaa;
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.footer-item i {
+  color: #cfbd97;
+  font-size: 1.1rem;
+  margin-top: 2px;
+}
+
+.footer-link {
+  color: #aaaaaa;
+  text-decoration: none;
+  transition: color 0.3s ease;
+  font-size: 0.95rem;
+}
+
+.footer-link:hover {
+  color: #cfbd97;
+}
+
+.footer-hours {
+  color: #aaaaaa;
+  font-size: 0.95rem;
+  line-height: 1.8;
+}
+
+.footer-bottom {
+  text-align: center;
+  padding-top: 1rem;
+  border-top: 1px solid #222;
+}
+
+.footer-copyright {
+  color: #888888;
+  font-size: 0.9rem;
+  margin: 0;
+}
+.why-choose-section {
+  text-align: center;
+  background-color: #0a0a0a;
+  padding: 1rem 0;
+  
+}
+.why-choose-title {
+  font-size: 2rem;
+  font-weight: 600;
+  color: #ffffff;
+  margin-bottom: 0.5rem;
+}
+.why-choose-subtitle {
+  font-size: 1rem;
+  color: #aaaaaa;
+  margin-bottom: 3rem;
+}
+.features-row{
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items:stretch;
+  gap: 1.5rem;
+}
+
+.feature-col {
+  flex: 1 1 200px;
+  max-width: 250px;
+  margin-bottom: 1.5rem;
+}
+
+.feature-box {
+  text-align: center;
+  padding: 1rem;
+}
+
+.feature-icon {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  background-color: #cfbd97;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+}
+
+.feature-icon i {
+  font-size: 1rem;
+  color: #000000;
+}
+
+.feature-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #ffffff;
+  margin-bottom: 0.5rem;
+}
+
+.feature-description {
+  font-size: 0.9rem;
+  color: #aaaaaa;
+  line-height: 1.4;
+  margin: 0;
+}
+
+@media (max-width: 850px) {
+  .footer {
+    padding: 2rem 0 1rem;
+  }
+
+  .footer-column {
+    text-align: center;
+  }
+
+  .footer-item {
+    justify-content: center;
+  }
+
+  .footer-title {
+    font-size: 1.1rem;
+  }
+}
+/* Icônes du bloc "Pourquoi choisir" */
+.feature-img {
+  width: 50px;
+  height: 50px;
+  object-fit: contain;
+}
+
+/* Icônes de contact */
+.footer-item img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+
+
+
