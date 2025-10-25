@@ -48,7 +48,7 @@ class RestaurantCRUDTest extends TestCase
             'nom_fichier' => 'logo_restau',
             'extension' => 'jpg',
             'chemin' => '/uploads/resto.jpg',
-        ], 'id_File');
+        ], 'id_file');
 
         return Restaurant::create([
             'nom_restaurant' => 'Le Gourmet',
@@ -80,7 +80,7 @@ class RestaurantCRUDTest extends TestCase
             'nom_fichier' => 'logo_restau',
             'extension' => 'jpg',
             'chemin' => '/uploads/resto.jpg',
-        ], 'id_File');
+        ], 'id_file');
 
         $data = [
             'nom_restaurant' => 'Le Gourmet',
@@ -130,6 +130,5 @@ class RestaurantCRUDTest extends TestCase
         $resto = Restaurant::first();
         $response = $this->deleteJson("/api/restaurants/{$resto->id_restaurant}");
         $response->assertStatus(204);
-        $response->assertJsonStructure(['message' => 'Restaurant supprimé avec succès.']);
     }
 }
