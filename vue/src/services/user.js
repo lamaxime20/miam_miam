@@ -34,12 +34,14 @@ export async function envoyerEmail({ email }) {
             const expiresAt = Date.now() + 10 * 60 * 1000; // 10 min
             const codeData = { code: verificationCode, expiresAt };
             localStorage.setItem('code_verification', JSON.stringify(codeData));
-            console.log(data);
-            console.log('Code stocké jusqu’à :', new Date(expiresAt).toLocaleTimeString());
+            console.log('[envoyerEmail] Réponse serveur:', data);
+            console.log('[envoyerEmail] Code généré:', verificationCode);
+            console.log('[envoyerEmail] Objet stocké en localStorage (code_verification):', codeData);
+            console.log('[envoyerEmail] Code stocké jusqu’à :', new Date(expiresAt).toLocaleTimeString());
 
             return true;
         } else {
-            console.warn('Aucun code reçu du serveur.');
+            console.warn('[envoyerEmail] Aucun code reçu du serveur.');
             return false;
         }
     } catch (error) {
@@ -74,6 +76,7 @@ export async function VerifEmailExist(email) {
 // =====================================
 export async function validateSignupFormName({ name, email, phone }) {
     const errors = {};
+    console.log('[validateSignupFormName] Début validation', { name, email, phone, prevUser: User });
 
     if (email.trim() !== User.email) {
         resetVerificationCodeTimer();
@@ -113,6 +116,7 @@ export async function validateSignupFormName({ name, email, phone }) {
     User.phone = phone;
 
     localStorage.setItem('User', JSON.stringify(User));
+    console.log('[validateSignupFormName] User sauvegardé en localStorage:', User);
 
     return errors;
 }
@@ -123,6 +127,7 @@ export async function validateSignupFormName({ name, email, phone }) {
 export function validateVerificationCode(codeArray) {
     const codeSaisi = codeArray.join("");
     const errors = {};
+    console.log('[validateVerificationCode] Code saisi:', codeSaisi);
 
     const storedData = localStorage.getItem('code_verification');
     if (!storedData) {
@@ -132,6 +137,7 @@ export function validateVerificationCode(codeArray) {
     }
 
     const { code, expiresAt } = JSON.parse(storedData);
+    console.log('[validateVerificationCode] Code stocké:', code, 'expiresAt:', new Date(expiresAt).toLocaleString());
     if (Date.now() > expiresAt) {
         localStorage.removeItem('code_verification');
         errors.code = "Code expiré.";
@@ -144,7 +150,7 @@ export function validateVerificationCode(codeArray) {
         codeVerified = false;
     } else if (codeSaisi != code) {
         errors.code = "Code incorrect.";
-        console.log("le code est ", code)
+        console.log('[validateVerificationCode] Code incorrect - attendu:', code, 'reçu:', codeSaisi);
         codeVerified = false;
     } else {
         codeVerified = true;
@@ -179,6 +185,7 @@ export function validateSignupFormPassword({ password, confirmPassword }) {
     }
 
     localStorage.setItem('User', JSON.stringify(User));
+    console.log('[validateSignupFormPassword] User sauvegardé en localStorage (mot de passe mis):', { name: User.name, email: User.email, phone: User.phone, hasPassword: !!User.password });
 
     return errors;
 }
@@ -230,6 +237,7 @@ export function startVerificationCodeTimer(setCompteRebours, onTimerEnd) {
     if (!storedData) return;
 
     const { code, expiresAt } = JSON.parse(storedData);
+    console.log('[startVerificationCodeTimer] Démarrage timer pour code:', code, 'expiresAt:', new Date(expiresAt).toLocaleString());
 
     const updateTimer = () => {
         const now = Date.now();
@@ -265,20 +273,26 @@ export function resetVerificationCodeTimer() {
     localStorage.removeItem('code_verification');
     verificationCode = null;
     codeVerified = false;
+    console.log('[resetVerificationCodeTimer] Code de vérification réinitialisé et supprimé du localStorage');
 }
 
-function clearSignupStorageUser() {
+export function clearSignupStorageUser() {
+    // Clear only signup-related keys (keep auth_token handling separate)
     localStorage.removeItem('User');
     localStorage.removeItem('signupStep');
     localStorage.removeItem('code_verification');
+    // extra keys that older code sometimes used — safe to remove as well
+    localStorage.removeItem('verificationTimer');
+    localStorage.removeItem('isEmailVerified');
+    localStorage.removeItem('verificationCode');
+    console.log('[clearSignupStorageUser] Supprimé: User, signupStep, code_verification, verificationTimer, isEmailVerified, verificationCode');
 }
 
 export function loadUserFromStorage() {
-    if(recupererToken() == null){
-        clearSignupStorageUser();
-        return;
-    }
+    // Load signup progress from localStorage when present.
+    // Do NOT clear signup storage here based on auth token: signup is an unauthenticated flow
     const storedUser = localStorage.getItem('User');
+    console.log('[loadUserFromStorage] Lecture localStorage User:', storedUser);
     if(storedUser){
         const data = JSON.parse(storedUser);
         User.name = data.name;
@@ -309,6 +323,7 @@ export function infoUserExistsInStorage() {
 
 export function saveUserToStorage() {
     localStorage.setItem('User', JSON.stringify(User));
+    console.log('[saveUserToStorage] User sauvegardé:', User);
 }
 
 export async function genererTokenInscription({ email, role, restaurant }) {

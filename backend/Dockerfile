@@ -1,11 +1,11 @@
-# Étape 1 : Image de base PHP avec extensions nécessaires
-FROM php:8.2-fpm
+# Étape 1 : Image de base PHP Alpine avec extensions nécessaires
+FROM php:8.2-fpm-alpine
 
 # Étape 2 : Installer les dépendances système nécessaires
-RUN apt-get update && apt-get install -y \
+RUN apk add --no-cache \
     git \
     unzip \
-    libpq-dev \
+    postgresql-dev \
     && docker-php-ext-install pdo pdo_pgsql
 
 # Étape 3 : Installer Composer
