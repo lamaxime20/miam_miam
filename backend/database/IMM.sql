@@ -144,3 +144,109 @@ BEGIN
     END IF;
 END;
 $$ LANGUAGE plpgsql;
+
+-- =============================
+--     FONCTIONS CRUD : FILE
+-- =============================
+-- #############################################################
+-- Fonction 1 : Créer un fichier
+-- #############################################################
+CREATE OR REPLACE FUNCTION creer_file(
+    p_nom_fichier Name,
+    p_extension VARCHAR(10),
+    p_chemin TEXT
+)
+RETURNS TABLE (id INT, message TEXT)
+AS $$
+DECLARE
+    new_id INT;
+BEGIN
+    INSERT INTO File (nom_fichier, extension, chemin)
+    VALUES (p_nom_fichier, p_extension, p_chemin)
+    RETURNING id_file INTO new_id;
+
+    RETURN QUERY SELECT new_id AS id, 'fichier created successfully' AS message;
+END;
+$$ LANGUAGE plpgsql;
+
+-- #############################################################
+-- Fonction 2 : Récupérer tous les fichiers
+-- #############################################################
+CREATE OR REPLACE FUNCTION get_all_files()
+RETURNS TABLE (
+    id_file INT,
+    nom_fichier Name,
+    extension VARCHAR(10),
+    chemin TEXT
+)
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT f.id_file, f.nom_fichier, f.extension, f.chemin
+    FROM File f
+    ORDER BY f.id_file;
+END;
+$$ LANGUAGE plpgsql;
+
+-- #############################################################
+-- Fonction 3 : Récupérer un fichier par son ID
+-- #############################################################
+CREATE OR REPLACE FUNCTION get_one_file(p_id INT)
+RETURNS TABLE (
+    id_file INT,
+    nom_fichier Name,
+    extension VARCHAR(10),
+    chemin TEXT
+)
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT f.id_file, f.nom_fichier, f.extension, f.chemin
+    FROM File f
+    WHERE f.id_file = p_id;
+END;
+$$ LANGUAGE plpgsql;
+
+-- #############################################################
+-- Fonction 4 : Mettre à jour un fichier
+-- #############################################################
+CREATE OR REPLACE FUNCTION update_file(
+    p_id INT,
+    p_nom_fichier Name DEFAULT NULL,
+    p_extension VARCHAR(10) DEFAULT NULL,
+    p_chemin TEXT DEFAULT NULL
+)
+RETURNS TEXT
+AS $$
+BEGIN
+    UPDATE File f
+    SET
+        nom_fichier = COALESCE(p_nom_fichier, nom_fichier),
+        extension = COALESCE(p_extension, extension),
+        chemin = COALESCE(p_chemin, chemin)
+    WHERE f.id_file = p_id;
+
+    IF NOT FOUND THEN
+        RETURN 'aucun fichier trouvé';
+    END IF;
+
+    RETURN 'fichier updated successfully';
+END;
+$$ LANGUAGE plpgsql;
+
+-- #############################################################
+-- Fonction 5 : Supprimer un fichier
+-- #############################################################
+CREATE OR REPLACE FUNCTION delete_file(p_id INT)
+RETURNS TEXT
+AS $$
+BEGIN
+    DELETE FROM File f WHERE f.id_file = p_id;
+
+    IF NOT FOUND THEN
+        RETURN 'aucun fichier trouvé';
+    END IF;
+
+    RETURN 'fichier deleted successfully';
+END;
+$$ LANGUAGE plpgsql;
