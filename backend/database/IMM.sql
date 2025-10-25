@@ -250,3 +250,38 @@ BEGIN
     RETURN 'fichier deleted successfully';
 END;
 $$ LANGUAGE plpgsql;
+
+-- ==============================================
+-- FONCTION : lister_menu_du_jour()
+-- ==============================================
+CREATE OR REPLACE FUNCTION lister_menu_du_jour()
+RETURNS TABLE (
+    id INT,
+    name VARCHAR(100),
+    image INT,
+    description TEXT,
+    price DECIMAL(10,2),
+    rating DECIMAL(3,2),
+    idResto INT
+)
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        m.id_menu AS id,
+        m.nom_menu::VARCHAR(100) AS name,      -- cast explicite Name -> VARCHAR
+        m.image_menu AS image,
+        m.description_menu AS description,
+        m.prix_menu::DECIMAL(10,2) AS price,  -- cast explicite prices -> DECIMAL
+        COALESCE(ROUND(AVG(n.note_menu)::NUMERIC, 2), 0) AS rating,
+        r.id_restaurant AS idResto
+    FROM Menu m
+    JOIN Choisir_Menu_Jour cmj ON cmj.id_menu = m.id_menu
+    JOIN Restaurant r ON r.id_restaurant = m.restaurant_hote
+    LEFT JOIN Noter n ON n.id_menu = m.id_menu
+    WHERE cmj.date_jour = CURRENT_DATE
+    GROUP BY m.id_menu, m.nom_menu, m.image_menu, m.description_menu, 
+             m.prix_menu, r.id_restaurant
+    ORDER BY rating DESC, m.nom_menu ASC;
+END;
+$$ LANGUAGE plpgsql;

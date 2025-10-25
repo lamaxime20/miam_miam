@@ -51,7 +51,29 @@ class fileController extends Controller
             return response()->json(['message' => 'fichier introuvable'], 404);
         }
 
-        return response()->json($file[0], 200);
+        $fileData = (array) $file[0];
+
+        // Chemin complet vers le fichier sur le serveur
+        $fullPath = public_path($fileData['chemin']);
+
+        if (!file_exists($fullPath)) {
+            return response()->json([
+                'message' => 'Fichier introuvable sur le disque',
+                'info' => $fileData
+            ], 404);
+        }
+
+        // Lire le contenu du fichier et l’encoder en base64 pour transmission JSON
+        $content = base64_encode(file_get_contents($fullPath));
+
+        // Retourner les métadonnées + le contenu encodé
+        return response()->json([
+            'id_File' => $fileData['id_file'],
+            'nom_fichier' => $fileData['nom_fichier'],
+            'extension' => $fileData['extension'],
+            'chemin' => $fileData['chemin'],
+            'contenu_base64' => $content,
+        ], 200);
     }
 
     /**

@@ -1,18 +1,25 @@
+import { useState, useEffect } from "react";
 import "./MenuSection.css"
-import Eru from "../../assets/images/utilsImages/Eru.jpg"
-import Okok from "../../assets/images/utilsImages/Okok.png"
-import Ndole from "../../assets/images/utilsImages/Ndole.png"
-import PouletDG from "../../assets/images/utilsImages/PouletDG.png"
 
 import MenuCard from "./MenuCard.jsx"
+import { AvoirMenusJourAcceul } from "../../../../services/Menu.js"
 
 function MenuSection({ isAuthenticated, onRequestLogin, onShowMenu }) {
-  const menuItems = [
-    { id: 1, name: "Eru", image: Eru, description: "Délicieux Eru accompagné de coucous Tapioca", price: "1000 FCFA", rating: 5, nomResto: "Zeduc space" },
-    { id: 2, name: "Okok salé", image: Okok, description: "Du okok sale savoureux accompagné de baton de manioc", price: "1000 FCFA", rating: 4, nomResto: "La terasse" },
-    { id: 3, name: "Ndolé", image: Ndole, description: "Ndole avec au choix du riz, plantain ou baton de manioc pour accompagnement", price: "1500 FCFA", rating: 5, nomResto: "Le bon repas" },
-    { id: 4, name: "Poulet DG", image: PouletDG, description: "Poulet DG accompagné de plantains frits et d'une sauce épicée", price: "2000 FCFA", rating: 3, nomResto: "Chez Agnès" },
-  ]
+  const [menuItems, setMenuItems] = useState([]);
+
+  useEffect(() => {
+    const fetchMenuItems = async () => {
+      try {
+        const items = await AvoirMenusJourAcceul();
+        // On ne prend que les 4 premiers pour l'accueil
+        setMenuItems(items.slice(0, 4));
+      } catch (error) {
+        console.error("Erreur lors de la récupération du menu du jour:", error);
+      }
+    };
+
+    fetchMenuItems();
+  }, []); // Le tableau vide signifie que cet effet ne s'exécute qu'une fois, au montage.
 
   const handleMenuClick = () => {
     if (!isAuthenticated) {
