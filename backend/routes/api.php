@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\administrateurController;
 use App\Http\Controllers\Api\UtilisateurController;
 use App\Models\Utilisateur;
 use App\Http\Controllers\Api\fileController;
+use App\Http\Controllers\Api\restaurantController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -35,3 +36,8 @@ Route::get('/files/{id}', [fileController::class, 'show']);
 Route::post('/files', [fileController::class, 'store']);
 Route::put('/files/{id}', [fileController::class, 'update']);
 Route::delete('/files/{id}', [fileController::class, 'destroy']);
+Route::get('/restaurants', [restaurantController::class, 'index']);
+Route::get('/restaurants/{id}', [restaurantController::class, 'show']);
+Route::post('/restaurants', [restaurantController::class, 'store']);
+Route::put('/restaurants/{id}', [restaurantController::class, 'update']);
+Route::delete('/restaurants/{id}', [restaurantController::class, 'destroy']);
