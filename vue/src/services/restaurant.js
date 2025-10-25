@@ -1,21 +1,51 @@
 import { useState } from "react";
 
-let restoName = "";
-let restoLocalisationType = "";
-let restoManualLocation = "";
-let restoIsEstimateValid = false;
-let restoIdFileLogo = null;
-let restoLogo = null;
-export let restoPolicy = "";
+export let restaurant = JSON.parse(localStorage.getItem("restaurant")) || {
+    restoName: "",
+    restoLocalisationType: "",
+    restoManualLocation: "",
+    restoIsEstimateValid: false,
+    restoIdFileLogo: null,
+    restoLogo: null,
+    imagechoisi: false,
+    restoPolicy: "",
+};
+
+const enregistrerRestaurantLocalStorage = () => {
+    localStorage.setItem("restaurant", JSON.stringify(restaurant));
+}
+
+export const supprimerDonneesResto = () => {
+    restaurant.restoName = "";
+    restaurant.restoLocalisationType = "";
+    restaurant.restoManualLocation = "";
+    restaurant.restoIsEstimateValid = false;
+    restaurant.restoIdFileLogo = null;
+    restaurant.restoLogo = null;
+    restaurant.restoPolicy = "";
+    localStorage.removeItem("restaurant");
+}
+
+export const resetRestaurant = () => {
+    restaurant.restoName = "";
+    restaurant.restoLocalisationType = "";
+    restaurant.restoManualLocation = "";
+    restaurant.restoIsEstimateValid = false;
+    restaurant.restoIdFileLogo = null;
+    restaurant.restoLogo = null;
+    restaurant.restoPolicy = "";
+    enregistrerRestaurantLocalStorage;
+    console.log(localStorage.getItem('restaurant') || "max");
+};
 
 /**
  * Hook principal de gestion du formulaire "Créer un restaurant"
  */
 export const useRestaurantFormName = () => {
-    const [restaurantName, setRestaurantName] = useState(restoName);
-    const [localisationType, setLocalisationType] = useState(restoLocalisationType);
-    const [manualLocation, setManualLocation] = useState(restoManualLocation);
-    const [isEstimatedValid, setIsEstimatedValid] = useState(restoIsEstimateValid);
+    const [restaurantName, setRestaurantName] = useState(restaurant.restoName);
+    const [localisationType, setLocalisationType] = useState(restaurant.restoLocalisationType);
+    const [manualLocation, setManualLocation] = useState(restaurant.restoManualLocation);
+    const [isEstimatedValid, setIsEstimatedValid] = useState(restaurant.restoIsEstimateValid);
     const [errors, setErrors] = useState({});
 
     /**
@@ -23,13 +53,13 @@ export const useRestaurantFormName = () => {
      */
     const handleLocalisationChange = (type) => {
         setLocalisationType(type);
-        restoLocalisationType = localisationType;
+        restaurant.restoLocalisationType = localisationType;
         if (type === "googleMap") {
             setIsEstimatedValid(false);
             setManualLocation("");
-            restoIsEstimateValid = isEstimatedValid;
-            restoManualLocation = manualLocation;
         }
+        restaurant.restoIsEstimateValid = isEstimatedValid;
+        restaurant.restoManualLocation = manualLocation;
         setErrors((prev) => ({ ...prev, localisationType: undefined }));
     };
 
@@ -39,15 +69,15 @@ export const useRestaurantFormName = () => {
     const handleManualLocationChange = (value) => {
         setManualLocation(value);
         setIsEstimatedValid(value.trim().length > 0);
-        restoManualLocation = manualLocation;
-        restoIsEstimateValid = isEstimatedValid;
+        restaurant.restoManualLocation = manualLocation;
+        restaurant.restoIsEstimateValid = isEstimatedValid;
         setErrors((prev) => ({ ...prev, manualLocation: undefined }));
     };
 
-    restoName = restaurantName;
-    restoLocalisationType = localisationType;
-    restoManualLocation = manualLocation;
-    restoIsEstimateValid = isEstimatedValid;
+    restaurant.restoName = restaurantName;
+    restaurant.restoLocalisationType = localisationType;
+    restaurant.restoManualLocation = manualLocation;
+    restaurant.restoIsEstimateValid = isEstimatedValid;
 
     return {
         restaurantName,
@@ -87,6 +117,7 @@ export const verifierRestaurantFormName = ({
     }
 
     setErrors(newErrors);
+    enregistrerRestaurantLocalStorage();
     return Object.keys(newErrors).length === 0;
 };
 
@@ -116,7 +147,7 @@ export const verifierChargementImage = (file) => {
  * Hook de gestion du formulaire Logo
  */
 export const useRestaurantFormLogo = () => {
-    const [image, setImage] = useState(restoLogo);
+    const [image, setImage] = useState(restaurant.restoLogo);
     const [error, setError] = useState("");
     const [message, setMessage] = useState("");
 
@@ -126,7 +157,7 @@ export const useRestaurantFormLogo = () => {
     const handleImageUpload = async (file) => {
         if (!file) return;
 
-        if(restoIdFileLogo !== null){
+        if(restaurant.restoIdFileLogo !== null){
             // Supprimer l’ancienne image avant d’uploader la nouvelle
             await handleRemoveImage();
         }
@@ -158,8 +189,8 @@ export const useRestaurantFormLogo = () => {
                 throw new Error(data.error || "Erreur lors de l’envoi du fichier.");
             }
 
-            restoIdFileLogo = data.id;
-            restoLogo = file;
+            restaurant.restoIdFileLogo = data.id;
+            restaurant.restoLogo = file;
 
             // ✅ Fichier envoyé et enregistré en base avec succès
             setImage(URL.createObjectURL(file)); // affichage local immédiat
@@ -179,7 +210,7 @@ export const useRestaurantFormLogo = () => {
      * Suppression de l’image
      */
     const handleRemoveImage = async () => {
-        const fileId = restoIdFileLogo;
+        const fileId = restaurant.restoIdFileLogo;
         console.log(fileId);
         if (!fileId) {
             setImage(null);
@@ -204,8 +235,8 @@ export const useRestaurantFormLogo = () => {
             setError("");
             setMessage(data.message || "Une image par défaut sera utilisée.");
             console.log("Fichier supprimé :", data);
-            restoIdFileLogo = null;
-            restoLogo = null;
+            restaurant.restoIdFileLogo = null;
+            restaurant.restoLogo = null;
         } catch (err) {
             console.error("Erreur suppression :", err);
             setError("Impossible de supprimer l'image.");
@@ -213,7 +244,9 @@ export const useRestaurantFormLogo = () => {
         }
     };
 
-    restoLogo = image;
+    restaurant.restoLogo = image;
+
+    enregistrerRestaurantLocalStorage();
 
     return {
         image,
@@ -230,6 +263,42 @@ export const verifierRestaurantFormPolicy = (policy) => {
         console.error("La politique de l’entreprise est obligatoire.");
         return "La politique de l’entreprise est obligatoire.";
     }
-    restoPolicy = policy.trim();
+    restaurant.restoPolicy = policy.trim();
+    enregistrerRestaurantLocalStorage();
     return null;
+};
+
+export const getRestaurantStep = () => {
+    console.log(restaurant);
+    // Step 1 : Informations de base (nom)
+    if (!restaurant.restoName || restaurant.restoName.trim() === "") {
+        return 1;
+    }
+
+    // Step 1 : Localisation
+    if (
+        !restaurant.restoLocalisationType ||
+        restaurant.restoLocalisationType.trim() === "" ||
+        !restaurant.restoManualLocation ||
+        restaurant.restoManualLocation.trim() === ""
+    ) {
+        return 1;
+    }
+
+    // Step 2 : Logo
+    if (
+        !restaurant.restoIdFileLogo ||
+        restaurant.restoIdFileLogo === null ||
+        !restaurant.restoLogo ||
+        !restaurant.imagechoisi
+    ) {
+        return 2;
+    }
+
+    // Step 3 : Politique
+    if (!restaurant.restoPolicy || restaurant.restoPolicy.trim() === "") {
+        console.log(4);
+        return 3;
+    }
+    return 4
 };

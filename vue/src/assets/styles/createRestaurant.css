@@ -311,6 +311,34 @@
     background-color: #bfa870;
 }
 
+/* === Bouton Skip === */
+.createRestaurantFormLogo-navButton.skip {
+    background: transparent;
+    color: var(--primary-color, #0A84FF); /* même bleu que ton thème principal */
+    border: none;
+    text-decoration: underline;
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 1rem;
+    transition: color 0.3s ease, transform 0.2s ease;
+    padding: 0.5rem 1rem;
+}
+
+/* Effet au survol */
+.createRestaurantFormLogo-navButton.skip:hover {
+    color: var(--primary-hover, #0066cc);
+    transform: scale(1.05);
+    text-decoration-thickness: 2px;
+}
+
+/* Effet quand le bouton est désactivé (ex : loading) */
+.createRestaurantFormLogo-navButton.skip:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    text-decoration: none;
+    transform: none;
+}
+
 /* == 
 /* ==== Create Restaurant For Policy ====
 /* === */
@@ -426,4 +454,66 @@
     background-color: #bba984;
     transform: translateY(-3px);
     box-shadow: 0 10px 20px rgba(207, 189, 151, 0.14);
+}
+
+/* == Create Restaurant Form Success
+/* === */
+.createRestaurantFormSuccess-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    text-align: center;
+    background: #fff;
+    border-radius: 20px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    animation: fadeIn 0.4s ease-in-out;
+}
+
+.createRestaurantFormSuccess-iconWrapper {
+    background-color: #e8f9f0;
+    border-radius: 50%;
+    padding: 25px;
+    margin-bottom: 20px;
+}
+
+.createRestaurantFormSuccess-icon {
+    color: #22c55e; /* vert moderne */
+    width: 80px;
+    height: 80px;
+}
+
+.createRestaurantFormSuccess-title {
+    font-size: 1.8rem;
+    color: #1e293b;
+    margin-bottom: 10px;
+}
+
+.createRestaurantFormSuccess-message {
+    color: #475569;
+    font-size: 1rem;
+    margin-bottom: 30px;
+}
+
+.createRestaurantFormSuccess-dashboardButton {
+    background-color: #22c55e;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 12px 24px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s ease-in-out;
+}
+
+.createRestaurantFormSuccess-dashboardButton:hover {
+    background-color: #16a34a;
+}
+
+/* animation douce */
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
 }

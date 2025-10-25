@@ -1,9 +1,9 @@
 import React, { useState } from "react";
-import { verifierRestaurantFormPolicy, restoPolicy } from "../services/restaurant";
+import { verifierRestaurantFormPolicy, restaurant } from "../services/restaurant";
 import "../assets/styles/createRestaurant.css";
 
 const CreateRestaurantFormPolicy = ({ onNext, onPrevious }) => {
-    const [policy, setPolicy] = useState(restoPolicy);
+    const [policy, setPolicy] = useState(restaurant.restoPolicy);
     const [error, setError] = useState(null);
 
     const handleNext = () => {

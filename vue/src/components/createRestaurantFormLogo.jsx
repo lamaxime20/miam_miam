@@ -1,9 +1,9 @@
 import React, { useRef, useState } from "react";
 import '../assets/styles/createRestaurant.css';
-import { useRestaurantFormLogo } from "../services/restaurant";
+import { useRestaurantFormLogo, restaurant } from "../services/restaurant";
 import LoaderOverlay from "./loaderOverlay"; // 🔹 import du loader
 
-const CreateRestaurantFormLogo = ({ handleNext, handlePrevious }) => {
+const CreateRestaurantFormLogo = ({ onNext, handlePrevious }) => {
     const {
         image,
         error,
@@ -16,26 +16,20 @@ const CreateRestaurantFormLogo = ({ handleNext, handlePrevious }) => {
     const [isLoading, setIsLoading] = useState(false); // 🔹 état du loader
 
     const onDragOver = (e) => {
-        e.preventDefault(); // très important : empêche le navigateur d’ouvrir le fichier
+        e.preventDefault();
         e.stopPropagation();
     };
 
     const onDrop = async (e) => {
-        e.preventDefault(); // empêche le comportement par défaut
+        e.preventDefault();
         e.stopPropagation();
 
         const file = e.dataTransfer.files[0];
         if (!file) return;
 
         setIsLoading(true);
-        const success = await handleImageUpload(file); // ta fonction d'upload dans restaurant.js
+        await handleImageUpload(file);
         setIsLoading(false);
-
-        if (!success) {
-            setError("Erreur de connexion lors du chargement de l’image.");
-        } else {
-            setError("");
-        }
     };
 
     const onFileChange = async (e) => {
@@ -50,6 +44,19 @@ const CreateRestaurantFormLogo = ({ handleNext, handlePrevious }) => {
         setIsLoading(true);
         await handleRemoveImage();
         setIsLoading(false);
+    };
+
+    const handleNext = () => {
+        restaurant.imagechoisi = true;
+        onNext();
+    };
+
+    const handleSkip = () => {
+        // L’utilisateur choisit de passer sans image
+        restaurant.restoIdFileLogo = null;
+        restaurant.restoLogo = null;
+        restaurant.imagechoisi = true;
+        onNext();
     };
 
     return (
@@ -123,13 +130,24 @@ const CreateRestaurantFormLogo = ({ handleNext, handlePrevious }) => {
                 >
                     Previous
                 </button>
-                <button
-                    className="createRestaurantFormLogo-navButton next"
-                    onClick={handleNext}
-                    disabled={isLoading}
-                >
-                    Next
-                </button>
+
+                {image ? (
+                    <button
+                        className="createRestaurantFormLogo-navButton next"
+                        onClick={handleNext}
+                        disabled={isLoading}
+                    >
+                        Next
+                    </button>
+                ) : (
+                    <button
+                        className="createRestaurantFormLogo-navButton skip"
+                        onClick={handleSkip}
+                        disabled={isLoading}
+                    >
+                        Skip
+                    </button>
+                )}
             </div>
         </div>
     );
