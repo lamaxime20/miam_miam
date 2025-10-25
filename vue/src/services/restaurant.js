@@ -36,7 +36,8 @@ export const resetRestaurant = () => {
     restaurant.restoIdFileLogo = null;
     restaurant.restoLogo = null;
     restaurant.restoPolicy = "";
-    enregistrerRestaurantLocalStorage;
+    // enregistrerRestaurantLocalStorage must be invoked to persist the reset
+    enregistrerRestaurantLocalStorage();
     console.log(localStorage.getItem('restaurant') || "max");
 };
 
@@ -55,13 +56,21 @@ export const useRestaurantFormName = () => {
      */
     const handleLocalisationChange = (type) => {
         setLocalisationType(type);
-        restaurant.restoLocalisationType = localisationType;
+        // Update shared `restaurant` synchronously with the new selection
+        restaurant.restoLocalisationType = type;
         if (type === "googleMap") {
+            // Google Map mode: no manual location
             setIsEstimatedValid(false);
             setManualLocation("");
+            restaurant.restoManualLocation = "";
+            restaurant.restoIsEstimateValid = false;
+        } else {
+            // estimation mode: we keep the manualLocation state as-is
+            restaurant.restoIsEstimateValid = isEstimatedValid;
+            restaurant.restoManualLocation = manualLocation;
         }
-        restaurant.restoIsEstimateValid = isEstimatedValid;
-        restaurant.restoManualLocation = manualLocation;
+        // persist changes
+        enregistrerRestaurantLocalStorage();
         setErrors((prev) => ({ ...prev, localisationType: undefined }));
     };
 
@@ -70,16 +79,23 @@ export const useRestaurantFormName = () => {
      */
     const handleManualLocationChange = (value) => {
         setManualLocation(value);
-        setIsEstimatedValid(value.trim().length > 0);
-        restaurant.restoManualLocation = manualLocation;
-        restaurant.restoIsEstimateValid = isEstimatedValid;
+        const valid = value.trim().length > 0;
+        setIsEstimatedValid(valid);
+        // Keep the shared `restaurant` in sync with the latest manual value
+        restaurant.restoManualLocation = value;
+        restaurant.restoIsEstimateValid = valid;
+        // persist changes
+        enregistrerRestaurantLocalStorage();
         setErrors((prev) => ({ ...prev, manualLocation: undefined }));
     };
 
+    // Keep the shared restaurant object in sync on render (safe, lightweight)
     restaurant.restoName = restaurantName;
     restaurant.restoLocalisationType = localisationType;
     restaurant.restoManualLocation = manualLocation;
     restaurant.restoIsEstimateValid = isEstimatedValid;
+    // Persist current snapshot
+    enregistrerRestaurantLocalStorage();
 
     return {
         restaurantName,
@@ -278,13 +294,15 @@ export const getRestaurantStep = () => {
     }
 
     // Step 1 : Localisation
-    if (
-        !restaurant.restoLocalisationType ||
-        restaurant.restoLocalisationType.trim() === "" ||
-        !restaurant.restoManualLocation ||
-        restaurant.restoManualLocation.trim() === ""
-    ) {
+    if (!restaurant.restoLocalisationType || restaurant.restoLocalisationType.trim() === "") {
         return 1;
+    }
+
+    // If localisation type is estimation, manual location must be present
+    if (restaurant.restoLocalisationType === 'estimation') {
+        if (!restaurant.restoManualLocation || restaurant.restoManualLocation.trim() === "") {
+            return 1;
+        }
     }
 
     // Step 2 : Logo
