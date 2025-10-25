@@ -4,12 +4,14 @@ import Okok from "../../assets/images/utilsImages/Okok.png"
 import Ndole from "../../assets/images/utilsImages/Ndole.png"
 import PouletDG from "../../assets/images/utilsImages/PouletDG.png"
 
+import MenuCard from "./MenuCard.jsx"
+
 function MenuSection({ isAuthenticated, onRequestLogin, onShowMenu }) {
   const menuItems = [
-    { id: 1, name: "Eru", image: Eru, description: "Délicieux Eru accompagné de coucous Tapioca", price: "1000 FCFA", rating: 5 },
-    { id: 2, name: "Okok salé", image: Okok, description: "Du okok sale savoureux accompagné de baton de manioc", price: "1000 FCFA", rating: 4 },
-    { id: 3, name: "Ndolé", image: Ndole, description: "Ndole avec au choix du riz, plantain ou baton de manioc pour accompagnement", price: "1500 FCFA", rating: 5 },
-    { id: 4, name: "Poulet DG", image: PouletDG, description: "Poulet DG accompagné de plantains frits et d'une sauce épicée", price: "2000 FCFA", rating: 3 },
+    { id: 1, name: "Eru", image: Eru, description: "Délicieux Eru accompagné de coucous Tapioca", price: "1000 FCFA", rating: 5, nomResto: "Zeduc space" },
+    { id: 2, name: "Okok salé", image: Okok, description: "Du okok sale savoureux accompagné de baton de manioc", price: "1000 FCFA", rating: 4, nomResto: "La terasse" },
+    { id: 3, name: "Ndolé", image: Ndole, description: "Ndole avec au choix du riz, plantain ou baton de manioc pour accompagnement", price: "1500 FCFA", rating: 5, nomResto: "Le bon repas" },
+    { id: 4, name: "Poulet DG", image: PouletDG, description: "Poulet DG accompagné de plantains frits et d'une sauce épicée", price: "2000 FCFA", rating: 3, nomResto: "Chez Agnès" },
   ]
 
   const handleMenuClick = () => {
@@ -36,23 +38,7 @@ function MenuSection({ isAuthenticated, onRequestLogin, onShowMenu }) {
 
         <div className="row menu-grid">
           {menuItems.map((item) => (
-            <div key={item.id} className="col-12 col-md-6 col-lg-3 ">
-              <div className="menu-card">
-                <div className="menu-image-container">
-                  <img src={item.image || "/placeholder.svg"} alt={item.name} className="menu-image" />
-                  <div className="menu-icons"></div>
-                </div>
-                <h3 className="menu-item-name">{item.name}</h3>
-                <div className="menu-rating">
-                  {[...Array(item.rating)].map((_, i) => (
-                    <span key={i} className="star">★</span>
-                  ))}
-                </div>
-                <p className="menu-item-description">{item.description}</p>
-                <p className="menu-item-price">{item.price}</p>
-                <button className="order-button">Commander</button>
-              </div>
-            </div>
+            <MenuCard key={item.id} item={item} />
           ))}
         </div>
         <div className="see-all-container">

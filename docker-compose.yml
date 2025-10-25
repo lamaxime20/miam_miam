@@ -1,37 +1,22 @@
-services:
-  db:
-    image: postgres:16
-    container_name: postgres
-    restart: unless-stopped
-    environment:
-      - POSTGRES_DB=miam_db
-      - POSTGRES_USER=miam_user
-      - POSTGRES_PASSWORD=miam_pass
-    ports:
-      - "5432:5432"
-    volumes:
-      - db_data:/var/lib/postgresql/data
+version: "3.9"
 
+services:
   laravel:
     image: laravel-app
     build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: laravel
-    working_dir: /var/www/html
-    depends_on:
-      - db
     ports:
       - "8000:8000"
     volumes:
-      - ./backend:/var/www/html
+      - ./backend:/app
     environment:
-      - DB_CONNECTION=pgsql
-      - DB_HOST=db
-      - DB_PORT=5432
-      - DB_DATABASE=miam_db
-      - DB_USERNAME=miam_user
-      - DB_PASSWORD=miam_pass
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
 
   react:
     image: react-vite-app
@@ -45,8 +30,5 @@ services:
       - ./vue:/app
       - /app/node_modules
     environment:
-      - VITE_API_URL=http://localhost:8000/
-      - CHOKIDAR_USEPOLLING=true
-
-volumes:
-  db_data:
+    - VITE_API_URL=http://localhost:8000/
+    - CHOKIDAR_USEPOLLING=true
