@@ -24,7 +24,7 @@ function CreateRestaurant() {
             <ProgressionRestaurant NbreSteps={4} StepActu={2} />
             <div className="createRestaurant-container">
                 {step == 1 && (<CreateRestaurantFormName onNext={goNext}/>)}
-                {step == 2 && (<CreateRestaurantFormLogo />)}
+                {step == 2 && (<CreateRestaurantFormLogo handleNext={goNext} handlePrevious={goPrevious} />)}
             </div>
         </>
     )
