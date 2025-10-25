@@ -6,6 +6,7 @@ let restoManualLocation = "";
 let restoIsEstimateValid = false;
 let restoIdFileLogo = null;
 let restoLogo = null;
+export let restoPolicy = "";
 
 /**
  * Hook principal de gestion du formulaire "Créer un restaurant"
@@ -221,4 +222,14 @@ export const useRestaurantFormLogo = () => {
         handleImageUpload,
         handleRemoveImage,
     };
+};
+
+// create Restaurant Form Policy
+export const verifierRestaurantFormPolicy = (policy) => {
+    if (!policy || typeof policy !== "string" || !policy.trim() || policy.trim() == null) {
+        console.error("La politique de l’entreprise est obligatoire.");
+        return "La politique de l’entreprise est obligatoire.";
+    }
+    restoPolicy = policy.trim();
+    return null;
 };

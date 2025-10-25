@@ -1,7 +1,7 @@
 import React, { useRef, useState } from "react";
 import '../assets/styles/createRestaurant.css';
 import { useRestaurantFormLogo } from "../services/restaurant";
-import LoaderOverlay from "./LoaderOverlay"; // 🔹 import du loader
+import LoaderOverlay from "./loaderOverlay"; // 🔹 import du loader
 
 const CreateRestaurantFormLogo = ({ handleNext, handlePrevious }) => {
     const {

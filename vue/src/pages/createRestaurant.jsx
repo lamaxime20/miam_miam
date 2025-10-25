@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import ProgressionRestaurant from "../components/progressionRestaurant";
 import CreateRestaurantFormName from "../components/createRestaurantFormName";
 import CreateRestaurantFormLogo from "../components/createRestaurantFormLogo";
+import CreateRestaurantFormPolicy from "../components/createRestaurantFormPolicy";
 
 
 function CreateRestaurant() {
@@ -25,6 +26,7 @@ function CreateRestaurant() {
             <div className="createRestaurant-container">
                 {step == 1 && (<CreateRestaurantFormName onNext={goNext}/>)}
                 {step == 2 && (<CreateRestaurantFormLogo handleNext={goNext} handlePrevious={goPrevious} />)}
+                {step == 3 && (<CreateRestaurantFormPolicy onNext={goNext} onPrevious={goPrevious} />)}
             </div>
         </>
     )
