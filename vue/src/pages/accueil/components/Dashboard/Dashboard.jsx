@@ -17,6 +17,7 @@ import TopClients from "./TopClients"
 import Menu from "./Menu.jsx"
 import MesCommandes from "./MesCommandes"
 import Fidelite from "./Fidelite"
+import StatCard from "./StatCard.jsx"
 
 export default function Dashboard({ user }) {
   const [isOpen, setIsOpen] = useState(true)
@@ -95,58 +96,9 @@ export default function Dashboard({ user }) {
 
             {/* Cartes de statistiques */}
             <div className="row g-4 mb-4">
-              <div className="col-md-3">
-                <div className="card border-0 shadow-sm h-100">
-                  <div className="card-body">
-                    <div className="d-flex align-items-center mb-2">
-                      <i className="bi bi-star-fill text-warning fs-3 me-3"></i>
-                      <div>
-                        <h6 className="text-muted mb-0">Points Fidélité</h6>
-                        <h3 className="mb-0">1,250</h3>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="col-md-3">
-                <div className="card border-0 shadow-sm h-100">
-                  <div className="card-body">
-                    <div className="d-flex align-items-center mb-2">
-                      <i className="bi bi-cart-check text-success fs-3 me-3"></i>
-                      <div>
-                        <h6 className="text-muted mb-0">Commandes</h6>
-                        <h3 className="mb-0">23</h3>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="col-md-3">
-                <div className="card border-0 shadow-sm h-100">
-                  <div className="card-body">
-                    <div className="d-flex align-items-center mb-2">
-                      <i className="bi bi-people text-primary fs-3 me-3"></i>
-                      <div>
-                        <h6 className="text-muted mb-0">Filleuls</h6>
-                        <h3 className="mb-0">5</h3>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="col-md-3">
-                <div className="card border-0 shadow-sm h-100">
-                  <div className="card-body">
-                    <div className="d-flex align-items-center mb-2">
-                      <i className="bi bi-piggy-bank text-info fs-3 me-3"></i>
-                      <div>
-                        <h6 className="text-muted mb-0">Économies</h6>
-                        <h3 className="mb-0">450 FCFA</h3>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <StatCard icon={<i className="bi bi-star-fill text-warning fs-3 me-3"></i>} title="Points Fidélité" value="1,250" />
+              <StatCard icon={<i className="bi bi-cart-check text-success fs-3 me-3"></i>} title="Commandes" value="23" />
+              <StatCard icon={<i className="bi bi-people text-primary fs-3 me-3"></i>} title="Filleuls" value="5" />
             </div>
 
             {/* Nouvelles sections : Promotions, Événements et Fidélité */}

@@ -3,30 +3,33 @@
 namespace Tests\Feature;
 
 use Tests\TestCase;
-use App\Models\File;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Http\UploadedFile;
 
 class FileCRUDTest extends TestCase
 {
     protected function setUp(): void
     {
         parent::setUp();
-        DB::statement('DELETE FROM file'); // Clear the files table before each test
+        // Utiliser le disque de test pour ne pas polluer le vrai stockage
+        Storage::fake('public');
+        // Nettoyer la table via une fonction ou une troncature si nécessaire
+        DB::statement('TRUNCATE TABLE "File" RESTART IDENTITY CASCADE;');
     }
 
-    protected function tearDown(): void
+    /**
+     * Crée un fichier de test en base de données et sur le disque simulé.
+     * @return array Les données du fichier créé.
+     */
+    private function creerFileTest(): array
     {
-        DB::statement('DELETE FROM file'); // Clear the files table after each test
-        parent::tearDown();
-    }
+        $file = UploadedFile::fake()->image('test_image.jpg');
+        $path = $file->store('uploads', 'public'); // Stocke dans storage/app/public/uploads
 
-    private function creerFileTest()
-    {
-        return File::create([
-            'nom_fichier' => 'test_file',
-            'extension' => 'txt',
-            'chemin' => '/uploads/test_file.txt',
-        ]);
+        $result = DB::select("SELECT * FROM creer_file(?, ?, ?)", ['test_image', 'jpg', $path]);
+        
+        return ['id' => $result[0]->id, 'path' => $path];
     }
 
     public function testCreationFile()
@@ -34,7 +37,7 @@ class FileCRUDTest extends TestCase
         $data = [
             'nom_fichier' => 'logo',
             'extension' => 'png',
-            'chemin' => '/uploads/logo.png',
+            'chemin' => 'uploads/logo.png',
         ];
 
         $response = $this->postJson('/api/files', $data);
@@ -47,11 +50,11 @@ class FileCRUDTest extends TestCase
 
     public function testGetAllFiles()
     {
-        $this->creerFileTest(); // Ensure at least one file exists for testing
+        $this->creerFileTest();
         $response = $this->getJson('/api/files');
         $response->assertStatus(200);
         $response->assertJsonStructure([
-            '*' => [
+            '0' => [
                 'id_file',
                 'nom_fichier',
                 'extension',
@@ -62,23 +65,26 @@ class FileCRUDTest extends TestCase
 
     public function testGetOneFile()
     {
-        $this->creerFileTest(); // Ensure at least one file exists for testing
-        $file = File::first();
-        $response = $this->getJson("/api/files/{$file->id_file}");
+        $fileData = $this->creerFileTest();
+        
+        // Vérifier que le fichier existe sur le disque simulé
+        Storage::disk('public')->assertExists($fileData['path']);
+
+        $response = $this->getJson("/api/files/{$fileData['id']}");
         $response->assertStatus(200);
         $response->assertJsonStructure([
-            'id_file',
+            'id_File',
             'nom_fichier',
             'extension',
             'chemin',
+            'contenu_base64'
         ]);
     }
 
     public function testUpdateFile()
     {
-        $this->creerFileTest(); // Ensure at least one file exists for testing
-        $file = File::first();
-        $response = $this->putJson("/api/files/{$file->id_file}", [
+        $fileData = $this->creerFileTest();
+        $response = $this->putJson("/api/files/{$fileData['id']}", [
             'chemin' => '/uploads/updated_logo.png',
         ]);
         $response->assertStatus(200);
@@ -89,9 +95,8 @@ class FileCRUDTest extends TestCase
 
     public function testDeleteFile()
     {
-        $this->creerFileTest(); // Ensure at least one file exists for testing
-        $file = File::first();
-        $response = $this->deleteJson("/api/files/{$file->id_file}");
+        $fileData = $this->creerFileTest();
+        $response = $this->deleteJson("/api/files/{$fileData['id']}");
         $response->assertStatus(204);
     }
 }

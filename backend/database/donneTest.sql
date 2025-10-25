@@ -9,6 +9,9 @@ VALUES
 ('boisson', 'Boissons')
 ON CONFLICT DO NOTHING;
 
+-- -------------------------------
+-- Création d'un fichier de test
+-- -------------------------------
 
 -- Supposons que l'id renvoyé est 1
 -- Création de l'employé lié
@@ -34,8 +37,8 @@ VALUES
 -- -------------------------------
 INSERT INTO Choisir_Menu_Jour (id_menu, id_employe, date_jour)
 VALUES
-(11, 1, CURRENT_DATE),
-(12, 1, CURRENT_DATE),
-(13, 1, CURRENT_DATE),
-(14, 1, CURRENT_DATE),
-(15, 1, CURRENT_DATE);
+(1, 1, CURRENT_DATE),
+(2, 1, CURRENT_DATE),
+(3, 1, CURRENT_DATE),
+(4, 1, CURRENT_DATE),
+(5, 1, CURRENT_DATE);

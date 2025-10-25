@@ -285,3 +285,59 @@ BEGIN
     ORDER BY rating DESC, m.nom_menu ASC;
 END;
 $$ LANGUAGE plpgsql;
+
+-- ============================================
+--   FONCTION 1 : Nombre de points de fidélité
+-- ============================================
+CREATE OR REPLACE FUNCTION get_points_fidelite_client(p_id_client INT)
+RETURNS INT
+AS $$
+DECLARE
+    v_points INT;
+BEGIN
+    SELECT c.points_fidelite
+    INTO v_points
+    FROM Client c
+    WHERE c.id_client = p_id_client;
+
+    RETURN COALESCE(v_points, 0);
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- ============================================
+--   FONCTION 2 : Nombre total de commandes du client
+-- ============================================
+CREATE OR REPLACE FUNCTION get_nombre_commandes_client(p_id_client INT)
+RETURNS INT
+AS $$
+DECLARE
+    v_total INT;
+BEGIN
+    SELECT COUNT(*)
+    INTO v_total
+    FROM Commande cmd
+    WHERE cmd.client_commande = p_id_client;
+
+    RETURN COALESCE(v_total, 0);
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- ============================================
+--   FONCTION 3 : Nombre de filleuls d’un client
+-- ============================================
+CREATE OR REPLACE FUNCTION get_nombre_filleuls_client(p_id_client INT)
+RETURNS INT
+AS $$
+DECLARE
+    v_filleuls INT;
+BEGIN
+    SELECT COUNT(*)
+    INTO v_filleuls
+    FROM Parrainage p
+    WHERE p.id_parrain = p_id_client;
+
+    RETURN COALESCE(v_filleuls, 0);
+END;
+$$ LANGUAGE plpgsql;
