@@ -19,7 +19,7 @@ function MenuSection({ item }) {
                     <div className="menu-icons"></div>
                 </div>
                 <h3 className="menu-item-name">{item.name}</h3>
-                <p className="menu-item-description">{item.nomResto}</p>
+                <p className="menu-item-description">{item.nomresto}</p>
                 <div className="menu-rating">
                     {[...Array(Math.floor(item.rating))].map((_, i) => (
                         <span key={i} className="star">★</span>

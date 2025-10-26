@@ -83,4 +83,57 @@ class clientController extends Controller
             'points_fidelite' => $points[0]->points ?? 0,
         ], 200);
     }
+
+    /**
+     * Retourne les statistiques complètes du dashboard pour un client.
+     */
+    public function dashboardStats(int $id_client)
+    {
+        $stats = DB::select('SELECT * FROM get_dashboard_stats_client(?)', [$id_client]);
+
+        return response()->json([
+            'id_client' => $id_client,
+            'stats' => $stats[0] ?? null,
+        ], 200);
+    }
+
+    /**
+     * Retourne les commandes récentes d'un client.
+     */
+    public function commandesRecentes(int $id_client, Request $request)
+    {
+        $limit = $request->query('limit', 5);
+        $commandes = DB::select('SELECT * FROM get_commandes_recentes_client(?, ?)', [$id_client, $limit]);
+
+        return response()->json([
+            'id_client' => $id_client,
+            'commandes' => $commandes,
+        ], 200);
+    }
+
+    /**
+     * Retourne les détails de fidélité d'un client.
+     */
+    public function detailsFidelite(int $id_client)
+    {
+        $details = DB::select('SELECT * FROM get_details_fidelite_client(?)', [$id_client]);
+
+        return response()->json([
+            'id_client' => $id_client,
+            'details' => $details[0] ?? null,
+        ], 200);
+    }
+
+    /**
+     * Retourne le top des clients.
+     */
+    public function topClients(Request $request)
+    {
+        $limit = $request->query('limit', 10);
+        $clients = DB::select('SELECT * FROM get_top_clients(?)', [$limit]);
+
+        return response()->json([
+            'clients' => $clients,
+        ], 200);
+    }
 }

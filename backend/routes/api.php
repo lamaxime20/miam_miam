@@ -6,6 +6,9 @@ use App\Models\Utilisateur;
 use App\Http\Controllers\Api\fileController;
 use App\Http\Controllers\Api\choisir_menu_jourController;
 use App\Models\choisir_menu_jour;
+use App\Http\Controllers\Api\clientController;
+use App\Http\Controllers\Api\promotionController;
+use App\Http\Controllers\Api\notificationsController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -51,4 +54,28 @@ Route::prefix('client')->group(function () {
 
     // GET /api/client/{id}/points
     Route::get('{id}/points', [ClientController::class, 'pointsFidelite']);
+
+    // GET /api/client/{id}/dashboard-stats
+    Route::get('{id}/dashboard-stats', [ClientController::class, 'dashboardStats']);
+
+    // GET /api/client/{id}/commandes-recentes
+    Route::get('{id}/commandes-recentes', [ClientController::class, 'commandesRecentes']);
+
+    // GET /api/client/{id}/details-fidelite
+    Route::get('{id}/details-fidelite', [ClientController::class, 'detailsFidelite']);
+
+    // GET /api/client/top-clients
+    Route::get('top-clients', [ClientController::class, 'topClients']);
+});
+
+// Routes pour les promotions
+Route::get('/promotions/actives', [promotionController::class, 'promotionsActives']);
+
+// Routes pour les notifications
+Route::prefix('notifications')->group(function () {
+    // GET /api/notifications/client/{id}
+    Route::get('client/{id}', [notificationsController::class, 'notificationsClient']);
+
+    // PUT /api/notifications/{id_notification}/client/{id_client}/marquer-lue
+    Route::put('{id_notification}/client/{id_client}/marquer-lue', [notificationsController::class, 'marquerLue']);
 });

@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import "./Dashboard.css"
 import {
   RiDashboardLine,
@@ -18,11 +18,37 @@ import Menu from "./Menu.jsx"
 import MesCommandes from "./MesCommandes"
 import Fidelite from "./Fidelite"
 import StatCard from "./StatCard.jsx"
+import { 
+  getDashboardStats, 
+  getCommandesRecentes, 
+  getDetailsFidelite, 
+  getPromotionsActives, 
+  getNotificationsClient,
+  marquerNotificationLue,
+  getTopClients
+} from "../../../../services/Menu.js"
 
 export default function Dashboard({ user }) {
   const [isOpen, setIsOpen] = useState(true)
   const [activePage, setActivePage] = useState("dashboard")
   const [cartCount] = useState(3)
+  
+  // États pour les données du backend
+  const [dashboardStats, setDashboardStats] = useState({
+    points_fidelite: 0,
+    nombre_commandes: 0,
+    nombre_filleuls: 0
+  })
+  const [commandesRecentes, setCommandesRecentes] = useState([])
+  const [detailsFidelite, setDetailsFidelite] = useState({
+    points_actuels: 0,
+    points_pour_repas_gratuit: 1500,
+    pourcentage_progression: 0,
+    nombre_filleuls: 0
+  })
+  const [promotions, setPromotions] = useState([])
+  const [notifications, setNotifications] = useState([])
+  const [loading, setLoading] = useState(true)
 
   const displayName = user?.name || "Marie Segment"
   const initials = displayName
@@ -32,6 +58,45 @@ export default function Dashboard({ user }) {
     .slice(0, 2)
     .join("")
     .toUpperCase()
+
+  // ID du client (à adapter selon votre logique d'authentification)
+  const clientId = user?.id || 1
+
+  // Chargement des données au montage du composant
+  useEffect(() => {
+    const loadDashboardData = async () => {
+      try {
+        setLoading(true)
+        
+        // Chargement parallèle de toutes les données
+        const [
+          stats,
+          commandes,
+          fidelite,
+          promotionsData,
+          notificationsData
+        ] = await Promise.all([
+          getDashboardStats(clientId),
+          getCommandesRecentes(clientId, 5),
+          getDetailsFidelite(clientId),
+          getPromotionsActives(),
+          getNotificationsClient(clientId)
+        ])
+
+        setDashboardStats(stats)
+        setCommandesRecentes(commandes)
+        setDetailsFidelite(fidelite)
+        setPromotions(promotionsData)
+        setNotifications(notificationsData)
+      } catch (error) {
+        console.error("Erreur lors du chargement des données du dashboard :", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadDashboardData()
+  }, [clientId])
 
   const menuItems = [
     { icon: RiDashboardLine, label: "Tableau de bord", key: "dashboard" },
@@ -45,31 +110,24 @@ export default function Dashboard({ user }) {
     { icon: RiStarFill, label: "Top Clients", key: "topClients" },
   ]
 
-  const promotions = [
-    {
-      id: 1,
-      name: "Pizza Margherita",
-      description: "Tomate, Mozzarella, Basilic frais",
-      originalPrice: "45.00€",
-      discountedPrice: "12.00€",
-      discount: "20%",
-    }
-  ]
+  // Fonction pour formater le prix
+  const formatPrice = (price) => {
+    return new Intl.NumberFormat('fr-FR', {
+      style: 'currency',
+      currency: 'XOF'
+    }).format(price)
+  }
 
-  const evenements = [
-    {
-      id: 1,
-      title: "Jeu Concours",
-      description: "Gagnez un repas gratuit ! Tentez votre chance maintenant.",
-      buttonText: "Participer"
-    },
-    {
-      id: 2,
-      title: "Menu Spécial",
-      description: "Découvrez notre menu spécial étudiant jusqu'au 31 mars.",
-      buttonText: "Découvrir"
-    }
-  ]
+  // Fonction pour formater la date
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('fr-FR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  }
 
   const renderContent = () => {
     switch (activePage) {
@@ -96,9 +154,21 @@ export default function Dashboard({ user }) {
 
             {/* Cartes de statistiques */}
             <div className="row g-4 mb-4">
-              <StatCard icon={<i className="bi bi-star-fill text-warning fs-3 me-3"></i>} title="Points Fidélité" value="1,250" />
-              <StatCard icon={<i className="bi bi-cart-check text-success fs-3 me-3"></i>} title="Commandes" value="23" />
-              <StatCard icon={<i className="bi bi-people text-primary fs-3 me-3"></i>} title="Filleuls" value="5" />
+              <StatCard 
+                icon={<i className="bi bi-star-fill text-warning fs-3 me-3"></i>} 
+                title="Points Fidélité" 
+                value={loading ? "..." : dashboardStats.points_fidelite?.toLocaleString() || "0"} 
+              />
+              <StatCard 
+                icon={<i className="bi bi-cart-check text-success fs-3 me-3"></i>} 
+                title="Commandes" 
+                value={loading ? "..." : dashboardStats.nombre_commandes?.toString() || "0"} 
+              />
+              <StatCard 
+                icon={<i className="bi bi-people text-primary fs-3 me-3"></i>} 
+                title="Filleuls" 
+                value={loading ? "..." : dashboardStats.nombre_filleuls?.toString() || "0"} 
+              />
             </div>
 
             {/* Nouvelles sections : Promotions, Événements et Fidélité */}
@@ -110,25 +180,42 @@ export default function Dashboard({ user }) {
                     <h5 className="mb-0">Promotions du Jour</h5>
                   </div>
                   <div className="card-body">
-                    {promotions.map(promo => (
-                      <div key={promo.id} className="promotion-card p-3 mb-3 border rounded">
-                        <div className="d-flex justify-content-between align-items-start mb-2">
-                          <h6 className="fw-bold mb-0">{promo.name}</h6>
-                          <span className="badge bg-danger">{promo.discount}</span>
-                        </div>
-                        <p className="text-muted small mb-2">{promo.description}</p>
-                        <div className="d-flex justify-content-between align-items-center">
-                          <div>
-                            <span className="text-decoration-line-through text-muted me-2">{promo.originalPrice}</span>
-                            <span className="fw-bold text-primary">{promo.discountedPrice}</span>
-                          </div>
-                          <button className="btn btn-primary-custom btn-sm" 
-                                  style={{ backgroundColor: "#D4C4A8", borderColor: "#D4C4A8" }}>
-                            Ajouter
-                          </button>
+                    {loading ? (
+                      <div className="text-center py-3">
+                        <div className="spinner-border text-primary" role="status">
+                          <span className="visually-hidden">Chargement...</span>
                         </div>
                       </div>
-                    ))}
+                    ) : promotions.length > 0 ? (
+                      promotions.map(promo => (
+                        <div key={promo.id_promo} className="promotion-card p-3 mb-3 border rounded">
+                          <div className="d-flex justify-content-between align-items-start mb-2">
+                            <h6 className="fw-bold mb-0">{promo.nom_menu || promo.titre}</h6>
+                            <span className="badge bg-danger">{promo.pourcentage_reduction}%</span>
+                          </div>
+                          <p className="text-muted small mb-2">{promo.description_promotion}</p>
+                          <div className="d-flex justify-content-between align-items-center">
+                            <div>
+                              <span className="text-decoration-line-through text-muted me-2">
+                                {formatPrice(promo.prix_original)}
+                              </span>
+                              <span className="fw-bold text-primary">
+                                {formatPrice(promo.prix_reduit)}
+                              </span>
+                            </div>
+                            <button className="btn btn-primary-custom btn-sm" 
+                                    style={{ backgroundColor: "#D4C4A8", borderColor: "#D4C4A8" }}>
+                              Ajouter
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center text-muted py-3">
+                        <i className="bi bi-gift fs-1 mb-2"></i>
+                        <p>Aucune promotion disponible</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -141,16 +228,35 @@ export default function Dashboard({ user }) {
                     <h5 className="mb-0">Événements</h5>
                   </div>
                   <div className="card-body">
-                    {evenements.map(event => (
-                      <div key={event.id} className="event-card p-3 mb-3 border rounded">
-                        <h6 className="fw-bold mb-2">{event.title}</h6>
-                        <p className="text-muted small mb-3">{event.description}</p>
-                        <button className="btn btn-outline-primary-custom btn-sm w-100"
-                                style={{ borderColor: "#D4C4A8", color: "#D4C4A8" }}>
-                          {event.buttonText}
-                        </button>
+                    {loading ? (
+                      <div className="text-center py-3">
+                        <div className="spinner-border text-primary" role="status">
+                          <span className="visually-hidden">Chargement...</span>
+                        </div>
                       </div>
-                    ))}
+                    ) : notifications.length > 0 ? (
+                      notifications.slice(0, 2).map(notification => (
+                        <div key={notification.id_notification} className="event-card p-3 mb-3 border rounded">
+                          <h6 className="fw-bold mb-2">{notification.nom_restaurant}</h6>
+                          <p className="text-muted small mb-3">{notification.message_notification}</p>
+                          <div className="d-flex justify-content-between align-items-center">
+                            <small className="text-muted">{formatDate(notification.date_notif)}</small>
+                            <button 
+                              className="btn btn-outline-primary-custom btn-sm"
+                              style={{ borderColor: "#D4C4A8", color: "#D4C4A8" }}
+                              onClick={() => marquerNotificationLue(notification.id_notification, clientId)}
+                            >
+                              {notification.ouvert ? "Lu" : "Marquer lu"}
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center text-muted py-3">
+                        <i className="bi bi-bell fs-1 mb-2"></i>
+                        <p>Aucun événement disponible</p>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -160,48 +266,52 @@ export default function Dashboard({ user }) {
                     <h5 className="mb-0">Programme de Fidélité</h5>
                   </div>
                   <div className="card-body">
-                    <div className="fidelite-stats text-center">
-                      <div className="row mb-3">
-                        <div className="col-4">
-                          <div className="fidelite-item">
-                            <div className="fw-bold fs-4">1,250</div>
-                            <div className="text-muted small">Points accumulés</div>
-                          </div>
-                        </div>
-                        <div className="col-4">
-                          <div className="fidelite-item">
-                            <div className="fw-bold fs-4">5</div>
-                            <div className="text-muted small">Filleuls parrainés</div>
-                          </div>
-                        </div>
-                        <div className="col-4">
-                          <div className="fidelite-item">
-                            <div className="fw-bold fs-4">450FCFA</div>
-                            <div className="text-muted small">Prochaine récompense</div>
-                          </div>
+                    {loading ? (
+                      <div className="text-center py-3">
+                        <div className="spinner-border text-primary" role="status">
+                          <span className="visually-hidden">Chargement...</span>
                         </div>
                       </div>
-                      <div className="progress mb-3" style={{ height: "8px" }}>
-                        <div 
-                          className="progress-bar" 
-                          style={{ 
-                            backgroundColor: "#D4C4A8",
-                            width: "83%" // 1250/1500 * 100
-                          }}
-                        ></div>
+                    ) : (
+                      <div className="fidelite-stats text-center">
+                        <div className="row mb-3">
+                          <div className="col-4">
+                            <div className="fidelite-item">
+                              <div className="fw-bold fs-4">{detailsFidelite.points_actuels?.toLocaleString() || "0"}</div>
+                              <div className="text-muted small">Points accumulés</div>
+                            </div>
+                          </div>
+                          <div className="col-4">
+                            <div className="fidelite-item">
+                              <div className="fw-bold fs-4">{detailsFidelite.nombre_filleuls || "0"}</div>
+                              <div className="text-muted small">Filleuls parrainés</div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="progress mb-3" style={{ height: "8px" }}>
+                          <div 
+                            className="progress-bar" 
+                            style={{ 
+                              backgroundColor: "#D4C4A8",
+                              width: `${detailsFidelite.pourcentage_progression || 0}%`
+                            }}
+                          ></div>
+                        </div>
+                        <small className="text-muted">
+                          Repas gratuit à {detailsFidelite.points_pour_repas_gratuit} pts
+                        </small>
+                        <div className="mt-3">
+                          <button className="btn btn-primary-custom btn-sm me-2"
+                                  style={{ backgroundColor: "#D4C4A8", borderColor: "#D4C4A8" }}>
+                            Utiliser mes points
+                          </button>
+                          <button className="btn btn-outline-primary-custom btn-sm"
+                                  style={{ borderColor: "#D4C4A8", color: "#D4C4A8" }}>
+                            Inviter des amis
+                          </button>
+                        </div>
                       </div>
-                      <small className="text-muted">Repas gratuit à 1500 pts</small>
-                      <div className="mt-3">
-                        <button className="btn btn-primary-custom btn-sm me-2"
-                                style={{ backgroundColor: "#D4C4A8", borderColor: "#D4C4A8" }}>
-                          Utiliser mes points
-                        </button>
-                        <button className="btn btn-outline-primary-custom btn-sm"
-                                style={{ borderColor: "#D4C4A8", color: "#D4C4A8" }}>
-                          Inviter des amis
-                        </button>
-                      </div>
-                    </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -218,34 +328,52 @@ export default function Dashboard({ user }) {
                     </button>
                   </div>
                   <div className="card-body">
-                    <div className="list-group list-group-flush">
-                      <div className="list-group-item d-flex justify-content-between align-items-center">
-                        <div>
-                          <div className="d-flex align-items-center mb-1">
-                            <i className="bi bi-check-circle-fill text-success me-2"></i>
-                            <strong>Commande #1023</strong>
-                          </div>
-                          <small className="text-muted">Pizza Margherita, Coca Cola</small>
-                        </div>
-                        <div className="text-end">
-                          <div className="text-primary-custom fw-bold">1850 FCFA</div>
-                          <span className="badge bg-success">Livrée</span>
+                    {loading ? (
+                      <div className="text-center py-3">
+                        <div className="spinner-border text-primary" role="status">
+                          <span className="visually-hidden">Chargement...</span>
                         </div>
                       </div>
-                      <div className="list-group-item d-flex justify-content-between align-items-center">
-                        <div>
-                          <div className="d-flex align-items-center mb-1">
-                            <i className="bi bi-clock text-warning me-2"></i>
-                            <strong>Commande #1022</strong>
+                    ) : commandesRecentes.length > 0 ? (
+                      <div className="list-group list-group-flush">
+                        {commandesRecentes.map(commande => (
+                          <div key={commande.id_commande} className="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                              <div className="d-flex align-items-center mb-1">
+                                <i className={`bi ${
+                                  commande.statut_commande === 'validée' ? 'bi-check-circle-fill text-success' :
+                                  commande.statut_commande === 'en_cours' ? 'bi-clock text-warning' :
+                                  'bi-x-circle-fill text-danger'
+                                } me-2`}></i>
+                                <strong>Commande #{commande.id_commande}</strong>
+                              </div>
+                              <small className="text-muted">{commande.liste_menus}</small>
+                              <br />
+                              <small className="text-muted">{commande.nom_restaurant}</small>
+                            </div>
+                            <div className="text-end">
+                              <div className="text-primary-custom fw-bold">{formatPrice(commande.montant_total)}</div>
+                              <span className={`badge ${
+                                commande.statut_commande === 'validée' ? 'bg-success' :
+                                commande.statut_commande === 'en_cours' ? 'bg-warning' :
+                                'bg-danger'
+                              }`}>
+                                {commande.statut_commande === 'validée' ? 'Livrée' :
+                                 commande.statut_commande === 'en_cours' ? 'En cours' :
+                                 'Annulée'}
+                              </span>
+                              <br />
+                              <small className="text-muted">{formatDate(commande.date_commande)}</small>
+                            </div>
                           </div>
-                          <small className="text-muted">Burger, Frites, Sprite</small>
-                        </div>
-                        <div className="text-end">
-                          <div className="text-primary-custom fw-bold">1500 FCFA</div>
-                          <span className="badge bg-warning">En préparation</span>
-                        </div>
+                        ))}
                       </div>
-                    </div>
+                    ) : (
+                      <div className="text-center text-muted py-3">
+                        <i className="bi bi-box-seam fs-1 mb-2"></i>
+                        <p>Aucune commande récente</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -326,7 +454,9 @@ export default function Dashboard({ user }) {
                 <span>Points Fidélité</span>
                 <RiStarFill className="star-icon" />
               </div>
-              <div className="loyalty-points">1,250</div>
+              <div className="loyalty-points">
+                {loading ? "..." : dashboardStats.points_fidelite?.toLocaleString() || "0"}
+              </div>
             </div>
           )}
         </div>
