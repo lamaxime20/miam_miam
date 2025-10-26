@@ -1,56 +1,88 @@
 "use client"
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FaMinus, FaPlus, FaTrash, FaShoppingBag, FaArrowRight } from "react-icons/fa";
+import PanierCardMenu from "./PanierCardMenu";
+import { 
+  getCartFromStorage, 
+  updateCartQuantity, 
+  removeFromCart, 
+  getTotalCartPrice,
+  getTotalCartItems 
+} from "../../../../services/Menu";
 
 export function Panier({ onCheckout }) {
-  const [cartItems, setCartItems] = useState([
-    {
-      id: 1,
-      name: "Pizza Margherita",
-      price: 1200,
-      quantity: 2,
-      image: "https://images.unsplash.com/photo-1563245738-9169ff58eccf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
-    },
-    {
-      id: 2,
-      name: "Burger Classique",
-      price: 1500,
-      quantity: 1,
-      image: "https://images.unsplash.com/photo-1594212699903-ec8a3eca50f5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
-    },
-  ]);
-
+  const [cartItems, setCartItems] = useState([]);
   const [promoCode, setPromoCode] = useState("");
   const [discount, setDiscount] = useState(0);
+  const [restaurants, setRestaurants] = useState({}); // Ajout de l'état pour les restaurants
+
+  // Charger les données du panier depuis le localStorage au montage du composant
+  useEffect(() => {
+    groupCartItemsByRestaurant();
+  }, []);
+
+  const groupCartItemsByRestaurant = async () => {
+    const cartData = getCartFromStorage();
+    const itemsArray = Object.values(cartData);
+    
+    const groupedItems = {};
+
+    for (const item of itemsArray) {
+      try {
+        const response = await fetch(`http://localhost:8000/api/menu/${item.id}/restaurant`);
+        const result = await response.json();
+
+        if (result.success) {
+          const restaurantId = result.data.id_restaurant;
+          if (!groupedItems[restaurantId]) {
+            groupedItems[restaurantId] = {
+              name: result.data.nom_restaurant,
+              items: [],
+            };
+          }
+          item.nomResto = result.data.nom_restaurant; // Add restaurant name to the item
+          groupedItems[restaurantId].items.push(item);
+        }
+      } catch (error) {
+        console.error("Erreur lors de la récupération du restaurant pour le menu:", error);
+      }
+    }
+
+    setRestaurants(groupedItems);
+    setCartItems(itemsArray); // Garder les articles du panier pour les calculs de totaux
+  };
 
   const updateQuantity = (id, change) => {
-    setCartItems((prev) =>
-      prev.map((item) => ({
-        ...item,
-        quantity: item.id === id ? Math.max(1, item.quantity + change) : item.quantity,
-      }))
-    );
+    const currentItem = cartItems.find(item => item.id === id);
+    if (!currentItem) return;
+
+    const newQuantity = Math.max(1, currentItem.quantity + change);
+    updateCartQuantity(id, newQuantity);
+    groupCartItemsByRestaurant(); // Recharger et regrouper les données
   };
 
   const removeItem = (id) => {
-    setCartItems((prev) => prev.filter((item) => item.id !== id));
+    removeFromCart(id);
+    groupCartItemsByRestaurant(); // Recharger et regrouper les données
   };
 
   const applyPromoCode = () => {
     if (promoCode === "PROMO20") setDiscount(0.2);
   };
 
-  const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  // Calculer les totaux en utilisant les fonctions du service Menu
+  const subtotal = getTotalCartPrice();
   const deliveryFee = subtotal > 0 ? 500 : 0;
   const discountAmount = subtotal * discount;
   const total = subtotal + deliveryFee - discountAmount;
+  const totalItems = getTotalCartItems();
 
   return (
     <div className="container py-5" style={{ backgroundColor: "#000000", minHeight: "100vh", }}>
       <h1 className="text-white mb-3">Mon Panier</h1>
       <p className="text-white-50">
-        {cartItems.length} article{cartItems.length > 1 ? "s" : ""} dans votre panier
+        {totalItems} article{totalItems > 1 ? "s" : ""} dans votre panier
       </p>
 
       {cartItems.length === 0 ? (
@@ -66,56 +98,14 @@ export function Panier({ onCheckout }) {
         <div className="row g-4">
           {/* Cart Items */}
           <div className="col-lg-8">
-            {cartItems.map((item) => (
-              <div key={item.id} className="card mb-3 shadow-sm">
-                <div className="row g-3 align-items-center p-3">
-                  <div className="col-md-3">
-                    <img src={item.image} alt={item.name} className="img-fluid rounded" />
-                  </div>
-                  <div className="col-md-5">
-                    <h5>{item.name}</h5>
-                    <p className="text-warning fw-bold">{item.price} FCFA</p>
-                    <div className="d-flex align-items-center gap-2 mt-2">
-                      <button className="btn btn-outline-secondary btn-sm" onClick={() => updateQuantity(item.id, -1)}>
-                        <FaMinus />
-                      </button>
-                      <span className="px-2">{item.quantity}</span>
-                      <button className="btn btn-outline-secondary btn-sm" onClick={() => updateQuantity(item.id, 1)}>
-                        <FaPlus />
-                      </button>
-                    </div>
-                  </div>
-                  <div className="col-md-2 text-end">
-                    <p className="fw-bold">{item.price * item.quantity} FCFA</p>
-                  </div>
-                  <div className="col-md-2 text-end">
-                    <button className="btn btn-outline-danger btn-sm" onClick={() => removeItem(item.id)}>
-                      <FaTrash />
-                    </button>
-                  </div>
-                </div>
+            {Object.keys(restaurants).map((restaurantId) => (
+              <div key={restaurantId} className="mb-4">
+                <h4 className="text-white">{restaurants[restaurantId].name}</h4>
+                {restaurants[restaurantId].items.map((item) => (
+                  <PanierCardMenu key={item.id} item={item} updateQuantity={updateQuantity} removeItem={removeItem} />
+                ))}
               </div>
             ))}
-
-            {/* Promo Code */}
-            <div className="card shadow-sm p-3 mb-3">
-              <h5>Code Promo</h5>
-              <div className="d-flex gap-2">
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="Entrez votre code promo"
-                  value={promoCode}
-                  onChange={(e) => setPromoCode(e.target.value)}
-                />
-                <button className="btn" style={{ backgroundColor: "#cfbd97", color: "#000000" }} onClick={applyPromoCode}>
-                  Appliquer
-                </button>
-              </div>
-              {discount > 0 && (
-                <p className="text-success mt-2">✓ Code promo appliqué: -{discount * 100}%</p>
-              )}
-            </div>
           </div>
 
           {/* Order Summary */}

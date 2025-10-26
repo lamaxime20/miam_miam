@@ -560,54 +560,32 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- ============================================
---   FONCTION 11 : Menus du jour classés par nombre de commandes
+--   FONCTION 12 : Récupérer le restaurant d'un menu
 -- ============================================
-CREATE OR REPLACE FUNCTION get_menus_du_jour_par_popularite()
+CREATE OR REPLACE FUNCTION get_restaurant_by_menu_id(p_id_menu INT)
 RETURNS TABLE (
-    id INT,
-    name VARCHAR(100),
-    category VARCHAR(50),
-    image INT,
-    description TEXT,
-    price DECIMAL(10,2),
-    rating DECIMAL(3,2),
-    nomResto VARCHAR(100),
-    popular BOOLEAN
+    id_menu INT,
+    nom_menu VARCHAR(100),
+    prix_menu DECIMAL(10,2),
+    description_menu TEXT,
+    image_menu INT,
+    id_restaurant INT,
+    nom_restaurant VARCHAR(100),
+    localisation VARCHAR(255)
 ) AS $$
 BEGIN
     RETURN QUERY
-    WITH menus_avec_commandes AS (
-        SELECT 
-            m.id_menu,
-            m.nom_menu::VARCHAR(100) AS name,
-            m.libelle_menu::VARCHAR(50) AS category,
-            m.image_menu AS image,
-            m.description_menu AS description,
-            m.prix_menu::DECIMAL(10,2) AS price,
-            COALESCE(ROUND(AVG(n.note_menu)::NUMERIC, 2), 0) AS rating,
-            r.nom_restaurant::VARCHAR(100) AS nomResto,
-            COUNT(ct.id_commande) AS nombre_commandes,
-            ROW_NUMBER() OVER (ORDER BY COUNT(ct.id_commande) DESC, m.nom_menu ASC) AS rang
-        FROM Menu m
-        JOIN Choisir_Menu_Jour cmj ON cmj.id_menu = m.id_menu
-        JOIN Restaurant r ON r.id_restaurant = m.restaurant_hote
-        LEFT JOIN Noter n ON n.id_menu = m.id_menu
-        LEFT JOIN Contenir ct ON ct.id_menu = m.id_menu
-        WHERE cmj.date_jour = CURRENT_DATE
-        GROUP BY m.id_menu, m.nom_menu, m.libelle_menu, m.image_menu, 
-                 m.description_menu, m.prix_menu, r.nom_restaurant
-    )
     SELECT 
-        mac.id AS id,
-        mac.name AS name,
-        mac.category AS category,
-        mac.image AS image,
-        mac.description AS description,
-        mac.price AS price,
-        mac.rating AS rating,
-        mac.nomResto AS nomResto,
-        (mac.rang <= 2) AS popular
-    FROM menus_avec_commandes mac
-    ORDER BY mac.nombre_commandes DESC, mac.name ASC;
+        m.id_menu,
+        m.nom_menu::VARCHAR(100),
+        m.prix_menu::DECIMAL(10,2),
+        m.description_menu,
+        m.image_menu,
+        r.id_restaurant,
+        r.nom_restaurant::VARCHAR(100),
+        r.localisation::VARCHAR(255)
+    FROM Menu m
+    JOIN Restaurant r ON r.id_restaurant = m.restaurant_hote
+    WHERE m.id_menu = p_id_menu;
 END;
 $$ LANGUAGE plpgsql;

@@ -9,6 +9,7 @@ use App\Models\choisir_menu_jour;
 use App\Http\Controllers\Api\clientController;
 use App\Http\Controllers\Api\promotionController;
 use App\Http\Controllers\Api\notificationsController;
+use App\Http\Controllers\Api\menuController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -80,3 +81,6 @@ Route::prefix('notifications')->group(function () {
     // PUT /api/notifications/{id_notification}/client/{id_client}/marquer-lue
     Route::put('{id_notification}/client/{id_client}/marquer-lue', [notificationsController::class, 'marquerLue']);
 });
+
+// Routes pour les menus
+Route::get('/menu/{id_menu}/restaurant', [menuController::class, 'getRestaurantByMenuId']);

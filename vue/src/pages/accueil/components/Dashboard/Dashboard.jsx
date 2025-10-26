@@ -18,6 +18,7 @@ import Menu from "./Menu.jsx"
 import MesCommandes from "./MesCommandes"
 import Fidelite from "./Fidelite"
 import StatCard from "./StatCard.jsx"
+import ViewCommande from "./ViewCommande"
 import { 
   getDashboardStats, 
   getCommandesRecentes, 
@@ -414,7 +415,7 @@ export default function Dashboard({ user }) {
       case "menu":
         return <Menu />
       case "panier":
-        return <Panier onCheckout={() => setActivePage("paiement")} />
+        return <Panier onCheckout={() => setActivePage("viewCommande")} />
       case "commandes":
         return <MesCommandes />
       case "fidelite":
@@ -429,6 +430,8 @@ export default function Dashboard({ user }) {
         return <TopClients />
       case "paiement":
         return <Paiement onBack={() => setActivePage("panier")} />
+      case "viewCommande":
+        return <ViewCommande onBack={() => setActivePage("panier")} />
       default:
         return <div>Page non trouvée</div>
     }
