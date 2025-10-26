@@ -16,3 +16,13 @@ Route::get('/clients', [ClientController::class, 'index']);
 Route::get('/clients/{id}', [ClientController::class, 'show']);
 Route::put('/clients/{id}', [ClientController::class, 'update']);
 Route::delete('/clients/{id}', [ClientController::class, 'destroy']);
+Route::prefix('client')->group(function () {
+    // GET /api/client/{id}/filleuls
+    Route::get('{id}/filleuls', [ClientController::class, 'totalFilleuls']);
+
+    // GET /api/client/{id}/commandes
+    Route::get('{id}/commandes', [ClientController::class, 'totalCommandes']);
+
+    // GET /api/client/{id}/points
+    Route::get('{id}/points', [ClientController::class, 'pointsFidelite']);
+});
