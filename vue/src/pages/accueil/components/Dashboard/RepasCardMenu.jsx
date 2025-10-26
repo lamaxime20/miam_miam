@@ -1,4 +1,6 @@
 import { Star, ShoppingCart, Plus, Minus } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { AvoirRestaurantById } from '../../../../services/restaurant';
 
 const RepasCardMenu = ({ 
   item, 
@@ -7,6 +9,25 @@ const RepasCardMenu = ({
   onDecrementQuantity, 
   quantityInCart = 0 
 }) => {
+  const [restaurant, setRestaurant] = useState(null);
+
+  useEffect(() => {
+    const fetchRestaurant = async () => {
+      if (item.idresto) {
+        try {
+          console.log(item.idresto);
+          const restaurantData = await AvoirRestaurantById(item.idresto);
+          console.log(restaurantData);
+          setRestaurant(restaurantData);
+        } catch (error) {
+          console.error(`Erreur lors de la récupération du restaurant ${item.idresto}:`, error);
+        }
+      }
+      console.log(restaurant);
+    };
+    fetchRestaurant();
+  }, [item.idresto]);
+
   return (
     <div className="col" key={item.id}>
       <div className="card h-100 shadow-sm">
@@ -32,7 +53,7 @@ const RepasCardMenu = ({
         <div className="card-body d-flex flex-column justify-content-between">
           <div>
             <h5 className="card-title">{item.name}</h5>
-            <p className="card-text text-secondary">{item.nomresto}</p>
+            <p className="card-text text-secondary">{restaurant ? restaurant.nom_restaurant : 'Chargement...'}</p>
             <p className="card-text text-secondary">{item.description}</p>
           </div>
 

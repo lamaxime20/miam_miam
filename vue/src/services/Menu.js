@@ -13,7 +13,7 @@ export async function AvoirMenusJourAcceul() {
 
         // On prend seulement les 5 premiers éléments
         const top5Menus = data.slice(0, 5);
-
+        console.log("Menus du jour récupérés pour l'accueil :", top5Menus);
         return top5Menus;
     } catch (error) {
         console.error("Erreur lors de la récupération des menus du jour :", error);

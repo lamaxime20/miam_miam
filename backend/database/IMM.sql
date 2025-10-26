@@ -606,6 +606,10 @@ CREATE OR REPLACE FUNCTION creer_restaurant(
     p_administrateur INT
 )
 RETURNS TABLE (restaurant_id INT, message TEXT)
+AS $$
+DECLARE
+    new_id INT;
+BEGIN
 INSERT INTO Restaurant (nom_restaurant, localisation, type_localisation, logo_restaurant, politique, administrateur)
     VALUES (p_nom_restaurant, p_localisation, p_type_localisation, p_logo_restaurant, p_politique, p_administrateur)
     RETURNING id_restaurant INTO new_id;
@@ -727,5 +731,49 @@ BEGIN
     END IF;
 
     RETURN 'Restaurant supprimé avec succès.';
+END;
+$$ LANGUAGE plpgsql;
+
+-- ============================================
+--   FONCTION 11 : Menus du jour par popularité
+-- ============================================
+CREATE OR REPLACE FUNCTION get_menus_du_jour_par_popularite()
+RETURNS TABLE (
+    id INT,
+    name Name,
+    description TEXT,
+    price prices,
+    image INT,
+    idResto INT,
+    rating NUMERIC,
+    popular BOOLEAN,
+    category typeRepas
+) AS $$
+BEGIN
+    RETURN QUERY
+    WITH menu_popularite AS (
+        SELECT 
+            cmj.id_menu,
+            COALESCE(SUM(c.quantite), 0) AS total_commandes
+        FROM Choisir_Menu_Jour cmj
+        LEFT JOIN Contenir c ON cmj.id_menu = c.id_menu
+        WHERE cmj.date_jour = CURRENT_DATE
+        GROUP BY cmj.id_menu
+    )
+    SELECT
+        m.id_menu AS id,
+        m.nom_menu AS name,
+        m.description_menu AS description,
+        m.prix_menu AS price,
+        m.image_menu AS image,
+        m.restaurant_hote AS idResto,
+        COALESCE(ROUND(AVG(n.note_menu)::NUMERIC, 2), 0.0) AS rating,
+        (ROW_NUMBER() OVER (ORDER BY mp.total_commandes DESC, m.nom_menu ASC) <= 2) AS popular,
+        m.libelle_menu as category
+    FROM Menu m
+    JOIN menu_popularite mp ON m.id_menu = mp.id_menu
+    LEFT JOIN Noter n ON m.id_menu = n.id_menu
+    GROUP BY m.id_menu, mp.total_commandes
+    ORDER BY mp.total_commandes DESC, m.nom_menu ASC;
 END;
 $$ LANGUAGE plpgsql;
