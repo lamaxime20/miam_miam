@@ -92,3 +92,5 @@ Route::get('/restaurants/{id}', [restaurantController::class, 'show']);
 Route::post('/restaurants', [restaurantController::class, 'store']);
 Route::put('/restaurants/{id}', [restaurantController::class, 'update']);
 Route::delete('/restaurants/{id}', [restaurantController::class, 'destroy']);
+
+Route::post('/commandes', [commandeController::class, 'store']);

@@ -777,3 +777,63 @@ BEGIN
     ORDER BY mp.total_commandes DESC, m.nom_menu ASC;
 END;
 $$ LANGUAGE plpgsql;
+
+-- ============================================
+--   FONCTION : Créer une commande avec ses menus
+-- ============================================
+CREATE OR REPLACE FUNCTION creer_commande(
+    p_date_heure_livraison TIMESTAMP,
+    p_localisation_client TEXT,
+    p_type_localisation location,
+    p_statut_commande commandeState,
+    p_acheteur INT,
+    p_menus JSON
+)
+RETURNS INT AS $$
+DECLARE
+    v_id_commande INT;
+    v_menu JSON;
+    v_id_menu INT;
+    v_quantite INT;
+    v_prix_unitaire prices;
+BEGIN
+    -- 1️⃣ Créer la commande principale
+    INSERT INTO Commande (
+        date_commande,
+        date_heure_livraison,
+        localisation_client,
+        type_localisation,
+        statut_commande,
+        acheteur
+    )
+    VALUES (
+        CURRENT_TIMESTAMP,
+        p_date_heure_livraison,
+        p_localisation_client,
+        p_type_localisation,
+        p_statut_commande,
+        p_acheteur
+    )
+    RETURNING id_commande INTO v_id_commande;
+
+    -- 2️⃣ Parcourir le JSON contenant les menus
+    -- Exemple de JSON attendu :
+    -- [
+    --   {"id_menu": 2, "quantite": 3, "prix_unitaire": 4500},
+    --   {"id_menu": 5, "quantite": 1, "prix_unitaire": 6500}
+    -- ]
+
+    FOR v_menu IN SELECT * FROM json_array_elements(p_menus)
+    LOOP
+        v_id_menu := (v_menu->>'id_menu')::INT;
+        v_quantite := (v_menu->>'quantite')::INT;
+        v_prix_unitaire := (v_menu->>'prix_unitaire')::prices;
+
+        INSERT INTO Contenir (id_commande, id_menu, quantite, prix_unitaire)
+        VALUES (v_id_commande, v_id_menu, v_quantite, v_prix_unitaire);
+    END LOOP;
+
+    -- 3️⃣ Retourner l’ID de la commande créée
+    RETURN v_id_commande;
+END;
+$$ LANGUAGE plpgsql;
