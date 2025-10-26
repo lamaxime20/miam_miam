@@ -95,3 +95,5 @@ Route::delete('/restaurants/{id}', [restaurantController::class, 'destroy']);
 
 Route::post('/commandes', [fileController::class, 'commander']);
 Route::post('/getUserbyEmail', [UtilisateurController::class, 'getByEmail']);
+
+Route::get('/getCommandesByUser/{id_user}', [UtilisateurController::class, 'getCommandesByUser']);

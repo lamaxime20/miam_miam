@@ -278,4 +278,41 @@ class UtilisateurController extends Controller
             ], 500);
         }
     }
+
+    public function getCommandesByUser($id_user)
+    {
+        try {
+            // Vérifie que l'utilisateur existe avant de chercher ses commandes
+            $utilisateur = DB::select('SELECT * FROM "Utilisateur" WHERE id_user = ?', [$id_user]);
+
+            if (empty($utilisateur)) {
+                return response()->json([
+                    'message' => 'Utilisateur non trouvé.'
+                ], 404);
+            }
+
+            // Appel de la fonction PostgreSQL
+            $commandes = DB::select('SELECT * FROM get_commandes_by_user(?)', [$id_user]);
+
+            // Si aucune commande n’est trouvée
+            if (empty($commandes)) {
+                return response()->json([
+                    'message' => 'Aucune commande trouvée pour cet utilisateur.',
+                    'commandes' => []
+                ], 200);
+            }
+
+            // ✅ Retourne la liste complète des commandes de l’utilisateur
+            return response()->json([
+                'message' => 'Commandes récupérées avec succès.',
+                'commandes' => $commandes
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Erreur serveur : ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
 }

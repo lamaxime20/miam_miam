@@ -858,3 +858,72 @@ BEGIN
     RETURN v_id_commande;
 END;
 $$ LANGUAGE plpgsql;
+
+-- ============================================
+--   FONCTION : Récupérer toutes les commandes d’un utilisateur (corrigée)
+-- ============================================
+CREATE OR REPLACE FUNCTION get_commandes_by_user(p_id_user INT)
+RETURNS TABLE (
+    id_commande INT,
+    date_commande TIMESTAMP,
+    date_heure_livraison TIMESTAMP,
+    localisation_client TEXT,
+    type_localisation location,
+    statut_commande commandeState,
+    acheteur INT,
+    id_menu INT,
+    quantite INT,
+    prix_unitaire DECIMAL(10,2),
+    prix_total DECIMAL(10,2),
+    statut TEXT
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        c.id_commande,
+        c.date_commande,
+        c.date_heure_livraison,
+        c.localisation_client,
+        c.type_localisation,
+        c.statut_commande,
+        c.acheteur,
+        ct.id_menu,
+        ct.quantite,
+        ct.prix_unitaire::DECIMAL(10,2),  -- ✅ conversion explicite
+        (ct.quantite * ct.prix_unitaire)::DECIMAL(10,2) AS prix_total,
+
+        CASE
+            WHEN c.statut_commande = 'annulé'
+              OR bc.statut_bon = 'annulé'
+              OR l.statut_livraison = 'annulé'
+              THEN 'annulé'
+
+            WHEN c.statut_commande = 'en cours'
+              AND (bc.statut_bon IS NULL OR bc.statut_bon = 'initial')
+              THEN 'initial'
+
+            WHEN c.statut_commande = 'valide'
+              AND bc.statut_bon = 'en cours'
+              THEN 'en cours'
+
+            WHEN c.statut_commande = 'valide'
+              AND bc.statut_bon = 'valide'
+              AND (l.statut_livraison = 'en cours' OR l.statut_livraison IS NULL)
+              THEN 'en cours de livraison'
+
+            WHEN c.statut_commande = 'valide'
+              AND bc.statut_bon = 'valide'
+              AND l.statut_livraison = 'valide'
+              THEN 'livré'
+
+            ELSE 'initial'
+        END AS statut
+
+    FROM Commande c
+    LEFT JOIN Contenir ct ON c.id_commande = ct.id_commande
+    LEFT JOIN Bon_commande bc ON c.id_commande = bc.commande_associe
+    LEFT JOIN Livraison l ON bc.id_bon = l.bon_associe
+    WHERE c.acheteur = p_id_user
+    ORDER BY c.date_commande DESC, c.id_commande, ct.id_menu;
+END;
+$$ LANGUAGE plpgsql;
