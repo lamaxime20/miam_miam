@@ -589,3 +589,143 @@ BEGIN
     WHERE m.id_menu = p_id_menu;
 END;
 $$ LANGUAGE plpgsql;
+
+-- =============================
+--     FONCTIONS CRUD : RESTAURANT
+-- =============================
+
+-- #############################################################
+-- Fonction 1 : Créer un restaurant
+-- #############################################################
+CREATE OR REPLACE FUNCTION creer_restaurant(
+    p_nom_restaurant VARCHAR,
+    p_localisation TEXT,
+    p_type_localisation VARCHAR,
+    p_logo_restaurant INT,
+    p_politique TEXT,
+    p_administrateur INT
+)
+RETURNS TABLE (restaurant_id INT, message TEXT)
+INSERT INTO Restaurant (nom_restaurant, localisation, type_localisation, logo_restaurant, politique, administrateur)
+    VALUES (p_nom_restaurant, p_localisation, p_type_localisation, p_logo_restaurant, p_politique, p_administrateur)
+    RETURNING id_restaurant INTO new_id;
+
+    RETURN QUERY SELECT new_id AS restaurant_id, 'Restaurant créé avec succès.' AS message;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- #############################################################
+-- Fonction 2 : Obtenir tous les restaurants
+-- #############################################################
+CREATE OR REPLACE FUNCTION get_all_restaurants()
+RETURNS TABLE (
+    id_restaurant INT,
+    nom_restaurant VARCHAR,
+    localisation TEXT,
+    type_localisation VARCHAR,
+    logo_restaurant INT,
+    politique TEXT,
+    administrateur INT,
+    updated_at TIMESTAMP
+)
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        r.id_restaurant,
+        r.nom_restaurant::VARCHAR,
+        r.localisation,
+        r.type_localisation::VARCHAR,
+        r.logo_restaurant,
+        r.politique,
+        r.administrateur,
+        r.updated_at
+    FROM Restaurant r
+    ORDER BY r.id_restaurant;
+END;
+$$ LANGUAGE plpgsql;
+
+-- #############################################################
+-- Fonction 3 : Obtenir un restaurant par ID
+-- #############################################################
+CREATE OR REPLACE FUNCTION get_one_restaurant(p_id INT)
+RETURNS TABLE (
+    id_restaurant INT,
+    nom_restaurant VARCHAR,
+    localisation TEXT,
+    type_localisation VARCHAR,
+    logo_restaurant INT,
+    politique TEXT,
+    administrateur INT,
+    updated_at TIMESTAMP
+)
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        r.id_restaurant,
+        r.nom_restaurant::VARCHAR,
+        r.localisation,
+        r.type_localisation::VARCHAR,
+        r.logo_restaurant,
+        r.politique,
+        r.administrateur,
+        r.updated_at
+    FROM Restaurant r
+    WHERE r.id_restaurant = p_id;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- #############################################################
+-- Fonction 4 : Mettre à jour un restaurant
+-- #############################################################
+CREATE OR REPLACE FUNCTION update_restaurant(
+    p_id INT,
+    p_nom_restaurant VARCHAR DEFAULT NULL,
+    p_localisation TEXT DEFAULT NULL,
+    p_type_localisation VARCHAR DEFAULT NULL,
+    p_logo_restaurant INT DEFAULT NULL,
+    p_politique TEXT DEFAULT NULL,
+    p_administrateur INT DEFAULT NULL
+)
+RETURNS TEXT
+AS $$
+BEGIN
+    UPDATE Restaurant
+    SET
+        nom_restaurant = COALESCE(p_nom_restaurant, nom_restaurant),
+        localisation = COALESCE(p_localisation, localisation),
+        type_localisation = COALESCE(p_type_localisation, type_localisation),
+        logo_restaurant = COALESCE(p_logo_restaurant, logo_restaurant),
+        politique = COALESCE(p_politique, politique),
+        administrateur = COALESCE(p_administrateur, administrateur),
+        updated_at = CURRENT_TIMESTAMP
+    WHERE id_restaurant = p_id;
+
+    IF NOT FOUND THEN
+        RETURN 'Aucun restaurant trouvé.';
+    END IF;
+
+    RETURN 'Restaurant mis à jour avec succès.';
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- #############################################################
+-- Fonction 5 : Supprimer un restaurant
+-- #############################################################
+CREATE OR REPLACE FUNCTION delete_restaurant(p_id INT)
+RETURNS TEXT
+AS $$
+BEGIN
+    DELETE FROM Restaurant WHERE id_restaurant = p_id;
+
+    IF NOT FOUND THEN
+        RETURN 'Aucun restaurant trouvé.';
+    END IF;
+
+    RETURN 'Restaurant supprimé avec succès.';
+END;
+$$ LANGUAGE plpgsql;

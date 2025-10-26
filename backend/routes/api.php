@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\clientController;
 use App\Http\Controllers\Api\promotionController;
 use App\Http\Controllers\Api\notificationsController;
 use App\Http\Controllers\Api\menuController;
+use App\Http\Controllers\Api\restaurantController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -84,3 +85,10 @@ Route::prefix('notifications')->group(function () {
 
 // Routes pour les menus
 Route::get('/menu/{id_menu}/restaurant', [menuController::class, 'getRestaurantByMenuId']);
+
+// Routes pour les restaurants
+Route::get('/restaurants', [restaurantController::class, 'index']);
+Route::get('/restaurants/{id}', [restaurantController::class, 'show']);
+Route::post('/restaurants', [restaurantController::class, 'store']);
+Route::put('/restaurants/{id}', [restaurantController::class, 'update']);
+Route::delete('/restaurants/{id}', [restaurantController::class, 'destroy']);
