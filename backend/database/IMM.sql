@@ -145,6 +145,27 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- ============================================
+--   FONCTION : Récupérer un utilisateur par email
+-- ============================================
+CREATE OR REPLACE FUNCTION get_utilisateur_par_email(p_email VARCHAR)
+RETURNS TABLE (
+    id_user INT,
+    nom_user VARCHAR(100),
+    email_user VARCHAR(255)
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        u.id_user,
+        u.nom_user::VARCHAR(100),
+        u.email_user::VARCHAR(255)
+    FROM "Utilisateur" u
+    WHERE u.email_user = p_email
+    LIMIT 1; -- pour s'assurer qu'on ne récupère qu'un utilisateur
+END;
+$$ LANGUAGE plpgsql;
+
 -- =============================
 --     FONCTIONS CRUD : FILE
 -- =============================

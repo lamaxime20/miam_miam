@@ -93,4 +93,5 @@ Route::post('/restaurants', [restaurantController::class, 'store']);
 Route::put('/restaurants/{id}', [restaurantController::class, 'update']);
 Route::delete('/restaurants/{id}', [restaurantController::class, 'destroy']);
 
-Route::post('/commandes', [commandeController::class, 'store']);
+Route::post('/commandes', [fileController::class, 'commander']);
+Route::post('/getUserbyEmail', [UtilisateurController::class, 'getByEmail']);

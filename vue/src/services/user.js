@@ -385,6 +385,30 @@ export function getAuthInfo() {
     }
 }
 
+export async function getUserByEmail(email){
+    try {
+        const response = await fetch(`${API_URL}api/getUserbyEmail`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ "email": email })
+        });
+        if (!response.ok) {
+            console.log("erreur serveur : ", response.status);
+            throw new Error(`Erreur serveur : ${response.status}`);
+        }
+
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.log("erreur: ", error);
+        return null;
+    }
+            
+}
+
 // =====================================
 // Connexion utilisateur (login)
 // =====================================

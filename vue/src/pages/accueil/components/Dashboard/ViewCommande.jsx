@@ -1,8 +1,25 @@
 import React from "react";
-import { useMenusGroupedByRestaurant } from "../../../../services/Panier.js";
+import { useMenusGroupedByRestaurant, useCommande } from "../../../../services/Panier.js";
+import ViewCommandFloat from "./ViewCommandFloat.jsx";
 
 export default function ViewCommande({ onBack }) {
     const { groupedMenus, loading } = useMenusGroupedByRestaurant();
+
+    // Callback exécuté après une commande réussie
+    const handleCommandeSuccess = (result) => {
+        alert(`Commande #${result.id_commande} passée avec succès !`);
+        // Recharger la page pour mettre à jour le panier visuellement
+        window.location.reload();
+    };
+
+    // Utilisation du hook pour gérer la logique de la modale de commande
+    const {
+        isModalOpen,
+        openModal,
+        closeModal,
+        handleSubmit,
+        ...modalProps // Récupère tous les autres états et setters (heure, localisation, etc.)
+    } = useCommande(handleCommandeSuccess);
 
     if (loading) {
         return <p className="text-center text-white">Chargement...</p>;
@@ -53,7 +70,13 @@ export default function ViewCommande({ onBack }) {
                                         {calculateGroupTotal(group.menus)} FCFA
                                     </span>
                                 </div>
-                                <button className="btn" style={{ backgroundColor: "#cfbd97", color: "#000000" }}>Commander</button>
+                                <button
+                                    className="btn"
+                                    style={{ backgroundColor: "#cfbd97", color: "#000000" }}
+                                    onClick={() => openModal(group.menus)}
+                                >
+                                    Commander
+                                </button>
                             </div>
                         </div>
                     ))}
@@ -61,6 +84,9 @@ export default function ViewCommande({ onBack }) {
                     <button className="btn btn-secondary mt-3" onClick={onBack}>
                         ← Retour au panier
                     </button>
+
+                    {/* La fenêtre modale est rendue ici, mais n'est visible que si isModalOpen est true */}
+                    <ViewCommandFloat isOpen={isModalOpen} onClose={closeModal} onSubmit={handleSubmit} {...modalProps} />
                 </div>
             </div>
         </div>

@@ -249,4 +249,33 @@ class UtilisateurController extends Controller
             'code' => $code
         ], 200);
     }
+
+    public function getByEmail(Request $request)
+    {
+        // Validation simple de l'email
+        $validated = $request->validate([
+            'email' => 'required|email'
+        ]);
+
+        try {
+            // Appel de la fonction PostgreSQL
+            $user = DB::select('SELECT * FROM get_utilisateur_par_email(?)', [
+                $validated['email']
+            ]);
+
+            if (empty($user)) {
+                return response()->json([
+                    'message' => 'Utilisateur introuvable.'
+                ], 404);
+            }
+
+            // Retourne le premier utilisateur trouvé
+            return response()->json($user[0], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Erreur serveur : ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }

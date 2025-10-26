@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
-import { getCartFromStorage } from "./Menu";
+import { useState, useEffect, useCallback } from "react";
+import { getCartFromStorage, removeFromCart } from "./Menu";
 import { AvoirRestaurantById } from "./restaurant";
+import { recupererToken, getAuthInfo, getUserByEmail } from "./user";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/";
 
@@ -77,6 +78,96 @@ export function useMenusGroupedByRestaurant() {
 }
 
 /**
+ * Hook personnalisé pour gérer le processus de commande.
+ * @param {function} onCommandeSuccess - Callback à exécuter après une commande réussie.
+ */
+export function useCommande(onCommandeSuccess) {
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [menusToOrder, setMenusToOrder] = useState([]);
+    const [heureLivraison, setHeureLivraison] = useState('12:30');
+    const [typeLocalisation, setTypeLocalisation] = useState('estimation');
+    const [localisationEstimee, setLocalisationEstimee] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [error, setError] = useState(null);
+
+    const openModal = useCallback((menus) => {
+        setMenusToOrder(menus);
+        setIsModalOpen(true);
+        setError(null); // Réinitialiser les erreurs à l'ouverture
+        setLocalisationEstimee(''); // Réinitialiser le champ
+    }, []);
+
+    const closeModal = useCallback(() => {
+        setIsModalOpen(false);
+    }, []);
+
+    const handleSubmit = useCallback(async () => {
+        setError(null);
+
+        // Validation simple côté client
+        if (typeLocalisation === 'estimation' && !localisationEstimee.trim()) {
+            setError("Veuillez indiquer votre localisation estimée.");
+            return;
+        }
+
+        setIsSubmitting(true);
+
+        try {
+            const token = recupererToken();
+            if (!token) {
+                throw new Error("Vous devez être connecté pour passer une commande.");
+            }
+
+            const acheteurId = getAuthInfo();
+            if (!acheteurId) {
+                throw new Error("Impossible de récupérer votre identification. Veuillez vous reconnecter.");
+            }
+
+            const date = new Date();
+            const [heure, minute] = heureLivraison.split(':');
+            date.setHours(heure, minute, 0, 0);
+            // Formatte la date au format YYYY-MM-DD HH:MM:SS
+            const date_heure_livraison = date.toISOString().slice(0, 19).replace('T', ' ');
+
+            const localisation_client = typeLocalisation === 'googleMap' ? 'Yatchika' : localisationEstimee;
+
+            const commandeDetails = {
+                date_heure_livraison,
+                localisation_client,
+                type_localisation: typeLocalisation, // Correction de la faute de frappe
+                acheteur: acheteurId,
+                menus: menusToOrder,
+            };
+
+            const resultat = await passerCommande(commandeDetails);
+
+            // Si la commande réussit, on vide le panier des articles commandés
+            menusToOrder.forEach(menu => {
+                removeFromCart(menu.id_menu);
+            });
+
+            closeModal();
+            if (onCommandeSuccess) {
+                onCommandeSuccess(resultat); // Appeler le callback de succès
+            }
+
+        } catch (err) {
+            setError(err.message || "Une erreur inattendue est survenue.");
+        } finally {
+            setIsSubmitting(false);
+        }
+    }, [heureLivraison, typeLocalisation, localisationEstimee, menusToOrder, onCommandeSuccess, closeModal]);
+
+    return {
+        isModalOpen, openModal, closeModal, handleSubmit,
+        heureLivraison, setHeureLivraison,
+        typeLocalisation, setTypeLocalisation,
+        localisationEstimee, setLocalisationEstimee,
+        isSubmitting, error
+    };
+}
+
+/**
  * Envoie une nouvelle commande à l'API.
  * @param {Object} commandeDetails - Les détails de la commande.
  * @param {string} commandeDetails.date_heure_livraison - Date et heure de livraison (ex: "2025-10-26 13:30:00").
@@ -92,13 +183,28 @@ export async function passerCommande(commandeDetails) {
     // Le statut est géré côté backend, mais on peut l'initialiser ici si besoin.
     // D'après la fonction creer_commande, 'en_cours' est une valeur valide.
     const statut_commande = 'en_cours';
+    // acheteur provient de getAuthInfo() (token info). On récupère l'utilisateur complet côté serveur
+    // via son email (display_name contient l'email dans notre token storage).
+    console.log('Recherche utilisateur par email :', acheteur && acheteur.display_name);
+    const userData = await getUserByEmail(acheteur && acheteur.display_name);
+    if (!userData) {
+        throw new Error('Impossible de récupérer les informations utilisateur.');
+    }
+
+    // L'API renvoie normalement id_user (voir backend). On accepte plusieurs variantes par sécurité.
+    const acheteurId = userData.id_user || userData.id || userData.idUser || null;
+    console.log('ID acheteur récupéré :', acheteurId);
+    if (!acheteurId) {
+        throw new Error('Identifiant acheteur introuvable dans la réponse du serveur.');
+    }
+
 
     const body = {
         date_heure_livraison,
         localisation_client,
         type_localisation,
         statut_commande,
-        acheteur,
+        acheteur: acheteurId,
         menus: menus.map(menu => ({
             id_menu: menu.id_menu,
             quantite: menu.quantity,
@@ -107,7 +213,7 @@ export async function passerCommande(commandeDetails) {
     };
 
     try {
-        const response = await fetch(`${API_BASE_URL}api/commandes`, {
+        const response = await fetch(API_BASE_URL + "api/commandes", {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
