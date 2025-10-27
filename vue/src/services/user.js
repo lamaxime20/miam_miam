@@ -409,6 +409,30 @@ export async function getUserByEmail(email){
             
 }
 
+export async function checkPassword(email, password) {
+    try {
+        const response = await fetch(`${API_URL}api/checkPasswordCorrect`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ email, password })
+        });
+
+        if (!response.ok) {
+            console.error("Erreur serveur lors de la vérification du mot de passe:", response.status);
+            return false;
+        }
+
+        const data = await response.json();
+        return data.correct === true;
+    } catch (error) {
+        console.error("Erreur lors de l'appel à checkPassword:", error);
+        return false;
+    }
+}
+
 // =====================================
 // Connexion utilisateur (login)
 // =====================================
