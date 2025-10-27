@@ -11,10 +11,11 @@ use App\Http\Controllers\Api\promotionController;
 use App\Http\Controllers\Api\notificationsController;
 use App\Http\Controllers\Api\menuController;
 use App\Http\Controllers\Api\restaurantController;
+use App\Http\Controllers\Api\reponseController;
+use App\Http\Controllers\Api\reclamationController;
+use App\Http\Controllers\employeController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\reclamationController;
-use App\Http\Controllers\Api\reponseController;
 
 Route::get('/utilisateurs', [UtilisateurController::class, 'index']);
 Route::get('/utilisateurs/{id}', [UtilisateurController::class, 'show']);
@@ -116,3 +117,5 @@ Route::put('/reclamations/{id}/close', [reclamationController::class, 'close']);
 
 Route::get('/reclamations/{id}/reponses', [reponseController::class, 'index']);
 Route::post('/reclamations/{id}/reponses', [reponseController::class, 'store']);
+
+Route::get('/employe/dashboard/kpis', [UtilisateurController::class, 'dashboardKpis']);

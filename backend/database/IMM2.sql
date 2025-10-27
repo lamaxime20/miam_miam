@@ -407,3 +407,99 @@ BEGIN
   WHERE id_reclamation = p_id_reclamation;
 END;
 $$;
+
+-- =================================================================
+-- Fonctions pour le Tableau de Bord Employeur
+-- =================================================================
+
+-- 1. Récupérer le nombre total de commandes pour le jour actuel.
+--    Utilise la table "Commande" et sa colonne "date_commande".
+-- =================================================================
+CREATE OR REPLACE FUNCTION get_daily_orders_count()
+RETURNS INTEGER AS $$
+DECLARE
+    order_count INTEGER;
+BEGIN
+    SELECT COUNT(*)::INTEGER
+    INTO order_count
+    FROM Commande
+    WHERE DATE(date_commande) = CURRENT_DATE;
+
+    RETURN COALESCE(order_count, 0);
+END;
+$$ LANGUAGE plpgsql;
+
+-- =================================================================
+-- 2. Calculer le chiffre d'affaires total pour les commandes livrées aujourd'hui.
+--    Le CA est calculé sur les commandes avec le statut 'validée' et est la somme
+--    des (quantité * prix) de la table "Contenir".
+-- =================================================================
+CREATE OR REPLACE FUNCTION get_daily_revenue()
+RETURNS NUMERIC AS $$
+DECLARE
+    total_revenue NUMERIC;
+BEGIN
+    SELECT COALESCE(SUM(ct.quantite * ct.prix_unitaire), 0)
+    INTO total_revenue
+    FROM Commande c
+    JOIN Contenir ct ON c.id_commande = ct.id_commande
+    WHERE DATE(c.date_commande) = CURRENT_DATE
+      AND c.statut_commande = 'validée';
+
+    RETURN total_revenue;
+END;
+$$ LANGUAGE plpgsql;
+
+-- =================================================================
+-- 3. Compter le nombre de réclamations (tickets) avec le statut 'ouverte'.
+--    Utilise la table "Reclamation" et sa colonne "statut_reclamation".
+-- =================================================================
+CREATE OR REPLACE FUNCTION get_open_complaints_count()
+RETURNS INTEGER AS $$
+DECLARE
+    open_complaints_count INTEGER;
+BEGIN
+    SELECT COUNT(*)::INTEGER
+    INTO open_complaints_count
+    FROM Reclamation
+    WHERE statut_reclamation = 'ouverte';
+
+    RETURN COALESCE(open_complaints_count, 0);
+END;
+$$ LANGUAGE plpgsql;
+
+-- =================================================================
+-- 4. Compter le nombre d'employés actifs.
+--    Compte les utilisateurs dans la table "Employe" qui ont un statut 'actif'
+--    dans la table "Utilisateur".
+-- =================================================================
+CREATE OR REPLACE FUNCTION get_active_employees_count()
+RETURNS INTEGER AS $$
+DECLARE
+    active_employees_count INTEGER;
+BEGIN
+    SELECT COUNT(*)::INTEGER
+    INTO active_employees_count
+    FROM Employe e
+    JOIN "Utilisateur" u ON e.id_user = u.id_user
+    WHERE u.statut_account = 'actif';
+
+    RETURN COALESCE(active_employees_count, 0);
+END;
+$$ LANGUAGE plpgsql;
+
+-- =================================================================
+-- BONUS: Une fonction qui retourne toutes les métriques d'un coup
+--        pour optimiser les appels à la base de données.
+-- =================================================================
+CREATE OR REPLACE FUNCTION get_dashboard_kpis()
+RETURNS TABLE(daily_orders_count INTEGER, daily_revenue NUMERIC, open_complaints_count INTEGER, active_employees_count INTEGER) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT
+        (SELECT get_daily_orders_count()),
+        (SELECT get_daily_revenue()),
+        (SELECT get_open_complaints_count()),
+        (SELECT get_active_employees_count());
+END;
+$$ LANGUAGE plpgsql;

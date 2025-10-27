@@ -380,5 +380,30 @@ class UtilisateurController extends Controller
         }
     }
 
+    public function dashboardKpis()
+    {
+        try {
+            $kpis = DB::select('SELECT * FROM get_dashboard_kpis()');
 
+            // La fonction retourne un tableau avec un seul objet
+            if (empty($kpis)) {
+                // Si la fonction ne retourne rien, on envoie des valeurs par défaut
+                return response()->json([
+                    'daily_orders_count' => 0,
+                    'daily_revenue' => 0,
+                    'open_complaints_count' => 0,
+                    'active_employees_count' => 0,
+                ]);
+            }
+
+            // Retourne le premier (et unique) résultat
+            return response()->json($kpis[0]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Erreur serveur lors de la récupération des KPIs du tableau de bord.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 }

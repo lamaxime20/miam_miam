@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import UnifiedSidebar from './components/UnifiedSidebar';
 import CountUp from './components/common/CountUp';
@@ -7,9 +7,35 @@ import MenuUpdate from './views/MenuUpdate';
 import Complaints from './views/Complaints';
 import Stats from './views/Stats';
 import Employees from './views/Employees';
+import { getEmployerDashboardKpis } from '../../services/employe';
 import './employer.css';
 
 function DashboardView() {
+  const [kpis, setKpis] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        setLoading(true);
+        const data = await getEmployerDashboardKpis();
+        setKpis(data);
+      } catch (error) {
+        console.error("Erreur lors du chargement des KPIs du tableau de bord", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, []);
+
+  const kpiCards = [
+    { label: 'Commandes du jour', value: kpis?.daily_orders_count ?? 0 },
+    { label: 'CA du jour (FCFA)', value: kpis?.daily_revenue ?? 0, format: true },
+    { label: 'Tickets ouverts', value: kpis?.open_complaints_count ?? 0 },
+    { label: 'Employés actifs', value: kpis?.active_employees_count ?? 0 },
+  ];
+
   return (
     <section style={{ paddingTop: 0, paddingBottom: '2rem' }}>
       <div style={{ background: '#fff', borderRadius: 12, padding: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}>
@@ -19,15 +45,16 @@ function DashboardView() {
         </div>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '1rem', marginTop: '1rem' }}>
-        {[
-          { label: 'Commandes du jour', end: 42 },
-          { label: 'CA (K FCFA)', end: 350 },
-          { label: 'Tickets ouverts', end: 7 },
-          { label: 'Employés actifs', end: 98 },
-        ].map((kpi, i) => (
+        {loading ? (
+          Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} style={{ background: '#fff', borderRadius: 12, padding: 16, boxShadow: '0 2px 6px rgba(0,0,0,0.05)', height: 90, animation: 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite' }} />
+          ))
+        ) : kpiCards.map((kpi, i) => (
           <div key={i} style={{ background: '#fff', borderRadius: 12, padding: 16, boxShadow: '0 2px 6px rgba(0,0,0,0.05)' }}>
             <div style={{ color: '#6b7280', fontSize: 12, marginBottom: 8 }}>{kpi.label}</div>
-            <div style={{ fontWeight: 700, fontSize: 22 }}><CountUp end={kpi.end} /></div>
+            <div style={{ fontWeight: 700, fontSize: 22 }}>
+              <CountUp end={kpi.value} format={kpi.format} />
+            </div>
           </div>
         ))}
       </div>
