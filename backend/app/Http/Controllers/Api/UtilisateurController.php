@@ -282,31 +282,50 @@ class UtilisateurController extends Controller
     public function getCommandesByUser($id_user)
     {
         try {
-            // Vérifie que l'utilisateur existe avant de chercher ses commandes
-            $utilisateur = DB::select('SELECT * FROM "Utilisateur" WHERE id_user = ?', [$id_user]);
+            // 🔹 Appel de la fonction PostgreSQL
+            $commandes = DB::select('SELECT * FROM get_commandes_by_user(?)', [$id_user]);
 
-            if (empty($utilisateur)) {
+            if (empty($commandes)) {
                 return response()->json([
-                    'message' => 'Utilisateur non trouvé.'
+                    'message' => 'Aucune commande trouvée pour cet utilisateur.'
                 ], 404);
             }
 
-            // Appel de la fonction PostgreSQL
-            $commandes = DB::select('SELECT * FROM get_commandes_by_user(?)', [$id_user]);
+            // 🔹 Regroupement des résultats par commande
+            $result = [];
 
-            // Si aucune commande n’est trouvée
-            if (empty($commandes)) {
-                return response()->json([
-                    'message' => 'Aucune commande trouvée pour cet utilisateur.',
-                    'commandes' => []
-                ], 200);
+            foreach ($commandes as $cmd) {
+                $id = $cmd->id_commande;
+
+                // Si la commande n'existe pas encore dans le tableau, on la crée
+                if (!isset($result[$id])) {
+                    $result[$id] = [
+                        'id_commande' => $cmd->id_commande,
+                        'date_commande' => $cmd->date_commande,
+                        'date_heure_livraison' => $cmd->date_heure_livraison,
+                        'localisation_client' => $cmd->localisation_client,
+                        'type_localisation' => $cmd->type_localisation,
+                        'statut_commande' => $cmd->statut_commande,
+                        'acheteur' => $cmd->acheteur,
+                        'statut' => $cmd->statut,
+                        'liste_menus' => [] // tableau des menus de cette commande
+                    ];
+                }
+
+                // Ajouter les infos du menu associé à cette commande
+                $result[$id]['liste_menus'][] = [
+                    'id_menu' => $cmd->id_menu,
+                    'nom_menu' => $cmd->nom_menu,
+                    'quantite' => $cmd->quantite,
+                    'prix_unitaire' => $cmd->prix_unitaire,
+                    'prix_total' => $cmd->prix_total
+                ];
             }
 
-            // ✅ Retourne la liste complète des commandes de l’utilisateur
-            return response()->json([
-                'message' => 'Commandes récupérées avec succès.',
-                'commandes' => $commandes
-            ], 200);
+            // 🔹 Réindexer le tableau final (pour éviter les clés de hash)
+            $final = array_values($result);
+
+            return response()->json($final, 200);
 
         } catch (\Exception $e) {
             return response()->json([
@@ -314,5 +333,52 @@ class UtilisateurController extends Controller
             ], 500);
         }
     }
+
+    public function updateCommande(Request $request, $id_commande)
+    {
+        // ✅ Validation des données reçues
+        $validated = $request->validate([
+            'date_heure_livraison' => 'required|date_format:Y-m-d H:i:s',
+            'localisation_client' => 'required|string',
+            'type_localisation' => 'required|string', // correspond au domain location
+            'statut_commande' => 'required|string',   // correspond au domain commandeState
+        ]);
+
+        try {
+            // 🔹 Appel de la fonction PostgreSQL modifier_commande()
+            $result = \DB::select('SELECT * FROM modifier_commande(?, ?, ?, ?, ?)', [
+                $id_commande,
+                $validated['date_heure_livraison'],
+                $validated['localisation_client'],
+                $validated['type_localisation'],
+                $validated['statut_commande']
+            ]);
+
+            // Vérifie si un résultat a été retourné
+            if (!empty($result)) {
+                return response()->json([
+                    'message' => 'Commande modifiée avec succès.',
+                    'commande' => $result[0]
+                ], 200);
+            } else {
+                return response()->json([
+                    'message' => 'Aucune commande mise à jour.'
+                ], 404);
+            }
+
+        } catch (\Illuminate\Database\QueryException $e) {
+            // Erreurs SQL (par exemple si l’ID n’existe pas)
+            return response()->json([
+                'message' => 'Erreur SQL : ' . $e->getMessage()
+            ], 400);
+
+        } catch (\Exception $e) {
+            // Autres erreurs (serveur, validation, etc.)
+            return response()->json([
+                'message' => 'Erreur serveur : ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
 
 }

@@ -860,7 +860,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- ============================================
---   FONCTION : Récupérer toutes les commandes d’un utilisateur (corrigée)
+--   FONCTION : Récupérer toutes les commandes d’un utilisateur avec le nom du menu
 -- ============================================
 CREATE OR REPLACE FUNCTION get_commandes_by_user(p_id_user INT)
 RETURNS TABLE (
@@ -872,6 +872,7 @@ RETURNS TABLE (
     statut_commande commandeState,
     acheteur INT,
     id_menu INT,
+    nom_menu VARCHAR(100),
     quantite INT,
     prix_unitaire DECIMAL(10,2),
     prix_total DECIMAL(10,2),
@@ -888,32 +889,33 @@ BEGIN
         c.statut_commande,
         c.acheteur,
         ct.id_menu,
+        m.nom_menu::VARCHAR(100),
         ct.quantite,
-        ct.prix_unitaire::DECIMAL(10,2),  -- ✅ conversion explicite
+        ct.prix_unitaire::DECIMAL(10,2),
         (ct.quantite * ct.prix_unitaire)::DECIMAL(10,2) AS prix_total,
 
         CASE
-            WHEN c.statut_commande = 'annulé'
-              OR bc.statut_bon = 'annulé'
-              OR l.statut_livraison = 'annulé'
+            WHEN c.statut_commande = 'annulée'
+              OR bc.statut_bon = 'annulée'
+              OR l.statut_livraison = 'annulée'
               THEN 'annulé'
 
-            WHEN c.statut_commande = 'en cours'
+            WHEN c.statut_commande = 'en_cours'
               AND (bc.statut_bon IS NULL OR bc.statut_bon = 'initial')
               THEN 'initial'
 
             WHEN c.statut_commande = 'valide'
-              AND bc.statut_bon = 'en cours'
+              AND bc.statut_bon = 'en_cours'
               THEN 'en cours'
 
-            WHEN c.statut_commande = 'valide'
-              AND bc.statut_bon = 'valide'
-              AND (l.statut_livraison = 'en cours' OR l.statut_livraison IS NULL)
+            WHEN c.statut_commande = 'validée'
+              AND bc.statut_bon = 'validée'
+              AND (l.statut_livraison = 'en_cours' OR l.statut_livraison IS NULL)
               THEN 'en cours de livraison'
 
-            WHEN c.statut_commande = 'valide'
-              AND bc.statut_bon = 'valide'
-              AND l.statut_livraison = 'valide'
+            WHEN c.statut_commande = 'validée'
+              AND bc.statut_bon = 'validée'
+              AND l.statut_livraison = 'validée'
               THEN 'livré'
 
             ELSE 'initial'
@@ -921,6 +923,7 @@ BEGIN
 
     FROM Commande c
     LEFT JOIN Contenir ct ON c.id_commande = ct.id_commande
+    LEFT JOIN Menu m ON m.id_menu = ct.id_menu  -- ✅ jointure ajoutée pour nom_menu
     LEFT JOIN Bon_commande bc ON c.id_commande = bc.commande_associe
     LEFT JOIN Livraison l ON bc.id_bon = l.bon_associe
     WHERE c.acheteur = p_id_user

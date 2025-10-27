@@ -453,13 +453,14 @@ throw new Error(message);
  * @returns {Promise<Array<Object>>} Une promesse qui résout un tableau des commandes de l'utilisateur.
  */
 export async function getCommandesUtilisateur(userId) {
+    console.log("commande de l'utilisateur :", userId)
     if (!userId) {
         console.error("L'ID utilisateur est manquant.");
         return []; // Retourne un tableau vide si l'ID n'est pas fourni
     }
 
     try {
-        const response = await fetch(`${API_URL}api/client/${userId}/commandes`);
+        const response = await fetch(`${API_URL}api/getCommandesByUser/${userId}`);
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({ message: `Erreur HTTP : ${response.status}` }));
@@ -467,8 +468,15 @@ export async function getCommandesUtilisateur(userId) {
         }
 
         const data = await response.json();
-        // Le contrôleur retourne un objet { message, commandes }, on ne retourne que le tableau des commandes.
-        return data.commandes || [];
+        console.log(data);
+        // Le contrôleur peut retourner soit { message, commandes } soit directement un tableau de commandes.
+        if (Array.isArray(data)) {
+            return data;
+        }
+        if (data && Array.isArray(data.commandes)) {
+            return data.commandes;
+        }
+        return [];
     } catch (error) {
         console.error(`Erreur lors de la récupération des commandes pour l'utilisateur ${userId}:`, error);
         return []; // Retourne un tableau vide en cas d'erreur

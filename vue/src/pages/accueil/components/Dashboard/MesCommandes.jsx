@@ -1,103 +1,201 @@
-import { useState } from "react";
-import { FaClock, FaCheckCircle, FaTimesCircle, FaBoxOpen, FaRedoAlt, FaEye } from "react-icons/fa";
+import { useState, useEffect } from "react";
+import { FaClock, FaCheckCircle, FaTimesCircle, FaBoxOpen } from "react-icons/fa";
 import 'bootstrap/dist/css/bootstrap.min.css';
-
-const orders = [
-  { id: 1, orderNumber: "#1023", date: "21 Oct 2025, 14:30", status: "delivered", items: ["Pizza Margherita", "Coca Cola"], total: 1850, deliveryAddress: "12 Avenue des Champs, Dakar" },
-  { id: 2, orderNumber: "#1022", date: "21 Oct 2025, 12:15", status: "preparing", items: ["Burger Classique", "Frites", "Sprite"], total: 1500, deliveryAddress: "12 Avenue des Champs, Dakar" },
-  { id: 3, orderNumber: "#1021", date: "20 Oct 2025, 19:45", status: "delivered", items: ["Sushi Mix", "Salade César"], total: 2900, deliveryAddress: "12 Avenue des Champs, Dakar" },
-];
+import CommandeCard from "./CommandeCard";
+import { getCommandesUtilisateur, getAuthInfo, getUserByEmail } from "../../../../services/user";
+import { Spinner } from "react-bootstrap";
+const API_URL = import.meta.env.VITE_API_URL;
 
 const statusConfig = {
-  pending: { label: "En attente", color: "text-dark", icon: FaClock, bg: "bg-light" },
-  preparing: { label: "En préparation", color: "text-warning", icon: FaClock, bg: "bg-light" },
-  delivering: { label: "En livraison", color: "text-primary", icon: FaBoxOpen, bg: "bg-light" },
-  delivered: { label: "Livrée", color: "text-success", icon: FaCheckCircle, bg: "bg-light" },
-  cancelled: { label: "Annulée", color: "text-danger", icon: FaTimesCircle, bg: "bg-light" },
+  // Les clés correspondent aux statuts retournés par la fonction SQL get_commandes_by_user
+  'initial': { label: "Non lue", color: "text-secondary", icon: FaClock, bg: "bg-light" },
+  'en cours': { label: "En cours", color: "text-warning", icon: FaClock, bg: "bg-light" },
+  'en cours de livraison': { label: "Livraison en cours", color: "text-primary", icon: FaBoxOpen, bg: "bg-light" },
+  'livré': { label: "Livré", color: "text-success", icon: FaCheckCircle, bg: "bg-light" },
+  'annulé': { label: "Annulé", color: "text-danger", icon: FaTimesCircle, bg: "bg-light" },
 };
 
 function MesCommandes() {
+  let idKey = 0;
+  const [orders, setOrders] = useState([]);
+  const [cancellingIds, setCancellingIds] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [filter, setFilter] = useState("all");
   const [selectedOrder, setSelectedOrder] = useState(null);
 
+  useEffect(() => {
+    const fetchUserAndCommands = async () => {
+      try {
+        setLoading(true);
+        const authInfo = getAuthInfo();
+        if (!authInfo || !authInfo.display_name) {
+          throw new Error("Utilisateur non authentifié. Veuillez vous reconnecter.");
+        }
+
+        const userData = await getUserByEmail(authInfo.display_name);
+        if (!userData || !userData.id_user) {
+          throw new Error("Impossible de récupérer les informations de l'utilisateur.");
+        }
+
+        const commandesData = await getCommandesUtilisateur(userData.id_user);
+        console.log("Commandes fetch :", commandesData);
+
+        // Transformation des données de l'API pour correspondre au format attendu par le frontend
+        const formattedOrders = commandesData.map(cmd => {
+          // liste_menus peut être un tableau d'objets (backend) ou une chaîne
+          let items = [];
+          let total = 0;
+
+          if (Array.isArray(cmd.liste_menus)) {
+            items = cmd.liste_menus.map(m => `${m.nom_menu} x${m.quantite}`);
+            total = cmd.liste_menus.reduce((sum, m) => sum + (parseFloat(m.prix_total) || 0), 0);
+          } else if (typeof cmd.liste_menus === 'string') {
+            items = cmd.liste_menus.split(', ').map(s => s.trim()).filter(Boolean);
+            total = cmd.montant_total || 0;
+          } else {
+            items = [];
+            total = cmd.montant_total || 0;
+          }
+
+          // Normaliser le statut (ex: en_cours -> en cours)
+          const rawStatus = (cmd.statut || '').toString().trim();
+          // Conserver 'initial' tel quel pour matcher statusConfig['initial']
+          let normalizedStatus = rawStatus === 'initial' ? 'initial' 
+            : rawStatus.replace(/_/g, ' ').toLowerCase();
+          // Corrections rapides (mais pas sur 'initial')
+          if (normalizedStatus === 'livre') normalizedStatus = 'livré';
+          if (normalizedStatus === 'annule') normalizedStatus = 'annulé';
+
+          return {
+            id: cmd.id_commande,
+            orderNumber: `#${cmd.id_commande}`,
+            // date de commande affichée
+            date: new Date(cmd.date_commande || cmd.date_heure_livraison).toLocaleString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+            dateISO: cmd.date_commande || cmd.date_heure_livraison,
+            date_heure_livraison: cmd.date_heure_livraison || cmd.date_commande,
+            status: normalizedStatus,
+            items,
+            total,
+            deliveryAddress: cmd.localisation_client || 'Non spécifiée',
+            localisation_client: cmd.localisation_client || '',
+            type_localisation: cmd.type_localisation || 'inconnue'
+          };
+        });
+
+        setOrders(formattedOrders);
+        setError(null);
+      } catch (err) {
+        setError(err.message);
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserAndCommands();
+  }, []);
+
+      console.log("Order fetch :", orders);
+  
+
+  // La logique de filtrage est mise à jour pour correspondre aux nouveaux boutons
   const filteredOrders = orders.filter((order) => {
-    if (filter === "active") return ["pending", "preparing", "delivering"].includes(order.status);
-    if (filter === "completed") return ["delivered", "cancelled"].includes(order.status);
-    return true;
+    if (filter === "all") return true;
+    return order.status === filter;
   });
+
+  if (loading) {
+    return (
+      <div className="container py-5 text-center text-white" style={{ backgroundColor: "#000000", minHeight: "100vh" }}>
+        <Spinner animation="border" variant="warning" />
+        <p className="mt-2">Chargement de vos commandes...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="container py-5" style={{ backgroundColor: "#000000", minHeight: "100vh" }}>
       <h1 className="text-white mb-3">Mes Commandes</h1>
-      <p className="text-white-50">Suivez l'historique de vos commandes</p>
+      <p className="text-white-50 mb-4">Suivez l'historique de vos commandes</p>
 
-      <div className="mb-4">
-        <button className={`me-2 btn ${filter === "all" ? "btn-warning text-white" : "btn-outline-light"}`} onClick={() => setFilter("all")}>
-          Toutes ({orders.length})
-        </button>
-        <button className={`me-2 btn ${filter === "active" ? "btn-warning text-white" : "btn-outline-light"}`} onClick={() => setFilter("active")}>
-          En cours ({orders.filter(o => ["pending", "preparing", "delivering"].includes(o.status)).length})
-        </button>
-        <button className={`btn ${filter === "completed" ? "btn-warning text-white" : "btn-outline-light"}`} onClick={() => setFilter("completed")}>
-          Terminées ({orders.filter(o => ["delivered", "cancelled"].includes(o.status)).length})
-        </button>
+      {/* Les boutons de filtre ont été remplacés */}
+      <div className="mb-4 d-flex flex-wrap gap-2">
+        <button className={`btn ${filter === 'all' ? 'btn-warning text-white' : 'btn-outline-light'}`} onClick={() => setFilter('all')}>Toutes</button>
+        {Object.entries(statusConfig).map(([statusKey, { label }]) => (
+          <button 
+            key={statusKey} 
+            className={`btn ${filter === statusKey ? 'btn-warning text-white' : 'btn-outline-light'}`} 
+            onClick={() => setFilter(statusKey)}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
-      {filteredOrders.length === 0 && (
-        <div className="text-center text-white mt-5">
-          <FaBoxOpen size={50} className="mb-3" />
-          <h3>Aucune commande</h3>
-          <p>Vous n'avez pas encore passé de commande</p>
+      {error && (
+        <div className="alert alert-danger">
+          <p className="fw-bold">Erreur de chargement</p>
+          {error}
         </div>
       )}
 
-      {filteredOrders.map(order => {
-        const statusInfo = statusConfig[order.status];
-        const StatusIcon = statusInfo.icon;
-        return (
-          <div key={order.id} className="card mb-4">
-            <div className="card-body">
-              <div className="d-flex justify-content-between align-items-start mb-2">
-                <div>
-                  <h5>Commande {order.orderNumber}</h5>
-                  <small className="text-muted">{order.date}</small>
-                  <div className={`badge ${statusInfo.color} mt-2`} style={{ backgroundColor: "#cfbd97", color: "#000" }}>
-                    <StatusIcon className="me-1" />
-                    {statusInfo.label}
-                  </div>
-                </div>
-                <div className="text-end">
-                  <div className="fw-bold mb-2">{order.total} FCFA</div>
-                  <button className="btn btn-sm btn-outline-dark" onClick={() => setSelectedOrder(order)}>
-                    <FaEye className="me-1" /> Détails
-                  </button>
-                </div>
-              </div>
+      {!loading && !error && filteredOrders.length === 0 && (
+        <div className="text-center text-white mt-5">
+          <FaBoxOpen size={50} className="mb-3" />
+          <h3>Aucune commande trouvée</h3>
+          <p>Il semble que vous n'ayez pas encore de commandes correspondant à ce filtre.</p>
+        </div>
+      )}
 
-              <p className="mb-1"><strong>Articles:</strong> {order.items.join(", ")}</p>
+      {!error && filteredOrders.map(order => {
+        const isCancelling = cancellingIds.includes(order.id);
+        return <CommandeCard 
+          key={idKey++} 
+          order={order} 
+          statusConfig={statusConfig} 
+          onSelectOrder={setSelectedOrder}
+          isCancelling={isCancelling}
+          onCancelOrder={async (o) => {
+            // Optimistic update: sauvegarde l'état courant, applique annulation UI, désactive bouton
+            const prevOrders = orders;
+            setOrders(prev => prev.map(item => item.id === o.id ? { ...item, status: 'annulé' } : item));
+            setCancellingIds(prev => Array.from(new Set([...prev, o.id])));
 
-              {order.status === "delivered" && (
-                <button className="btn btn-warning btn-sm mt-2">
-                  <FaRedoAlt className="me-1" /> Recommander
-                </button>
-              )}
+            try {
+              const dateSource = o.date_heure_livraison || o.dateISO || new Date().toISOString();
+              const dateObj = new Date(dateSource);
+              const date_heure_livraison = dateObj.toISOString().slice(0,19).replace('T',' ');
 
-              {(["pending", "preparing", "delivering"]).includes(order.status) && (
-                <div className="progress mt-3" style={{ height: "8px" }}>
-                  <div
-                    className="progress-bar"
-                    role="progressbar"
-                    style={{
-                      width: order.status === "pending" ? "33%" :
-                             order.status === "preparing" ? "66%" : "100%",
-                      backgroundColor: "#cfbd97",
-                    }}
-                  />
-                </div>
-              )}
-            </div>
-          </div>
-        );
+              const body = {
+                date_heure_livraison,
+                localisation_client: o.localisation_client || o.deliveryAddress || '',
+                type_localisation: o.type_localisation || 'inconnue',
+                statut_commande: 'annulé'
+              };
+
+              const res = await fetch(`${API_URL}api/updateCommande/${o.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify(body)
+              });
+
+              if (!res.ok) {
+                const err = await res.json().catch(() => ({ message: `HTTP ${res.status}` }));
+                throw new Error(err.message || `Erreur HTTP ${res.status}`);
+              }
+
+              // Succès : retirer de la liste des en-cours
+              setCancellingIds(prev => prev.filter(id => id !== o.id));
+            } catch (err) {
+              console.error('Erreur annulation commande :', err);
+              // Rollback UI
+              setOrders(prevOrders);
+              setCancellingIds(prev => prev.filter(id => id !== o.id));
+              alert('Impossible d\'annuler la commande : ' + (err.message || 'erreur serveur'));
+            }
+          }}
+        />
       })}
 
       {selectedOrder && (

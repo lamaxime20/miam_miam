@@ -97,3 +97,4 @@ Route::post('/commandes', [fileController::class, 'commander']);
 Route::post('/getUserbyEmail', [UtilisateurController::class, 'getByEmail']);
 
 Route::get('/getCommandesByUser/{id_user}', [UtilisateurController::class, 'getCommandesByUser']);
+Route::put('/updateCommande/{id_commande}', [UtilisateurController::class, 'updateCommande']);
