@@ -136,4 +136,45 @@ class clientController extends Controller
             'clients' => $clients,
         ], 200);
     }
+
+    /**
+     * Détails de parrainage d'un client (code, totaux, liste des filleuls)
+     */
+    public function referralDetails(int $id_client)
+    {
+        $summary = DB::select('SELECT * FROM get_referral_summary(?)', [$id_client]);
+        $referrals = DB::select('SELECT * FROM get_referrals_client(?)', [$id_client]);
+
+        return response()->json([
+            'id_client' => $id_client,
+            'referral' => $summary[0] ?? null,
+            'referrals' => $referrals,
+        ], 200);
+    }
+
+    /**
+     * Réclamer le bonus quotidien de fidélité.
+     */
+    public function claimDailyBonus(int $id_client, Request $request)
+    {
+        $restaurantId = (int) $request->input('restaurant_id', 1);
+        $ok = DB::select('SELECT claim_daily_bonus(?, ?) AS ok', [$id_client, $restaurantId]);
+        $okVal = isset($ok[0]) ? (bool) $ok[0]->ok : false;
+
+        if (!$okVal) {
+            return response()->json([
+                'success' => false,
+                'message' => "Bonus déjà réclamé aujourd'hui",
+            ], 409);
+        }
+
+        $points = DB::select('SELECT get_points_fidelite(?) AS points', [$id_client]);
+        $newPoints = $points[0]->points ?? 0;
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Bonus crédité',
+            'new_points' => $newPoints,
+        ], 200);
+    }
 }

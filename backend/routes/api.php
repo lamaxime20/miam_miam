@@ -67,6 +67,12 @@ Route::prefix('client')->group(function () {
     // GET /api/client/{id}/details-fidelite
     Route::get('{id}/details-fidelite', [ClientController::class, 'detailsFidelite']);
 
+    // NEW: GET /api/client/{id}/referral-details
+    Route::get('{id}/referral-details', [ClientController::class, 'referralDetails']);
+
+    // NEW: POST /api/client/{id}/bonus-quotidien
+    Route::post('{id}/bonus-quotidien', [ClientController::class, 'claimDailyBonus']);
+
     // GET /api/client/top-clients
     Route::get('top-clients', [ClientController::class, 'topClients']);
 });
