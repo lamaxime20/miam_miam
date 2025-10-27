@@ -1,0 +1,285 @@
+.dashboard-container {
+  display: flex;
+  height: 100vh;
+  background-color: #f0e2c1;
+  
+}
+
+.sidebar {
+  width: 300px;
+  background: linear-gradient(180deg, #000000 0%, #34495e 100%);
+  color: white;
+  transition: width 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.sidebar.closed {
+  width: 80px;
+}
+
+.sidebar-header {
+  padding: 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.user-profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.avatar {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #d4c4a8 0%, #c4b498 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 16px;
+  color: white;
+}
+
+.user-info {
+  flex: 1;
+}
+
+.user-name {
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 2px;
+}
+
+.user-role {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.loyalty-card {
+  background: rgba(212, 196, 168, 0.2);
+  border-radius: 10px;
+  padding: 12px;
+  backdrop-filter: blur(10px);
+}
+
+.loyalty-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.star-icon {
+  color: #ffd700;
+}
+
+.loyalty-points {
+  font-size: 24px;
+  font-weight: bold;
+  color: #d4c4a8;
+  text-align: center;
+
+}
+
+.sidebar-title {
+  padding: 20px;
+  font-weight: bold;
+  font-size: 14px;
+  letter-spacing: 1px;
+  color: rgba(255, 255, 255, 0.6);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 15px 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.sidebar-item:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.sidebar-item.active {
+  background: linear-gradient(90deg, rgba(212, 196, 168, 0.3) 0%, transparent 100%);
+  border-left: 4px solid #d4c4a8;
+  color: white;
+  font-weight: 600;
+}
+
+.sidebar.closed .sidebar-item {
+  justify-content: center;
+  padding: 15px;
+}
+
+.sidebar.closed .sidebar-item span {
+  display: none;
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  padding: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.logout-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px;
+  background: rgba(231, 76, 60, 0.2);
+  border: none;
+  border-radius: 8px;
+  color: #e74c3c;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 500;
+}
+
+.logout-btn:hover {
+  background: rgba(231, 76, 60, 0.3);
+}
+
+.sidebar.closed .logout-btn span:last-child {
+  display: none;
+}
+
+.main-content {
+  flex: 10;
+  padding: 70px;
+  margin-top:1.5px;
+  right: 0cqi;
+  transition: margin-right 0.3s ease;
+  overflow-y: auto;
+  height: 100vh;
+  box-sizing: border-box;
+}
+
+.main-content.closed {
+  margin-left: 70px;
+  padding: 70px 20px;
+}
+
+.toggle-btn {
+  position: fixed;
+  top: 20px;
+  left: 260px;
+  z-index: 1000;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.main-content.closed .toggle-btn {
+  left: 80px;
+}
+
+.toggle-btn:hover {
+  background: #f8f9fa;
+  transform: scale(1.1);
+}
+
+@media (max-width: 10px) {
+  .sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    height: 10vh;
+    z-index: 999;
+  }
+
+  .sidebar.closed {
+    left: -100px;
+  }
+
+  .main-content {
+    margin-left: 0;
+
+  }
+
+  .toggle-btn {
+    left: 20px;
+  }
+}
+.title {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+.section {
+  margin-bottom: 3rem;
+  padding: 20px;
+    background-color: #1a1a1a;
+    border-radius: 12px;
+}
+.section-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #000000;
+}
+.promotion-card {
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef !important;
+}
+
+.event-card {
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef !important;
+
+}
+
+.fidelite-stats .fidelite-item {
+  padding: 0.5rem;
+}
+
+.progress {
+  background-color: #e9ecef;
+}
+
+.btn-primary-custom {
+  background-color: #D4C4A8;
+  border-color: #D4C4A8;
+  color: #000;
+
+}
+
+.btn-primary-custom:hover {
+  background-color: #c4b498;
+  border-color: #c4b498;
+  color: #000;
+}
+
+.btn-outline-primary-custom {
+  border-color: #D4C4A8;
+  color: #D4C4A8;
+}
+
+.btn-outline-primary-custom:hover {
+  background-color: #D4C4A8;
+  color: #000;
+}
+
+.text-primary-custom {
+  color: #D4C4A8 !important;
+}

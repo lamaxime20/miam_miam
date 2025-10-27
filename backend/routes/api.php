@@ -4,6 +4,16 @@ use App\Http\Controllers\Api\administrateurController;
 use App\Http\Controllers\Api\UtilisateurController;
 use App\Models\Utilisateur;
 use App\Http\Controllers\Api\fileController;
+use App\Http\Controllers\Api\choisir_menu_jourController;
+use App\Models\choisir_menu_jour;
+use App\Http\Controllers\Api\clientController;
+use App\Http\Controllers\Api\promotionController;
+use App\Http\Controllers\Api\notificationsController;
+use App\Http\Controllers\Api\menuController;
+use App\Http\Controllers\Api\restaurantController;
+use App\Http\Controllers\Api\reponseController;
+use App\Http\Controllers\Api\reclamationController;
+use App\Http\Controllers\employeController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -34,3 +44,78 @@ Route::get('/files/{id}', [fileController::class, 'show']);
 Route::post('/files', [fileController::class, 'store']);
 Route::put('/files/{id}', [fileController::class, 'update']);
 Route::delete('/files/{id}', [fileController::class, 'destroy']);
+
+Route::get('/choisir_menu_jour', [choisir_menu_jourController::class, 'index']);
+Route::get('/choisir_menu_jour/popularite', [choisir_menu_jourController::class, 'menusParPopularite']);
+Route::get('/clients', [ClientController::class, 'index']);
+Route::get('/clients/{id}', [ClientController::class, 'show']);
+Route::put('/clients/{id}', [ClientController::class, 'update']);
+Route::delete('/clients/{id}', [ClientController::class, 'destroy']);
+Route::prefix('client')->group(function () {
+    // GET /api/client/{id}/filleuls
+    Route::get('{id}/filleuls', [ClientController::class, 'totalFilleuls']);
+
+    // GET /api/client/{id}/commandes
+    Route::get('{id}/commandes', [ClientController::class, 'totalCommandes']);
+
+    // GET /api/client/{id}/points
+    Route::get('{id}/points', [ClientController::class, 'pointsFidelite']);
+
+    // GET /api/client/{id}/dashboard-stats
+    Route::get('{id}/dashboard-stats', [ClientController::class, 'dashboardStats']);
+
+    // GET /api/client/{id}/commandes-recentes
+    Route::get('{id}/commandes-recentes', [ClientController::class, 'commandesRecentes']);
+
+    // GET /api/client/{id}/details-fidelite
+    Route::get('{id}/details-fidelite', [ClientController::class, 'detailsFidelite']);
+
+    // NEW: GET /api/client/{id}/referral-details
+    Route::get('{id}/referral-details', [ClientController::class, 'referralDetails']);
+
+    // NEW: POST /api/client/{id}/bonus-quotidien
+    Route::post('{id}/bonus-quotidien', [ClientController::class, 'claimDailyBonus']);
+
+    // GET /api/client/top-clients
+    Route::get('top-clients', [ClientController::class, 'topClients']);
+});
+
+// Routes pour les promotions
+Route::get('/promotions/actives', [promotionController::class, 'promotionsActives']);
+
+// Routes pour les notifications
+Route::prefix('notifications')->group(function () {
+    // GET /api/notifications/client/{id}
+    Route::get('client/{id}', [notificationsController::class, 'notificationsClient']);
+
+    // PUT /api/notifications/{id_notification}/client/{id_client}/marquer-lue
+    Route::put('{id_notification}/client/{id_client}/marquer-lue', [notificationsController::class, 'marquerLue']);
+});
+
+// Routes pour les menus
+Route::get('/menu/{id_menu}/restaurant', [menuController::class, 'getRestaurantByMenuId']);
+
+// Routes pour les restaurants
+Route::get('/restaurants', [restaurantController::class, 'index']);
+Route::get('/restaurants/{id}', [restaurantController::class, 'show']);
+Route::post('/restaurants', [restaurantController::class, 'store']);
+Route::put('/restaurants/{id}', [restaurantController::class, 'update']);
+Route::delete('/restaurants/{id}', [restaurantController::class, 'destroy']);
+
+Route::post('/commandes', [fileController::class, 'commander']);
+Route::post('/getUserbyEmail', [UtilisateurController::class, 'getByEmail']);
+
+Route::get('/getCommandesByUser/{id_user}', [UtilisateurController::class, 'getCommandesByUser']);
+Route::put('/updateCommande/{id_commande}', [UtilisateurController::class, 'updateCommande']);
+
+Route::get('/reclamations/client/{id_client}', [reclamationController::class, 'indexClient']);
+Route::get('/reclamations/restaurant/{id_restaurant}', [reclamationController::class, 'indexRestaurant']);
+Route::post('/reclamations', [reclamationController::class, 'store']);
+Route::get('/reclamations/{id}', [reclamationController::class, 'show']);
+Route::put('/reclamations/{id}/status', [reclamationController::class, 'updateStatus']);
+Route::put('/reclamations/{id}/close', [reclamationController::class, 'close']);
+
+Route::get('/reclamations/{id}/reponses', [reponseController::class, 'index']);
+Route::post('/reclamations/{id}/reponses', [reponseController::class, 'store']);
+
+Route::get('/employe/dashboard/kpis', [UtilisateurController::class, 'dashboardKpis']);

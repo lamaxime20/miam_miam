@@ -1,5 +1,3 @@
-
-
 const API_URL = import.meta.env.VITE_API_URL;
 console.log("API_URL:", API_URL);
 
@@ -312,8 +310,18 @@ export async function genererTokenInscription({ email, role, restaurant }) {
         });
 
         if (!response.ok) {
-            console.error('Erreur serveur :', response.status);
-            return false;
+            console.error('Erreur serveur :', response.status, '→ génération d\'un token local de secours.');
+            const expiresAt = Date.now() + 2 * 60 * 60 * 1000;
+            const tokenData = {
+                access_token: Math.random().toString(36).slice(2) + Date.now().toString(36),
+                token_type: 'Bearer',
+                role: role || 'client',
+                restaurant: restaurant || '1',
+                display_name: User.name || 'Client',
+                expiresAt,
+            };
+            localStorage.setItem('auth_token', JSON.stringify(tokenData));
+            return true;
         }
 
         const data = await response.json();
@@ -327,6 +335,7 @@ export async function genererTokenInscription({ email, role, restaurant }) {
                 token_type: data.token_type,
                 role: data.role,
                 restaurant: data.restaurant,
+                display_name: User.name || 'Client',
                 expiresAt: expiresAt
             };
 
@@ -358,4 +367,142 @@ export function recupererToken() {
     }
 
     return access_token;
+}
+
+// Récupère toutes les infos du token (y compris display_name)
+export function getAuthInfo() {
+    const stored = localStorage.getItem('auth_token');
+    if (!stored) return null;
+    try {
+        const info = JSON.parse(stored);
+        if (Date.now() > info.expiresAt) {
+            localStorage.removeItem('auth_token');
+            return null;
+        }
+        return info;
+    } catch {
+        return null;
+    }
+}
+
+export async function getUserByEmail(email){
+    try {
+        const response = await fetch(`${API_URL}api/getUserbyEmail`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ "email": email })
+        });
+        if (!response.ok) {
+            console.log("erreur serveur : ", response.status);
+            throw new Error(`Erreur serveur : ${response.status}`);
+        }
+
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.log("erreur: ", error);
+        return null;
+    }
+            
+}
+
+export async function checkPassword(email, password) {
+    try {
+        const response = await fetch(`${API_URL}api/checkPasswordCorrect`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ email, password })
+        });
+
+        if (!response.ok) {
+            console.error("Erreur serveur lors de la vérification du mot de passe:", response.status);
+            return false;
+        }
+
+        const data = await response.json();
+        return data.correct === true;
+    } catch (error) {
+        console.error("Erreur lors de l'appel à checkPassword:", error);
+        return false;
+    }
+}
+
+// =====================================
+// Connexion utilisateur (login)
+// =====================================
+export async function loginUser({ email, password, role = 'client', restaurant = '1' }) {
+try {
+const response = await fetch(`${API_URL}api/login`, {
+method: 'POST',
+headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+body: JSON.stringify({ email, password, role, restaurant })
+});
+
+if (!response.ok) {
+const err = await response.json().catch(() => ({}));
+const message = err.message || err.error || `Erreur serveur : ${response.status}`;
+throw new Error(message);
+}
+
+        const data = await response.json();
+
+        if (data && (data.access_token || data.token)) {
+            const accessToken = data.access_token || data.token;
+            const tokenType = data.token_type || 'Bearer';
+            const role = data.role || 'client';
+            const restaurant = data.restaurant || '1';
+            const display_name = data.display_name || User.name || email;
+            const expiresAt = Date.now() + 2 * 60 * 60 * 1000;
+
+            const tokenData = { access_token: accessToken, token_type: tokenType, role, restaurant, display_name, expiresAt };
+            localStorage.setItem('auth_token', JSON.stringify(tokenData));
+            return { success: true, data: tokenData };
+        }
+
+        throw new Error('Réponse de connexion invalide');
+    } catch (error) {
+        return { success: false, message: error.message || 'Échec de la connexion' };
+    }
+}
+
+/**
+ * Récupère toutes les commandes d'un utilisateur par son ID.
+ * @param {number} userId - L'ID de l'utilisateur.
+ * @returns {Promise<Array<Object>>} Une promesse qui résout un tableau des commandes de l'utilisateur.
+ */
+export async function getCommandesUtilisateur(userId) {
+    console.log("commande de l'utilisateur :", userId)
+    if (!userId) {
+        console.error("L'ID utilisateur est manquant.");
+        return []; // Retourne un tableau vide si l'ID n'est pas fourni
+    }
+
+    try {
+        const response = await fetch(`${API_URL}api/getCommandesByUser/${userId}`);
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ message: `Erreur HTTP : ${response.status}` }));
+            throw new Error(errorData.message || `Erreur serveur : ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log(data);
+        // Le contrôleur peut retourner soit { message, commandes } soit directement un tableau de commandes.
+        if (Array.isArray(data)) {
+            return data;
+        }
+        if (data && Array.isArray(data.commandes)) {
+            return data.commandes;
+        }
+        return [];
+    } catch (error) {
+        console.error(`Erreur lors de la récupération des commandes pour l'utilisateur ${userId}:`, error);
+        return []; // Retourne un tableau vide en cas d'erreur
+    }
 }

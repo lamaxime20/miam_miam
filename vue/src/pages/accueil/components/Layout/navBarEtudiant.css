@@ -1,0 +1,126 @@
+.navigateur {
+  background-color: #000000;
+  padding: 0.1rem 0;
+  border-bottom: 1px solid #333;
+}
+
+.navbar-logo {
+  height: 90px;
+  transition: transform 0.3s ease;
+}
+
+.navbar-logo:hover {
+  transform: scale(1.05);
+}
+
+.onglets {
+  gap: 2rem;
+}
+
+.onglet {
+  background: none;
+  border: none;
+  color: #ffffff;
+  font-size: 0.95rem;
+  cursor: pointer;
+  padding: 0.5rem 0;
+  transition: color 0.3s ease;
+  font-weight: 400;
+}
+
+.onglet:hover {
+  color: #cfbd97;
+}
+
+.services {
+  gap: 1.5rem;
+  align-items: center;
+}
+
+.icon {
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+
+.icon:hover {
+  transform: scale(1.1);
+}
+
+.btn-connexion {
+  background-color: #cfbd97;
+  color: #000000;
+  border: none;
+  padding: 0.5rem 1.5rem;
+  border-radius: 25px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  font-size: 0.9rem;
+}
+
+.btn-connexion:hover {
+  background-color: #d9cda7;
+}
+
+.link-inscrire {
+  color: #ffffff;
+  text-decoration: none;
+  font-size: 0.95rem;
+  transition: color 0.3s ease;
+}
+
+.link-inscrire:hover {
+  color: #cfbd97;
+}
+
+.menu-toggle {
+  background: none;
+  border: none;
+  color: #ffffff;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+}
+
+.menu-mobile {
+  margin-top: 1rem;
+  padding: 1rem 0;
+  border-top: 1px solid #333;
+}
+
+.menu-mobile .onglet {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.75rem 1rem;
+  margin: 0.25rem 0;
+}
+
+.mobile-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1rem;
+  padding: 1rem;
+}
+
+.mobile-actions .btn-connexion {
+  width: 100%;
+}
+
+.mobile-actions .link-inscrire {
+  text-align: center;
+  display: block;
+}
+
+@media (max-width: 991px) {
+  .onglets {
+    gap: 1rem;
+  }
+
+  .onglet {
+    font-size: 0.85rem;
+  }
+}

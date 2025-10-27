@@ -1,0 +1,167 @@
+.menu-section {
+  padding: 4rem 0;
+  background-color: #000000;
+}
+
+.menu-header {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.menu-title {
+  font-size: 3rem;
+  font-weight: 700;
+  color: #cfbd97;
+  margin-bottom: 0.5rem;
+}
+
+.menu-subtitle {
+  font-size: 1.5rem;
+  color: #ffffff;
+  margin-bottom: 1.5rem;
+  font-style: italic;
+}
+
+.menu-description {
+  font-size: 1.1rem;
+  color: #cccccc;
+  max-width: 800px;
+  margin: 0 auto;
+  line-height: 1.8;
+}
+
+.menu-grid {
+  margin-top: 2rem;
+}
+
+.menu-card {
+  background-color: #111111;
+  border-radius: 12px;
+  padding: 1.5rem;
+  text-align: center;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #222;
+}
+
+.menu-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(207, 189, 151, 0.2);
+  border-color: #cfbd97;
+}
+
+.menu-image-container {
+  width: 200px;
+  height: 200px;
+  margin: 0 auto 1.5rem;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 3px solid #cfbd97;
+  position: relative;
+}
+
+.menu-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.menu-item-name {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #cfbd97;
+  margin-bottom: 0.75rem;
+  min-height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.menu-rating {
+  margin-bottom: 1rem;
+}
+
+.star {
+  color: #ded082;
+  font-size: 1.2rem;
+  margin: 0 2px;
+}
+
+.menu-item-description {
+  font-size: 0.95rem;
+  color: #aaaaaa;
+  line-height: 1.6;
+  margin-bottom: 1rem;
+  flex-grow: 1;
+}
+
+.menu-item-price {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #cfbd97;
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .menu-title {
+    font-size: 2rem;
+  }
+
+  .menu-subtitle {
+    font-size: 1.2rem;
+  }
+
+  .menu-description {
+    font-size: 1rem;
+  }
+
+  .menu-item-name {
+    font-size: 1.1rem;
+    min-height: auto;
+  }
+}
+/* === Bouton "Voir tout" === */
+.see-all-container {
+  text-align: center;
+  margin-top: 2rem;
+}
+
+.see-all-button {
+  background-color: #cfbd97; 
+  color: black;
+  border: none;
+  padding: 12px 28px;
+  border-radius: 30px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.see-all-button:hover {
+  background-color: #cfbd97; 
+  transform: scale(1.05);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
+}
+.order-button {
+  background-color: #cfbd97; 
+  color: #000000;
+  border: none;
+  padding: 0.6rem 0.2rem;
+  border-radius: 60px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  width: 100%;
+  margin-top: 10px;
+}
+
+.order-button:hover {
+  background-color: #f5e58b;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(230, 85, 0, 0.3);
+}

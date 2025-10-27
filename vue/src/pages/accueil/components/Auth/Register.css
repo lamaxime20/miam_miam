@@ -1,0 +1,36 @@
+/* src/components/Register.css */
+.register-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center;z-index:10000;padding:20px}
+.register-container{background:#0a0a0a;border:1px solid #333;border-radius:16px;padding:2rem;width:100%;max-width:480px;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.5);max-height:90vh;overflow-y:auto}
+.register-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem}
+.register-title{color:#cfbd97;font-size:1.75rem;font-weight:700;margin:0}
+.register-close{background:none;border:none;color:#888;cursor:pointer;padding:8px;border-radius:8px;transition:all .3s ease}
+.register-close:hover{color:#cfbd97;background:rgba(207,189,151,.1)}
+.register-subtitle{text-align:center;margin-bottom:2rem}
+.register-subtitle p{color:#888;margin:0;font-size:.95rem}
+.register-form{margin-bottom:1.5rem}
+.form-group{margin-bottom:1.25rem}
+.form-label{display:block;color:#fff;font-weight:500;margin-bottom:.5rem;font-size:.9rem}
+.form-input{width:100%;padding:12px 16px;background:#111;border:1px solid #333;border-radius:8px;color:#fff;font-size:1rem;transition:all .3s ease;box-sizing:border-box}
+.form-input:focus{outline:none;border-color:#cfbd97;box-shadow:0 0 0 2px rgba(207,189,151,.2)}
+.form-input:disabled{opacity:.6;cursor:not-allowed}
+.form-input.error{border-color:#dc3545;box-shadow:0 0 0 2px rgba(220,53,69,.2)}
+.error-text{color:#dc3545;font-size:.8rem;margin-top:.25rem;display:block}
+.password-input-container{position:relative}
+.password-toggle{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:#888;cursor:pointer;padding:4px;border-radius:4px;transition:color .3s ease}
+.password-toggle:hover{color:#cfbd97}
+.password-toggle:disabled{opacity:.6;cursor:not-allowed}
+.error-message{background:rgba(220,53,69,.1);border:1px solid rgba(220,53,69,.3);color:#dc3545;padding:12px;border-radius:8px;margin-bottom:1rem;font-size:.9rem}
+.register-button{width:100%;background:#cfbd97;color:#000;border:none;padding:14px;border-radius:8px;font-size:1rem;font-weight:600;cursor:pointer;transition:all .3s ease;margin-top:.5rem}
+.register-button:hover:not(:disabled){background:#d9cda7;transform:translateY(-1px)}
+.register-button:disabled{opacity:.7;cursor:not-allowed;transform:none}
+.loading-spinner{display:flex;align-items:center;justify-content:center;gap:8px}
+.spinner{width:16px;height:16px;border:2px solid transparent;border-top:2px solid #000;border-radius:50%;animation:spin 1s linear infinite}
+@keyframes spin{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
+.register-footer{text-align:center;border-top:1px solid #333;padding-top:1.5rem}
+.register-footer p{color:#888;margin:0 0 1rem 0}
+.switch-button{background:none;border:none;color:#cfbd97;cursor:pointer;text-decoration:underline;font-size:inherit;padding:0;transition:color .3s ease}
+.switch-button:hover:not(:disabled){color:#d9cda7}
+.switch-button:disabled{opacity:.6;cursor:not-allowed}
+.forgot-link{color:#cfbd97;text-decoration:none;font-size:.9rem;transition:color .3s ease}
+.forgot-link:hover{color:#d9cda7;text-decoration:underline}
+@media (max-width:480px){.register-container{padding:1.5rem;margin:10px}.register-title{font-size:1.5rem}.form-group{margin-bottom:1rem}}

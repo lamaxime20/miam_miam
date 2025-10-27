@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class promotionController extends Controller
 {
@@ -45,5 +46,17 @@ class promotionController extends Controller
     public function destroy(string $id)
     {
         //
+    }
+
+    /**
+     * Retourne les promotions actives.
+     */
+    public function promotionsActives()
+    {
+        $promotions = DB::select('SELECT * FROM get_promotions_actives()');
+
+        return response()->json([
+            'promotions' => $promotions,
+        ], 200);
     }
 }
