@@ -1,0 +1,624 @@
+import { useState, useEffect } from 'react';
+import { Card, CardContent } from './ui/card';
+import { Input } from './ui/input';
+import { Button } from './ui/button';
+import { Badge } from './ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from './ui/dialog';
+import { Label } from './ui/label';
+import { Textarea } from './ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from './ui/select';
+import { Search, Plus, Edit, Trash2, UtensilsCrossed, ChefHat, Coffee, Cake, Image as ImageIcon } from 'lucide-react';
+import { ImageWithFallback } from './figma/ImageWithFallback';
+import { getPlatsMenu, sauvegarderPlat, supprimerPlat, convertirPrix } from '../../../services/dashboard';
+
+interface MenuItem {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  priceXAF: number;
+  priceFormatted: string;
+  category: string;
+  status: 'available' | 'unavailable';
+  image?: string;
+}
+
+interface FormData {
+  name: string;
+  description: string;
+  priceEUR: string;
+  category: string;
+  imageUrl: string;
+  available: boolean;
+}
+
+// Fonction pour convertir les plats mockés en format avec XAF
+const convertMockItems = (items: any[]): MenuItem[] => {
+  return items.map(item => {
+    const prix = convertirPrix(item.price) as { eur: number; xaf: number; xafFormate: string; eurFormate: string };
+    return {
+      ...item,
+      priceXAF: prix.xaf,
+      priceFormatted: prix.xafFormate,
+    };
+  });
+};
+
+const mockMenuItemsEUR = [
+  {
+    id: '1',
+    name: 'Burger Premium',
+    description: 'Pain artisanal, steak 180g, cheddar affiné, sauce maison',
+    price: 15.90,
+    category: 'Plats',
+    status: 'available' as const,
+    image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400&h=300&fit=crop',
+  },
+  {
+    id: '2',
+    name: 'Pizza Margherita',
+    description: 'Sauce tomate, mozzarella di bufala, basilic frais',
+    price: 12.90,
+    category: 'Plats',
+    status: 'available' as const,
+    image: 'https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=400&h=300&fit=crop',
+  },
+  {
+    id: '3',
+    name: 'Salade César',
+    description: 'Poulet grillé, parmesan, croûtons, sauce césar',
+    price: 9.50,
+    category: 'Entrées',
+    status: 'available' as const,
+    image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=300&fit=crop',
+  },
+  {
+    id: '4',
+    name: 'Tiramisu Maison',
+    description: 'Mascarpone, café, cacao, biscuits imbibés',
+    price: 6.50,
+    category: 'Desserts',
+    status: 'available' as const,
+    image: 'https://images.unsplash.com/photo-1571877227200-a0d98ea607e9?w=400&h=300&fit=crop',
+  },
+  {
+    id: '5',
+    name: 'Cappuccino',
+    description: 'Espresso, lait vapeur, mousse de lait',
+    price: 4.50,
+    category: 'Boissons',
+    status: 'available' as const,
+    image: 'https://images.unsplash.com/photo-1572442388796-11668a67e53d?w=400&h=300&fit=crop',
+  },
+  {
+    id: '6',
+    name: 'Tartare de Saumon',
+    description: 'Saumon frais, avocat, citron vert, sésame',
+    price: 16.50,
+    category: 'Entrées',
+    status: 'unavailable' as const,
+    image: 'https://images.unsplash.com/photo-1580959375944-1ab5b8c78f75?w=400&h=300&fit=crop',
+  },
+  {
+    id: '7',
+    name: 'Pâtes Carbonara',
+    description: 'Crème, lardons, parmesan, jaune d\'œuf',
+    price: 13.90,
+    category: 'Plats',
+    status: 'available' as const,
+    image: 'https://images.unsplash.com/photo-1612874742237-6526221588e3?w=400&h=300&fit=crop',
+  },
+  {
+    id: '8',
+    name: 'Fondant au Chocolat',
+    description: 'Chocolat noir 70%, cœur coulant, glace vanille',
+    price: 7.50,
+    category: 'Desserts',
+    status: 'available' as const,
+    image: 'https://images.unsplash.com/photo-1624353365286-3f8d62daad51?w=400&h=300&fit=crop',
+  },
+];
+
+const categories = ['Entrées', 'Plats', 'Desserts', 'Boissons'];
+
+const categoryIcons = {
+  'Entrées': UtensilsCrossed,
+  'Plats': ChefHat,
+  'Desserts': Cake,
+  'Boissons': Coffee,
+};
+
+export function MenuPage() {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [menuItems, setMenuItems] = useState<MenuItem[]>(convertMockItems(mockMenuItemsEUR));
+  const [formData, setFormData] = useState<FormData>({
+    name: '',
+    description: '',
+    priceEUR: '',
+    category: '',
+    imageUrl: '',
+    available: true,
+  });
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Charger les plats depuis l'API (optionnel)
+  useEffect(() => {
+    // TODO: Décommenter quand l'API est prête
+    // loadMenuItems();
+  }, []);
+
+  const loadMenuItems = async () => {
+    try {
+      setIsLoading(true);
+      const plats = await getPlatsMenu();
+      const converted = plats.map((plat: any) => ({
+        id: plat.id,
+        name: plat.nom,
+        description: plat.description,
+        price: plat.prixEUR,
+        priceXAF: plat.prixXAF,
+        priceFormatted: plat.prixFormate,
+        category: plat.categorie,
+        status: plat.statut,
+        image: plat.image,
+      }));
+      setMenuItems(converted);
+    } catch (error) {
+      console.error('Erreur lors du chargement des plats:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const filteredItems = menuItems.filter((item) => {
+    const matchesSearch = 
+      item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.description.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = categoryFilter === 'all' || item.category === categoryFilter;
+    return matchesSearch && matchesCategory;
+  });
+
+  const stats = categories.map(cat => ({
+    category: cat,
+    count: menuItems.filter(item => item.category === cat).length,
+    icon: categoryIcons[cat as keyof typeof categoryIcons],
+  }));
+
+  const deleteItem = async (id: string) => {
+    try {
+      // TODO: Décommenter quand l'API est prête
+      // await supprimerPlat(parseInt(id));
+      setMenuItems(menuItems.filter(item => item.id !== id));
+      setSelectedItem(null);
+    } catch (error) {
+      console.error('Erreur lors de la suppression:', error);
+      alert('Erreur lors de la suppression du plat');
+    }
+  };
+
+  const handleAddItem = async () => {
+    try {
+      // Validation
+      if (!formData.name || !formData.description || !formData.priceEUR || !formData.category) {
+        alert('Veuillez remplir tous les champs obligatoires');
+        return;
+      }
+
+      const priceNum = parseFloat(formData.priceEUR);
+      if (isNaN(priceNum) || priceNum <= 0) {
+        alert('Prix invalide');
+        return;
+      }
+
+      setIsLoading(true);
+
+      // Convertir le prix en XAF
+      const prix = convertirPrix(priceNum) as { eur: number; xaf: number; xafFormate: string; eurFormate: string };
+
+      // Créer le nouvel item
+      const newItem: MenuItem = {
+        id: Date.now().toString(),
+        name: formData.name,
+        description: formData.description,
+        price: priceNum,
+        priceXAF: prix.xaf,
+        priceFormatted: prix.xafFormate,
+        category: formData.category,
+        status: formData.available ? 'available' : 'unavailable',
+        image: formData.imageUrl || undefined,
+      };
+
+      // TODO: Décommenter quand l'API est prête
+      // await sauvegarderPlat({
+      //   nom: formData.name,
+      //   description: formData.description,
+      //   prixEUR: priceNum,
+      //   categorie: formData.category,
+      //   disponible: formData.available,
+      //   imageUrl: formData.imageUrl,
+      // });
+
+      // Ajouter à la liste
+      setMenuItems([...menuItems, newItem]);
+
+      // Réinitialiser le formulaire
+      setFormData({
+        name: '',
+        description: '',
+        priceEUR: '',
+        category: '',
+        imageUrl: '',
+        available: true,
+      });
+
+      setShowAddDialog(false);
+      alert('Plat ajouté avec succès !');
+    } catch (error) {
+      console.error('Erreur lors de l\'ajout:', error);
+      alert('Erreur lors de l\'ajout du plat');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const toggleStatus = (id: string) => {
+    setMenuItems(menuItems.map(item => 
+      item.id === id 
+        ? { ...item, status: item.status === 'available' ? 'unavailable' : 'available' as const }
+        : item
+    ));
+  };
+
+  return (
+    <>
+      <div className="space-y-6">
+        {/* Stats Cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {stats.map((stat) => {
+            const Icon = stat.icon;
+            return (
+              <Card key={stat.category} className="border-gray-200">
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-1">
+                      <p className="text-sm text-gray-500">{stat.category}</p>
+                      <p className="text-2xl">{stat.count}</p>
+                    </div>
+                    <div className="bg-[#cfbd97]/20 p-3 rounded-lg">
+                      <Icon className="h-5 w-5 text-[#cfbd97]" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+
+        {/* Menu Items */}
+        <Card className="border-gray-200">
+          <div className="p-6">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
+              <div>
+                <h2 className="text-xl">Gestion du Menu</h2>
+                <p className="text-sm text-gray-500">Gérez les plats et articles de votre menu</p>
+              </div>
+              <Button 
+                className="bg-[#cfbd97] hover:bg-[#bfad87] text-black gap-2"
+                onClick={() => setShowAddDialog(true)}
+              >
+                <Plus className="h-4 w-4" />
+                Ajouter un plat
+              </Button>
+            </div>
+
+            {/* Filters */}
+            <div className="flex flex-col md:flex-row gap-4 mb-6">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Rechercher un plat..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 border-gray-300"
+                />
+              </div>
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <SelectTrigger className="w-full md:w-[200px] border-gray-300">
+                  <SelectValue placeholder="Toutes les catégories" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Toutes les catégories</SelectItem>
+                  {categories.map(cat => (
+                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Menu Grid */}
+            {filteredItems.length === 0 ? (
+              <div className="text-center py-12 text-gray-500">
+                Aucun article trouvé
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredItems.map((item) => (
+                  <Card key={item.id} className="border-gray-200 overflow-hidden">
+                    <div className="aspect-video bg-gray-100 relative">
+                      <ImageWithFallback
+                        src={item.image || `https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=300&fit=crop`}
+                        alt={item.name}
+                        className="w-full h-full object-cover"
+                      />
+                      <Badge 
+                        className={`absolute top-2 right-2 ${
+                          item.status === 'available' 
+                            ? 'bg-green-500 text-white' 
+                            : 'bg-red-500 text-white'
+                        }`}
+                      >
+                        {item.status === 'available' ? 'Disponible' : 'Indisponible'}
+                      </Badge>
+                    </div>
+                    <CardContent className="p-4">
+                      <div className="space-y-2">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <h3 className="text-sm">{item.name}</h3>
+                            <p className="text-xs text-gray-500 line-clamp-2">{item.description}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-lg font-bold text-[#cfbd97]">{item.priceFormatted}</p>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setSelectedItem(item)}
+                            >
+                              <Edit className="h-4 w-4 text-blue-600" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                if (confirm('Êtes-vous sûr de vouloir supprimer cet article ?')) {
+                                  deleteItem(item.id);
+                                }
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4 text-red-600" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+
+            <div className="text-sm text-gray-500 mt-6">
+              Affichage de {filteredItems.length} article(s) sur {menuItems.length}
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      {/* Edit Item Dialog */}
+      <Dialog open={!!selectedItem} onOpenChange={() => setSelectedItem(null)}>
+        <DialogContent className="max-w-lg">
+          {selectedItem && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Modifier l'article</DialogTitle>
+                <DialogDescription>
+                  Modifiez les informations de l'article du menu
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Nom du plat</Label>
+                  <Input defaultValue={selectedItem.name} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Description</Label>
+                  <Textarea defaultValue={selectedItem.description} rows={3} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Prix (€)</Label>
+                  <Input type="number" step="0.01" defaultValue={selectedItem.price} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Catégorie</Label>
+                  <Select defaultValue={selectedItem.category}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map(cat => (
+                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="available"
+                    checked={selectedItem.status === 'available'}
+                    onChange={() => toggleStatus(selectedItem.id)}
+                    className="h-4 w-4"
+                  />
+                  <Label htmlFor="available">Article disponible</Label>
+                </div>
+              </div>
+
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setSelectedItem(null)}>
+                  Annuler
+                </Button>
+                <Button 
+                  className="bg-[#cfbd97] hover:bg-[#bfad87] text-black"
+                  onClick={() => setSelectedItem(null)}
+                >
+                  Enregistrer
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Item Dialog */}
+      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Ajouter un article</DialogTitle>
+            <DialogDescription>
+              Créez un nouvel article pour votre menu
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Nom du plat *</Label>
+              <Input 
+                placeholder="Ex: Burger Premium" 
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Description *</Label>
+              <Textarea 
+                placeholder="Description du plat..." 
+                rows={3}
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Prix en EUR *</Label>
+              <Input 
+                type="number" 
+                step="0.01" 
+                placeholder="15.90"
+                value={formData.priceEUR}
+                onChange={(e) => setFormData({ ...formData, priceEUR: e.target.value })}
+              />
+              {formData.priceEUR && !isNaN(parseFloat(formData.priceEUR)) && (
+                <p className="text-sm text-gray-500">
+                  Prix en XAF : <span className="font-bold text-[#cfbd97]">{(convertirPrix(parseFloat(formData.priceEUR)) as { xafFormate: string }).xafFormate}</span>
+                </p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label>URL de l'image</Label>
+              <div className="flex gap-2">
+                <Input 
+                  placeholder="https://exemple.com/image.jpg"
+                  value={formData.imageUrl}
+                  onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="shrink-0"
+                >
+                  <ImageIcon className="h-4 w-4" />
+                </Button>
+              </div>
+              <p className="text-xs text-gray-500">Collez l'URL d'une image pour votre plat</p>
+              {formData.imageUrl && (
+                <div className="mt-2 aspect-video bg-gray-100 rounded-lg overflow-hidden">
+                  <img 
+                    src={formData.imageUrl} 
+                    alt="Aperçu" 
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=300&fit=crop';
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label>Catégorie *</Label>
+              <Select 
+                value={formData.category}
+                onValueChange={(value: string) => setFormData({ ...formData, category: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner une catégorie" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map(cat => (
+                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="available-add"
+                checked={formData.available}
+                onChange={(e) => setFormData({ ...formData, available: e.target.checked })}
+                className="h-4 w-4"
+              />
+              <Label htmlFor="available-add">Article disponible</Label>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setShowAddDialog(false);
+                setFormData({
+                  name: '',
+                  description: '',
+                  priceEUR: '',
+                  category: '',
+                  imageUrl: '',
+                  available: true,
+                });
+              }}
+              disabled={isLoading}
+            >
+              Annuler
+            </Button>
+            <Button 
+              className="bg-[#cfbd97] hover:bg-[#bfad87] text-black"
+              onClick={handleAddItem}
+              disabled={isLoading}
+            >
+              {isLoading ? 'Création...' : 'Créer l\'article'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}

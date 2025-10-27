@@ -1,0 +1,468 @@
+import { useState } from 'react';
+import { Card, CardContent } from './ui/card';
+import { Input } from './ui/input';
+import { Button } from './ui/button';
+import { Badge } from './ui/badge';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from './ui/table';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from './ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from './ui/dialog';
+import { Label } from './ui/label';
+import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { Search, Eye, Edit, Trash2, Plus, Users, CheckCircle, Calendar, UserPlus } from 'lucide-react';
+
+interface Employee {
+  id: string;
+  name: string;
+  email: string;
+  position: string;
+  status: 'active' | 'inactive';
+  hireDate: string;
+  avatar?: string;
+  phone?: string;
+}
+
+const mockEmployees: Employee[] = [
+  {
+    id: '1',
+    name: 'Marie Dubois',
+    email: 'marie.dubois@company.com',
+    position: 'Employée',
+    status: 'active',
+    hireDate: '2022-03-15',
+    phone: '+33 6 12 34 56 78',
+  },
+  {
+    id: '2',
+    name: 'Jean Martin',
+    email: 'jean.martin@company.com',
+    position: 'Gérant',
+    status: 'active',
+    hireDate: '2021-01-08',
+    phone: '+33 6 23 45 67 89',
+  },
+  {
+    id: '3',
+    name: 'Sophie Laurent',
+    email: 'sophie.laurent@company.com',
+    position: 'Livreur',
+    status: 'inactive',
+    hireDate: '2020-12-06',
+    phone: '+33 6 34 56 78 90',
+  },
+  {
+    id: '4',
+    name: 'Pierre Durand',
+    email: 'pierre.durand@company.com',
+    position: 'Employé',
+    status: 'active',
+    hireDate: '2023-09-22',
+    phone: '+33 6 45 67 89 01',
+  },
+  {
+    id: '5',
+    name: 'Julie Bernard',
+    email: 'julie.bernard@company.com',
+    position: 'Employée',
+    status: 'active',
+    hireDate: '2023-02-14',
+    phone: '+33 6 56 78 90 12',
+  },
+  {
+    id: '6',
+    name: 'Thomas Petit',
+    email: 'thomas.petit@company.com',
+    position: 'Employé',
+    status: 'active',
+    hireDate: '2019-05-10',
+    phone: '+33 6 67 89 01 23',
+  },
+  {
+    id: '7',
+    name: 'Emma Rousseau',
+    email: 'emma.rousseau@company.com',
+    position: 'Employée',
+    status: 'active',
+    hireDate: '2024-01-03',
+    phone: '+33 6 78 90 12 34',
+  },
+  {
+    id: '8',
+    name: 'Lucas Moreau',
+    email: 'lucas.moreau@company.com',
+    position: 'Livreur',
+    status: 'inactive',
+    hireDate: '2023-11-20',
+    phone: '+33 6 89 01 23 45',
+  },
+];
+
+const statusConfig = {
+  active: { label: 'Actif', color: 'bg-green-100 text-green-700 border-green-200' },
+  inactive: { label: 'Inactif', color: 'bg-gray-100 text-gray-700 border-gray-200' },
+};
+
+export function EmployeesPage() {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [employees, setEmployees] = useState<Employee[]>(mockEmployees);
+  const [viewMode, setViewMode] = useState<'view' | 'edit'>('view');
+
+  const filteredEmployees = employees.filter((employee) => {
+    const matchesSearch = 
+      employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      employee.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      employee.position.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesSearch;
+  });
+
+  const stats = {
+    total: employees.length,
+    active: employees.filter(e => e.status === 'active').length,
+    inactive: employees.filter(e => e.status === 'inactive').length,
+    newThisMonth: employees.filter(e => {
+      const hireDate = new Date(e.hireDate);
+      const now = new Date();
+      return hireDate.getMonth() === now.getMonth() && hireDate.getFullYear() === now.getFullYear();
+    }).length,
+  };
+
+
+  const getInitials = (name: string) => {
+    return name.split(' ').map(n => n[0]).join('').toUpperCase();
+  };
+
+  const deleteEmployee = (id: string) => {
+    setEmployees(employees.filter(e => e.id !== id));
+    setSelectedEmployee(null);
+  };
+
+  return (
+    <>
+      <div className="space-y-6">
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card className="border-gray-200">
+            <CardContent className="p-6">
+              <div className="flex items-start justify-between">
+                <div className="space-y-1">
+                  <p className="text-sm text-gray-500">Total Employés</p>
+                  <p className="text-3xl">{stats.total}</p>
+                </div>
+                <div className="bg-blue-100 p-3 rounded-lg">
+                  <Users className="h-6 w-6 text-blue-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-gray-200">
+            <CardContent className="p-6">
+              <div className="flex items-start justify-between">
+                <div className="space-y-1">
+                  <p className="text-sm text-gray-500">Employés Actifs</p>
+                  <p className="text-3xl">{stats.active}</p>
+                </div>
+                <div className="bg-green-100 p-3 rounded-lg">
+                  <CheckCircle className="h-6 w-6 text-green-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-gray-200">
+            <CardContent className="p-6">
+              <div className="flex items-start justify-between">
+                <div className="space-y-1">
+                  <p className="text-sm text-gray-500">Inactifs</p>
+                  <p className="text-3xl">{stats.inactive}</p>
+                </div>
+                <div className="bg-orange-100 p-3 rounded-lg">
+                  <Calendar className="h-6 w-6 text-orange-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-gray-200">
+            <CardContent className="p-6">
+              <div className="flex items-start justify-between">
+                <div className="space-y-1">
+                  <p className="text-sm text-gray-500">Nouveaux ce mois</p>
+                  <p className="text-3xl">{stats.newThisMonth}</p>
+                </div>
+                <div className="bg-purple-100 p-3 rounded-lg">
+                  <UserPlus className="h-6 w-6 text-purple-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Employees List */}
+        <Card className="border-gray-200">
+          <div className="p-6">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
+              <div>
+                <h2 className="text-xl">Liste des Employés</h2>
+                <p className="text-sm text-gray-500">Gérez les informations de vos employés</p>
+              </div>
+              <Button 
+                className="bg-[#cfbd97] hover:bg-[#bfad87] text-black gap-2"
+                onClick={() => setShowAddDialog(true)}
+              >
+                <Plus className="h-4 w-4" />
+                Créer un employé
+              </Button>
+            </div>
+
+            {/* Filters */}
+            <div className="flex flex-col md:flex-row gap-4 mb-6">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Rechercher un employé..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 border-gray-300"
+                />
+              </div>
+            </div>
+
+            {/* Table */}
+            <div className="rounded-lg border border-gray-200 overflow-hidden">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-gray-50">
+                      <TableHead>Employé</TableHead>
+                      <TableHead>Poste</TableHead>
+                      <TableHead>Statut</TableHead>
+                      <TableHead>Date d'embauche</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredEmployees.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center py-8 text-gray-500">
+                          Aucun employé trouvé
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      filteredEmployees.map((employee) => (
+                        <TableRow key={employee.id} className="hover:bg-gray-50">
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <Avatar className="h-10 w-10">
+                                <AvatarImage src={employee.avatar} />
+                                <AvatarFallback className="bg-[#cfbd97] text-black">
+                                  {getInitials(employee.name)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <p className="text-sm">{employee.name}</p>
+                                <p className="text-xs text-gray-500">{employee.email}</p>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-sm">{employee.position}</TableCell>
+                          <TableCell>
+                            <Badge className={`${statusConfig[employee.status].color} border`} variant="outline">
+                              {statusConfig[employee.status].label}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {new Date(employee.hireDate).toLocaleDateString('fr-FR')}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedEmployee(employee);
+                                  setViewMode('view');
+                                }}
+                              >
+                                <Eye className="h-4 w-4 text-blue-600" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedEmployee(employee);
+                                  setViewMode('edit');
+                                }}
+                              >
+                                <Edit className="h-4 w-4 text-green-600" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  if (confirm('Êtes-vous sûr de vouloir supprimer cet employé ?')) {
+                                    deleteEmployee(employee.id);
+                                  }
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4 text-red-600" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+
+            <div className="text-sm text-gray-500 mt-4">
+              Affichage de {filteredEmployees.length} employé(s) sur {employees.length}
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      {/* View/Edit Employee Dialog */}
+      <Dialog open={!!selectedEmployee} onOpenChange={() => setSelectedEmployee(null)}>
+        <DialogContent className="max-w-2xl">
+          {selectedEmployee && (
+            <>
+              <DialogHeader>
+                <DialogTitle>
+                  {viewMode === 'view' ? 'Détails de l\'employé' : 'Modifier l\'employé'}
+                </DialogTitle>
+                <DialogDescription>
+                  {viewMode === 'view' 
+                    ? 'Informations complètes de l\'employé' 
+                    : 'Modifiez les informations de l\'employé'}
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-6">
+                <div className="flex items-center gap-4">
+                  <Avatar className="h-20 w-20">
+                    <AvatarImage src={selectedEmployee.avatar} />
+                    <AvatarFallback className="bg-[#cfbd97] text-black text-xl">
+                      {getInitials(selectedEmployee.name)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <h3 className="text-lg">{selectedEmployee.name}</h3>
+                    <p className="text-sm text-gray-500">{selectedEmployee.position}</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-sm text-gray-500">Email</Label>
+                    <p className="text-sm mt-1">{selectedEmployee.email}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm text-gray-500">Téléphone</Label>
+                    <p className="text-sm mt-1">{selectedEmployee.phone}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm text-gray-500">Date d'embauche</Label>
+                    <p className="text-sm mt-1">
+                      {new Date(selectedEmployee.hireDate).toLocaleDateString('fr-FR')}
+                    </p>
+                  </div>
+                  <div>
+                    <Label className="text-sm text-gray-500">Statut</Label>
+                    <div className="mt-1">
+                      <Badge className={`${statusConfig[selectedEmployee.status].color} border`} variant="outline">
+                        {statusConfig[selectedEmployee.status].label}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setSelectedEmployee(null)}>
+                  Fermer
+                </Button>
+                {viewMode === 'view' && (
+                  <Button 
+                    className="bg-[#cfbd97] hover:bg-[#bfad87] text-black"
+                    onClick={() => setViewMode('edit')}
+                  >
+                    Modifier
+                  </Button>
+                )}
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Employee Dialog */}
+      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Ajouter un nouvel employé</DialogTitle>
+            <DialogDescription>
+              Remplissez les informations pour créer un nouveau profil employé
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Nom complet</Label>
+                <Input placeholder="Jean Dupont" />
+              </div>
+              <div className="space-y-2">
+                <Label>Email</Label>
+                <Input type="email" placeholder="jean.dupont@company.com" />
+              </div>
+              <div className="space-y-2">
+                <Label>Téléphone</Label>
+                <Input placeholder="+33 6 12 34 56 78" />
+              </div>
+              <div className="space-y-2">
+                <Label>Poste</Label>
+                <Input placeholder="Développeur" />
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddDialog(false)}>
+              Annuler
+            </Button>
+            <Button 
+              className="bg-[#cfbd97] hover:bg-[#bfad87] text-black"
+              onClick={() => setShowAddDialog(false)}
+            >
+              Créer l'employé
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
