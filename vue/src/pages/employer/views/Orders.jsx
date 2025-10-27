@@ -1,6 +1,20 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import CountUp from '../components/common/CountUp';
 import { getOrders, saveOrders } from '../services/mockApi';
+import { 
+  getCommandesEmployeur,
+  validerCommandeNonLue,
+  validerCommandeEnPreparation,
+  annulerCommande,
+  doitAfficherBoutons,
+  getConfigBoutonValider,
+  updateCommandeStatus,
+  fetchCommandes as fetchCommandesService
+} from './commande';
+import ChoixLivreurCommande from '../../../components/choixLivreurCommande';
+import CommandeFlottant from '../../../components/commandeFlottant';
+import DetailsCommandeEmploye from '../../../components/detailsCommandeEmploye';
+import { Spinner } from 'react-bootstrap';
 
 const IconBag = (props) => (
   <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
@@ -40,10 +54,13 @@ export default function Orders() {
   const [page, setPage] = useState(1);
   const pageSize = 6;
 
-  const [showDetail, setShowDetail] = useState(false);
-  const [detail, setDetail] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLivreurModalOpen, setIsLivreurModalOpen] = useState(false);
+  const [selectedCommande, setSelectedCommande] = useState(null);
 
   const [rows, setRows] = useState([]);
+  const [commandes, setCommandes] = useState([]); // État pour les nouvelles commandes
+  const [loading, setLoading] = useState(true); // État de chargement
   const defaultRows = [];
 
   useEffect(() => {
@@ -51,6 +68,25 @@ export default function Orders() {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // Fonction pour rafraîchir les commandes
+  const fetchCommandes = async () => {
+    setLoading(true);
+    try {
+      const data = await fetchCommandesService(status);
+      setCommandes(data);
+    } catch (error) {
+      console.error("Erreur lors de la récupération des commandes :", error);
+      setFlashMessage("Erreur lors du chargement des commandes");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Charger les commandes au montage et quand le statut change
+  useEffect(() => {
+    fetchCommandes();
+  }, [status]);
 
   useEffect(() => {
     let mounted = true;
@@ -73,7 +109,7 @@ export default function Orders() {
 
   const kpis = useMemo(() => {
     const total = rows.length;
-    const pending = rows.filter(r=>r.status==='pending').length;
+    const pending = rows.filter(r=>r.status==='in waiting').length;
     const delivered = rows.filter(r=>r.status==='delivered').length;
     const revenue = rows.filter(r=>r.status==='delivered').reduce((s,r)=>s+r.total,0);
     return { total, pending, delivered, revenue };
@@ -95,7 +131,78 @@ export default function Orders() {
   function markDelivered(id){ const next = rows.map(r=>r.id===id?{...r,status:'delivered'}:r); updateAndSave(next); setFlashMessage('Commande livrée.'); }
   function cancelOrder(id){ const next = rows.map(r=>r.id===id?{...r,status:'cancelled'}:r); updateAndSave(next); setFlashMessage('Commande annulée.'); }
 
-  function openDetail(order){ setDetail(order); setShowDetail(true); }
+  // Gestionnaire pour la validation des commandes
+  const handleValider = async (id) => {
+    try {
+      const commande = commandes.find(c => c.id_commande === id);
+      if (!commande) return;
+
+      let commandeModifiee;
+      if (commande.statut === 'non lu') {
+        commandeModifiee = await validerCommandeNonLue(id);
+      } else if (commande.statut === 'en préparation') {
+        commandeModifiee = await validerCommandeEnPreparation(id);
+        // Ouvrir la fenêtre de sélection du livreur
+        setSelectedCommande(commandeModifiee);
+        setIsLivreurModalOpen(true);
+      }
+
+      // Mettre à jour la liste des commandes
+      setCommandes(prev => prev.map(c => 
+        c.id_commande === id ? { ...c, statut: commandeModifiee.statut } : c
+      ));
+
+      setFlashMessage(`Commande ${id} ${commande.statut === 'non lu' ? 'mise en préparation' : 'validée'}`);
+    } catch (error) {
+      console.error('Erreur lors de la validation de la commande:', error);
+      setFlashMessage('Erreur lors de la validation de la commande');
+    }
+  };
+
+  // Gestionnaire pour l'annulation des commandes
+  const handleAnnuler = async (id) => {
+    try {
+      await annulerCommande(id);
+      
+      // Mettre à jour la liste des commandes
+      setCommandes(prev => prev.map(c => 
+        c.id_commande === id ? { ...c, statut: 'annulé' } : c
+      ));
+
+      setFlashMessage(`Commande ${id} annulée`);
+    } catch (error) {
+      console.error('Erreur lors de l\'annulation de la commande:', error);
+      setFlashMessage('Erreur lors de l\'annulation de la commande');
+    }
+  };
+  
+  // Gestionnaire pour l'affichage des détails
+  const handleDetails = (commandeId) => {
+    const commande = commandes.find(c => c.id_commande === commandeId);
+    if (commande) {
+      setSelectedCommande(commande);
+      setIsModalOpen(true);
+    }
+  };
+
+  // Gestionnaire pour remettre une commande en préparation
+  const handleValiderRetourEnPreparation = async (commandeId) => {
+    if (!commandeId) return;
+    try {
+      console.log('Commande à remettre en préparation:', commandeId);
+      const commandeModifiee = await updateCommandeStatus(commandeId, 'en préparation');
+      console.log('Commande mise en préparation:', commandeModifiee);
+      setCommandes(prev => prev.map(c => 
+        c.id_commande === commandeId ? { ...c, statut: 'en préparation' } : c
+      ));
+      setFlashMessage('Commande remise en préparation');
+    } catch (error) {
+      console.error('Erreur lors de la remise en préparation:', error);
+      setFlashMessage('Erreur lors de la remise en préparation');
+    }
+  };
+
+  const handleCloseModal = () => setIsModalOpen(false);
 
   return (
     <section className="container reveal" style={{ paddingTop: 0, paddingBottom: '2rem' }}>
@@ -139,140 +246,81 @@ export default function Orders() {
           </span>
           <input value={search} onChange={(e)=>{ setSearch(e.target.value); setPage(1); }} placeholder="Rechercher par client..." style={{ width: '100%', border: '1px solid #e5e7eb', padding: '8px 12px 8px 36px', borderRadius: 8, outline: 'none' }} />
         </div>
-        <div>
-          <select value={status} onChange={(e)=>{ setStatus(e.target.value); setPage(1); }} style={{ border: '1px solid #e5e7eb', background: '#fff', padding: '8px 12px', borderRadius: 8 }}>
-            <option value="all">Tous les statuts</option>
-            <option value="pending">En attente</option>
-            <option value="preparing">En préparation</option>
-            <option value="delivered">Livrée</option>
-            <option value="cancelled">Annulée</option>
-          </select>
-        </div>
-        <div>
-          <select value={channel} onChange={(e)=>{ setChannel(e.target.value); setPage(1); }} style={{ border: '1px solid #e5e7eb', background: '#fff', padding: '8px 12px', borderRadius: 8 }}>
-            <option value="all">Tous les canaux</option>
-            <option value="online">En ligne</option>
-            <option value="sur place">Sur place</option>
-            <option value="a emporter">À emporter</option>
-          </select>
+        <div className="d-flex flex-wrap gap-2">
+          <button className={`btn ${status === 'all' ? 'btn-dark' : 'btn-outline-secondary'} btn-sm`} onClick={() => setStatus('all')}>Tous</button>
+          <button className={`btn ${status === 'non lu' ? 'btn-dark' : 'btn-outline-secondary'} btn-sm`} onClick={() => setStatus('non lu')}>Non lues</button>
+          <button className={`btn ${status === 'en cours' ? 'btn-dark' : 'btn-outline-secondary'} btn-sm`} onClick={() => setStatus('en cours')}>En cours</button>
+          <button className={`btn ${status === 'validé' ? 'btn-dark' : 'btn-outline-secondary'} btn-sm`} onClick={() => setStatus('validé')}>Validées</button>
         </div>
       </div>
 
-      <div className="table-wrapper" style={{ marginTop: '0.75rem', background: '#fff', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 2px 6px rgba(0,0,0,0.05)' }}>
-        <table className="table" style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead style={{ background: '#f7f7f8' }}>
-            <tr>
-              <th style={{ textAlign: 'left', padding: '12px 16px', color: '#6b7280', fontWeight: 500 }}>N°</th>
-              <th style={{ textAlign: 'left', padding: '12px 16px', color: '#6b7280', fontWeight: 500 }}>Client</th>
-              <th style={{ textAlign: 'left', padding: '12px 16px', color: '#6b7280', fontWeight: 500 }}>Total</th>
-              <th style={{ textAlign: 'left', padding: '12px 16px', color: '#6b7280', fontWeight: 500 }}>Canal</th>
-              <th style={{ textAlign: 'left', padding: '12px 16px', color: '#6b7280', fontWeight: 500 }}>Statut</th>
-              <th style={{ textAlign: 'left', padding: '12px 16px', color: '#6b7280', fontWeight: 500 }}>Créée le</th>
-              <th style={{ textAlign: 'left', padding: '12px 16px', color: '#6b7280', fontWeight: 500 }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {pageItems.map(r => (
-              <tr key={r.id} style={{ borderTop: '1px solid #eef2f7' }}>
-                <td style={{ padding: '12px 16px' }}>#{r.id}</td>
-                <td style={{ padding: '12px 16px' }}>{r.customer}</td>
-                <td style={{ padding: '12px 16px' }}>{money(r.total)}</td>
-                <td style={{ padding: '12px 16px' }}>{r.channel}</td>
-                <td style={{ padding: '12px 16px' }}>
-                  {r.status === 'pending' && <span style={{ background: '#FEF9C3', color: '#a16207', borderRadius: 999, padding: '4px 10px', fontSize: 12, fontWeight: 600 }}>En attente</span>}
-                  {r.status === 'preparing' && <span style={{ background: '#DBEAFE', color: '#2563eb', borderRadius: 999, padding: '4px 10px', fontSize: 12, fontWeight: 600 }}>En préparation</span>}
-                  {r.status === 'delivered' && <span style={{ background: '#DCFCE7', color: '#16a34a', borderRadius: 999, padding: '4px 10px', fontSize: 12, fontWeight: 600 }}>Livrée</span>}
-                  {r.status === 'cancelled' && <span style={{ background: '#FEE2E2', color: '#dc2626', borderRadius: 999, padding: '4px 10px', fontSize: 12, fontWeight: 600 }}>Annulée</span>}
-                </td>
-                <td style={{ padding: '12px 16px' }}>{r.createdAt}</td>
-                <td style={{ padding: '12px 16px' }}>
-                  <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                    <a href="#" aria-label="Voir" onClick={(e)=>{e.preventDefault(); openDetail(r);}} style={{ color: '#3b82f6' }}><IconEye /></a>
-                    {r.status === 'pending' && (<a href="#" onClick={(e)=>{e.preventDefault(); markPreparing(r.id);}} style={{ color: '#2563eb' }}>Préparer</a>)}
-                    {r.status !== 'delivered' && (<a href="#" onClick={(e)=>{e.preventDefault(); markDelivered(r.id);}} style={{ color: '#10b981' }}><IconCheck /></a>)}
-                    {r.status !== 'cancelled' && (<a href="#" onClick={(e)=>{e.preventDefault(); cancelOrder(r.id);}} style={{ color: '#ef4444' }}><IconX /></a>)}
-                  </div>
-                </td>
-              </tr>
-            ))}
-            {pageItems.length === 0 && (
-              <tr><td colSpan={7} style={{ padding: 16, color: '#6b7280' }}>Aucune commande trouvée.</td></tr>
-            )}
-          </tbody>
-        </table>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', background: '#fff' }}>
-          <div style={{ color: '#6b7280', fontSize: 12 }}>Affichage de {(page - 1) * pageSize + 1} à {Math.min(page * pageSize, filtered.length)} sur {filtered.length} résultats</div>
-          <div style={{ display: 'flex', gap: 6 }}>
-            <button onClick={()=>setPage(p=>Math.max(1,p-1))} disabled={page===1} style={{ border: '1px solid #e5e7eb', background: '#fff', padding: '6px 10px', borderRadius: 8, opacity: page===1?0.5:1 }}>Précédent</button>
-            {Array.from({ length: totalPages }).slice(0, 3).map((_, i) => { const n = i + 1; return (
-              <button key={n} onClick={()=>setPage(n)} style={{ border: `1px solid ${page===n?'#2563eb':'#e5e7eb'}`, background: page===n?'#2563eb':'#fff', color: page===n?'#fff':'#111', padding: '6px 10px', borderRadius: 8 }}>{n}</button>
-            );})}
-            <button onClick={()=>setPage(p=>Math.min(totalPages,p+1))} disabled={page===totalPages} style={{ border: '1px solid #e5e7eb', background: '#fff', padding: '6px 10px', borderRadius: 8, opacity: page===totalPages?0.5:1 }}>Suivant</button>
+      <div className="order-list" style={{ marginTop: '1.5rem' }}>
+        {loading ? (
+          <div className="text-center p-4">
+            <Spinner animation="border" variant="warning" />
+            <p className="mt-2 text-muted">Chargement des commandes...</p>
           </div>
-        </div>
+        ) : commandes.length === 0 ? (
+          <div className="text-center p-4 text-muted">
+            <IconBag size={32} className="mb-2" />
+            <p>Aucune commande ne correspond à ce filtre.</p>
+          </div>
+        ) : (
+          commandes.map(commande => (
+            <CommandeFlottant
+              key={commande.id_commande}
+              id_commande={commande.id_commande}
+              nom_client={commande.nom_client}
+              statut={commande.statut}
+              onValider={() => handleValider(commande.id_commande)}
+              onAnnuler={() => handleAnnuler(commande.id_commande)}
+              onDetails={() => handleDetails(commande.id_commande)}
+            />
+          ))
+        )}
       </div>
 
-      {showDetail && detail && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000 }}>
-          <div style={{ width: 'min(760px, 94vw)', background: '#fff', borderRadius: 12, boxShadow: '0 10px 30px rgba(0,0,0,0.2)', overflow: 'hidden' }}>
-            <div style={{ padding: 14, borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ fontWeight: 700 }}>Commande #{detail.id} — {detail.customer}</div>
-              <button onClick={()=>setShowDetail(false)} style={{ border:'none', background:'transparent', cursor:'pointer' }}>✕</button>
-            </div>
-            <div style={{ padding: 16, display: 'grid', gap: 12 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div style={{ background:'#f9fafb', border:'1px solid #e5e7eb', borderRadius:8, padding:12 }}>
-                  <div style={{ fontWeight: 700, marginBottom: 6 }}>Informations</div>
-                  <div style={{ color:'#374151', fontSize:14 }}>Statut: <strong>{detail.status}</strong></div>
-                  <div style={{ color:'#374151', fontSize:14 }}>Canal: <strong>{detail.channel}</strong></div>
-                  <div style={{ color:'#374151', fontSize:14 }}>Créée le: <strong>{detail.createdAt}</strong></div>
-                  <div style={{ color:'#374151', fontSize:14 }}>Total: <strong>{money(detail.total)}</strong></div>
-                </div>
-                <div style={{ background:'#f9fafb', border:'1px solid #e5e7eb', borderRadius:8, padding:12 }}>
-                  <div style={{ fontWeight: 700, marginBottom: 6 }}>Paiement</div>
-                  <div style={{ color:'#374151', fontSize:14 }}>Méthode: <strong>{detail.meta?.payment?.method || '—'}</strong></div>
-                  <div style={{ color:'#374151', fontSize:14 }}>Opérateur: <strong>{detail.meta?.payment?.operator || '—'}</strong></div>
-                  <div style={{ color:'#374151', fontSize:14 }}>Téléphone: <strong>{detail.meta?.payment?.phone || '—'}</strong></div>
-                </div>
-              </div>
-              <div style={{ background:'#f9fafb', border:'1px solid #e5e7eb', borderRadius:8, padding:12 }}>
-                <div style={{ fontWeight: 700, marginBottom: 6 }}>Livraison</div>
-                <div style={{ color:'#374151', fontSize:14 }}>Adresse: <strong>{detail.meta?.delivery?.address || '—'}</strong></div>
-                {detail.meta?.delivery?.address2 && (<div style={{ color:'#374151', fontSize:14 }}>Complément: <strong>{detail.meta?.delivery?.address2}</strong></div>)}
-                <div style={{ color:'#374151', fontSize:14 }}>Ville/Quartier: <strong>{detail.meta?.delivery?.city || '—'}</strong></div>
-                <div style={{ color:'#374151', fontSize:14 }}>Téléphone: <strong>{detail.meta?.delivery?.phone || '—'}</strong></div>
-                {detail.meta?.delivery?.instructions && (<div style={{ color:'#374151', fontSize:14 }}>Consignes: <strong>{detail.meta?.delivery?.instructions}</strong></div>)}
-              </div>
-              <div style={{ background:'#f9fafb', border:'1px solid #e5e7eb', borderRadius:8, padding:12 }}>
-                <div style={{ fontWeight: 700, marginBottom: 6 }}>Articles</div>
-                <table style={{ width:'100%', borderCollapse:'collapse' }}>
-                  <thead>
-                    <tr style={{ background:'#eef2f7' }}>
-                      <th style={{ textAlign:'left', padding:'8px 10px' }}>Article</th>
-                      <th style={{ textAlign:'left', padding:'8px 10px' }}>Qté</th>
-                      <th style={{ textAlign:'left', padding:'8px 10px' }}>PU</th>
-                      <th style={{ textAlign:'left', padding:'8px 10px' }}>Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(detail.items||[]).map((it, i)=> (
-                      <tr key={i} style={{ borderTop:'1px solid #e5e7eb' }}>
-                        <td style={{ padding:'8px 10px' }}>{it.name}</td>
-                        <td style={{ padding:'8px 10px' }}>{it.qty}</td>
-                        <td style={{ padding:'8px 10px' }}>{money(it.unitPrice)}</td>
-                        <td style={{ padding:'8px 10px' }}>{money((Number(it.unitPrice)||0)*(Number(it.qty)||0))}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <div style={{ display:'flex', justifyContent:'flex-end' }}>
-                <button onClick={()=>setShowDetail(false)} className="btn btn-primary">Fermer</button>
-              </div>
-            </div>
-          </div>
-        </div>
+      {selectedCommande && (
+        <>
+          <DetailsCommandeEmploye
+            isOpen={isModalOpen}
+            onClose={handleCloseModal}
+            id_commande={selectedCommande.id_commande}
+            menus={selectedCommande.menus}
+            typeLocalisation={selectedCommande.type_localisation}
+            Localisation={selectedCommande.localisation_client}
+            date_livraison={selectedCommande.date_livraison}
+            statut={selectedCommande.statut}
+            onValider={() => handleValider(selectedCommande.id_commande)}
+            onAnnuler={() => handleAnnuler(selectedCommande.id_commande)}
+          />
+          {selectedCommande.statut === 'validé' && (
+            <ChoixLivreurCommande
+              isOpen={isLivreurModalOpen}
+              onClose={() => {
+                handleValiderRetourEnPreparation(selectedCommande.id_commande);
+                setIsLivreurModalOpen(false);
+                handleCloseModal();
+              }}
+              commande={selectedCommande}
+              onSuccess={(livreur) => {
+                setFlashMessage(`Livreur ${livreur.nom} assigné à la commande ${selectedCommande.id_commande}`);
+                setIsLivreurModalOpen(false);
+                handleCloseModal();
+                // Rafraîchir la liste des commandes
+                fetchCommandes();
+              }}
+              onError={(error) => {
+                setFlashMessage('Erreur lors de l\'assignation du livreur');
+                handleValiderRetourEnPreparation(selectedCommande.id_commande);
+                setIsLivreurModalOpen(false);
+                handleCloseModal();
+              }}
+            />
+          )}
+        </>
       )}
+
     </section>
   );
 }
