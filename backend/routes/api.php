@@ -13,6 +13,8 @@ use App\Http\Controllers\Api\menuController;
 use App\Http\Controllers\Api\restaurantController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\reclamationController;
+use App\Http\Controllers\Api\reponseController;
 
 Route::get('/utilisateurs', [UtilisateurController::class, 'index']);
 Route::get('/utilisateurs/{id}', [UtilisateurController::class, 'show']);
@@ -104,3 +106,13 @@ Route::post('/getUserbyEmail', [UtilisateurController::class, 'getByEmail']);
 
 Route::get('/getCommandesByUser/{id_user}', [UtilisateurController::class, 'getCommandesByUser']);
 Route::put('/updateCommande/{id_commande}', [UtilisateurController::class, 'updateCommande']);
+
+Route::get('/reclamations/client/{id_client}', [reclamationController::class, 'indexClient']);
+Route::get('/reclamations/restaurant/{id_restaurant}', [reclamationController::class, 'indexRestaurant']);
+Route::post('/reclamations', [reclamationController::class, 'store']);
+Route::get('/reclamations/{id}', [reclamationController::class, 'show']);
+Route::put('/reclamations/{id}/status', [reclamationController::class, 'updateStatus']);
+Route::put('/reclamations/{id}/close', [reclamationController::class, 'close']);
+
+Route::get('/reclamations/{id}/reponses', [reponseController::class, 'index']);
+Route::post('/reclamations/{id}/reponses', [reponseController::class, 'store']);

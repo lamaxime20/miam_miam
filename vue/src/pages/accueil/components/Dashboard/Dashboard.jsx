@@ -108,7 +108,6 @@ export default function Dashboard({ user }) {
     { icon: RiFileList3Line, label: "Réclamations", key: "reclamations" },
     { icon: RiGiftLine, label: "Mini-jeux", key: "miniJeux" },
     { icon: RiSettings4Line, label: "Paramètres", key: "parametres" },
-    { icon: RiStarFill, label: "Top Clients", key: "topClients" },
   ]
 
   // Fonction pour formater le prix

@@ -1,22 +1,55 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MessageSquare, Send, FileText, Image as ImageIcon, Clock, CheckCircle } from "lucide-react";
 import "bootstrap/dist/css/bootstrap.min.css";
+import { fetchRestaurants, fetchReclamationsByClient, createReclamation, fetchReponses, addReponse, closeReclamation } from "../../../../services/Reclamations";
 
-const claims = [
-  { id: 1, subject: "Commande incomplète", orderNumber: "#1021", date: "20 Oct 2025", status: "resolved", category: "Problème de commande", description: "Il manquait la salade dans ma commande", response: "Nous sommes désolés pour ce désagrément. Un avoir de 900 FCFA a été crédité sur votre compte." },
-  { id: 2, subject: "Retard de livraison", orderNumber: "#1019", date: "18 Oct 2025", status: "in-progress", category: "Livraison", description: "La livraison a pris plus de 2 heures" },
-];
 
 const categories = ["Problème de commande","Livraison","Qualité du produit","Paiement","Application","Autre"];
 
 export default function Reclamations() {
   const [activeTab, setActiveTab] = useState("new");
-  const [formData, setFormData] = useState({ orderNumber: "", category: "", subject: "", description: "" });
+  const [claims, setClaims] = useState([]);
+  const [restaurants, setRestaurants] = useState([]);
+  const [responses, setResponses] = useState({});
+  const [responsesEmpty, setResponsesEmpty] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({ orderNumber: "", category: "", subject: "", description: "", restaurantId: "" });
 
-  const handleSubmit = (e) => {
+  const clientId = Number(localStorage.getItem("id_user")) || 1;
+
+  useEffect(() => {
+    (async () => {
+      try {
+        setLoading(true);
+        const [restos, recls] = await Promise.all([
+          fetchRestaurants(),
+          fetchReclamationsByClient(clientId),
+        ]);
+        setRestaurants(restos);
+        setClaims(recls);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [clientId]);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Claim submitted:", formData);
-    setFormData({ orderNumber: "", category: "", subject: "", description: "" });
+    try {
+      await createReclamation({
+        message: formData.description,
+        restaurantId: Number(formData.restaurantId),
+        acheteurId: clientId,
+      });
+      setFormData({ orderNumber: "", category: "", subject: "", description: "", restaurantId: "" });
+      const recls = await fetchReclamationsByClient(clientId);
+      setClaims(recls);
+      setActiveTab("history");
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const getStatusConfig = (status) => {
@@ -51,30 +84,15 @@ export default function Reclamations() {
               <h4 className="mb-3">Déposer une réclamation</h4>
               <form onSubmit={handleSubmit}>
                 <div className="mb-3">
-                  <label className="form-label">Numéro de commande (optionnel)</label>
-                  <input type="text" className="form-control" placeholder="Ex: #1023" value={formData.orderNumber} onChange={(e) => setFormData({ ...formData, orderNumber: e.target.value })} />
-                </div>
-                <div className="mb-3">
-                  <label className="form-label">Catégorie *</label>
-                  <select className="form-select" value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })} required>
-                    <option value="">Sélectionnez une catégorie</option>
-                    {categories.map((cat) => (<option key={cat} value={cat}>{cat}</option>))}
+                  <label className="form-label">Restaurant destinataire *</label>
+                  <select className="form-select" value={formData.restaurantId} onChange={(e) => setFormData({ ...formData, restaurantId: e.target.value })} required>
+                    <option value="">Sélectionnez un restaurant</option>
+                    {restaurants.map((r) => (<option key={r.id_restaurant || r.id} value={r.id_restaurant || r.id}>{r.nom_restaurant || r.name}</option>))}
                   </select>
-                </div>
-                <div className="mb-3">
-                  <label className="form-label">Sujet *</label>
-                  <input type="text" className="form-control" placeholder="Résumez votre problème" value={formData.subject} onChange={(e) => setFormData({ ...formData, subject: e.target.value })} required />
                 </div>
                 <div className="mb-3">
                   <label className="form-label">Description *</label>
                   <textarea className="form-control" rows={5} placeholder="Décrivez votre problème" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} required />
-                </div>
-                <div className="mb-3">
-                  <label className="form-label">Pièces jointes (optionnel)</label>
-                  <div className="border border-dashed border-secondary rounded p-4 text-center">
-                    <ImageIcon size={32} className="text-secondary mb-2" />
-                    <div>PNG, JPG jusqu'à 5MB</div>
-                  </div>
                 </div>
                 <div className="d-flex gap-2">
                   <button type="submit" className="btn btn-primary flex-grow-1 d-flex align-items-center gap-2 justify-content-center">
@@ -134,6 +152,29 @@ export default function Reclamations() {
                   <div className="text-muted small mb-1">Votre message:</div>
                   <p className="mb-0">{claim.description}</p>
                 </div>
+                <div className="mb-2">
+                  <button
+                    className={`btn btn-sm btn-link p-0 ${responsesEmpty[claim.id] ? 'text-muted' : ''}`}
+                    disabled={responsesEmpty[claim.id] === true}
+                    onClick={async () => {
+                      try {
+                        const resp = await fetchReponses(claim.id);
+                        setResponses({ ...responses, [claim.id]: resp });
+                        setResponsesEmpty({ ...responsesEmpty, [claim.id]: resp.length === 0 });
+                      } catch (e) { console.error(e); }
+                    }}
+                  >
+                    {responsesEmpty[claim.id] ? 'Aucune réponse' : 'Voir les réponses'}
+                  </button>
+                </div>
+                {responses[claim.id]?.length > 0 && (
+                  <div className="border-start border-success ps-2 bg-success bg-opacity-10 p-2 mb-2">
+                    <div className="d-flex align-items-center gap-1 text-success mb-1"><CheckCircle size={16} /> Réponses:</div>
+                    {responses[claim.id].map(r => (
+                      <p key={r.id} className="mb-1">{r.message}</p>
+                    ))}
+                  </div>
+                )}
                 {claim.response && (
                   <div className="border-start border-success ps-2 bg-success bg-opacity-10 p-2 mb-2">
                     <div className="d-flex align-items-center gap-1 text-success mb-1"><CheckCircle size={16} /> Réponse de notre équipe:</div>
@@ -142,8 +183,23 @@ export default function Reclamations() {
                 )}
                 {claim.status === "in-progress" && (
                   <div className="d-flex gap-2">
-                    <button className="btn btn-outline-secondary flex-grow-1">Ajouter un message</button>
-                    <button className="btn btn-outline-danger">Clôturer</button>
+                    <button className="btn btn-outline-secondary flex-grow-1" onClick={async () => {
+                      const message = prompt("Votre message:");
+                      if (!message) return;
+                      try {
+                        await addReponse(claim.id, { message, auteurId: clientId, statut: "in-progress" });
+                        const resp = await fetchReponses(claim.id);
+                        setResponses({ ...responses, [claim.id]: resp });
+                        setResponsesEmpty({ ...responsesEmpty, [claim.id]: resp.length === 0 });
+                      } catch (e) { console.error(e); }
+                    }}>Ajouter un message</button>
+                    <button className="btn btn-outline-danger" onClick={async () => {
+                      try {
+                        await closeReclamation(claim.id);
+                        const recls = await fetchReclamationsByClient(clientId);
+                        setClaims(recls);
+                      } catch (e) { console.error(e); }
+                    }}>Clôturer</button>
                   </div>
                 )}
               </div>

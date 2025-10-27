@@ -224,3 +224,186 @@ BEGIN
   VALUES (v_parrain, p_points, 'parrainage', p_restaurant);
 END;
 $$;
+
+-- ============================================================
+-- 7) Réclamations: création
+-- ============================================================
+CREATE OR REPLACE FUNCTION create_reclamation(
+    p_message TEXT,
+    p_restaurant_cible INT,
+    p_acheteur INT
+)
+RETURNS INT
+LANGUAGE plpgsql
+AS $$
+DECLARE v_id INT;
+BEGIN
+  INSERT INTO Reclamation (
+    message_reclamation,
+    date_soummission,
+    statut_reclamation,
+    restaurant_cible,
+    acheteur
+  ) VALUES (
+    p_message,
+    CURRENT_TIMESTAMP,
+    'ouverte',
+    p_restaurant_cible,
+    p_acheteur
+  ) RETURNING id_reclamation INTO v_id;
+
+  RETURN v_id;
+END;
+$$;
+
+-- ============================================================
+-- 8) Réclamations: liste par client
+-- ============================================================
+CREATE OR REPLACE FUNCTION list_reclamations_by_client(p_id_client INT)
+RETURNS TABLE(
+  id_reclamation INT,
+  message_reclamation TEXT,
+  date_soummission TIMESTAMP,
+  statut_reclamation VARCHAR,
+  restaurant_cible INT,
+  nom_restaurant VARCHAR
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT r.id_reclamation,
+         r.message_reclamation,
+         r.date_soummission,
+         r.statut_reclamation::VARCHAR,
+         r.restaurant_cible,
+         rest.nom_restaurant::VARCHAR
+  FROM Reclamation r
+  JOIN Restaurant rest ON rest.id_restaurant = r.restaurant_cible
+  WHERE r.acheteur = p_id_client
+  ORDER BY r.date_soummission DESC;
+END;
+$$;
+
+-- ============================================================
+-- 9) Réclamations: liste par restaurant
+-- ============================================================
+CREATE OR REPLACE FUNCTION list_reclamations_by_restaurant(p_id_restaurant INT)
+RETURNS TABLE(
+  id_reclamation INT,
+  message_reclamation TEXT,
+  date_soummission TIMESTAMP,
+  statut_reclamation VARCHAR,
+  acheteur INT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT r.id_reclamation,
+         r.message_reclamation,
+         r.date_soummission,
+         r.statut_reclamation::VARCHAR,
+         r.acheteur
+  FROM Reclamation r
+  WHERE r.restaurant_cible = p_id_restaurant
+  ORDER BY r.date_soummission DESC;
+END;
+$$;
+
+-- ============================================================
+-- 10) Réclamations: détail + réponses
+-- ============================================================
+CREATE OR REPLACE FUNCTION get_reclamation_with_responses(p_id_reclamation INT)
+RETURNS TABLE(
+  id_reclamation INT,
+  message_reclamation TEXT,
+  date_soummission TIMESTAMP,
+  statut_reclamation VARCHAR,
+  restaurant_cible INT,
+  acheteur INT,
+  id_reponse INT,
+  message_reponse TEXT,
+  statut_reponse VARCHAR,
+  auteur INT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT r.id_reclamation,
+         r.message_reclamation,
+         r.date_soummission,
+         r.statut_reclamation::VARCHAR,
+         r.restaurant_cible,
+         r.acheteur,
+         rp.id_reponse,
+         rp.message_reponse,
+         rp.statut_reponse::VARCHAR,
+         rp.auteur
+  FROM Reclamation r
+  LEFT JOIN Reponse rp ON rp.reclamation_cible = r.id_reclamation
+  WHERE r.id_reclamation = p_id_reclamation
+  ORDER BY rp.id_reponse ASC;
+END;
+$$;
+
+-- ============================================================
+-- 11) Réponses: ajout (et passe réclamation en traitement si besoin)
+-- ============================================================
+CREATE OR REPLACE FUNCTION add_reponse(
+  p_reclamation_id INT,
+  p_message TEXT,
+  p_auteur INT,
+  p_statut reclamationState DEFAULT 'en_traitement'
+)
+RETURNS INT
+LANGUAGE plpgsql
+AS $$
+DECLARE v_id INT;
+BEGIN
+  INSERT INTO Reponse (statut_reponse, reclamation_cible, auteur, message_reponse)
+  VALUES (COALESCE(p_statut, 'en_traitement'), p_reclamation_id, p_auteur, p_message)
+  RETURNING id_reponse INTO v_id;
+
+  UPDATE Reclamation
+  SET statut_reclamation = CASE
+      WHEN statut_reclamation = 'fermée' THEN 'fermée'
+      ELSE 'en_traitement'
+  END
+  WHERE id_reclamation = p_reclamation_id;
+
+  RETURN v_id;
+END;
+$$;
+
+-- ============================================================
+-- 12) Réclamations: mise à jour du statut
+-- ============================================================
+CREATE OR REPLACE FUNCTION update_reclamation_status(
+  p_id_reclamation INT,
+  p_statut reclamationState
+)
+RETURNS VOID
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  UPDATE Reclamation
+  SET statut_reclamation = p_statut
+  WHERE id_reclamation = p_id_reclamation;
+END;
+$$;
+
+-- ============================================================
+-- 13) Réclamations: clôture
+-- ============================================================
+CREATE OR REPLACE FUNCTION close_reclamation(p_id_reclamation INT)
+RETURNS VOID
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  UPDATE Reclamation
+  SET statut_reclamation = 'fermée'
+  WHERE id_reclamation = p_id_reclamation;
+END;
+$$;
