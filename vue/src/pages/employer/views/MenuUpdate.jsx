@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import CountUp from '../components/common/CountUp';
 import { getMenuEditable, saveMenuEditable } from '../services/mockApi';
+import { fetchMenuData, updateFile, createFile, createMenu } from '../../../services/MenusEmploye';
 
 const IconForkSpoon = (props) => (
   <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
@@ -43,7 +44,8 @@ export default function MenuUpdate() {
 
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState({ name: '', category: 'Plat', price: 0, available: true, image: '' });
+  const [form, setForm] = useState({ name: '', description: '', category: 'Plat', price: 0, available: true, image: '' });
+  const [isSubmitting, setIsSubmitting] = useState(false); // Pour figer l'interface
 
   const defaultRows = [
     { id: 1, name: 'Burger Maison', category: 'Plat', price: 2500, available: true, updatedAt: '2025-10-10' },
@@ -51,16 +53,34 @@ export default function MenuUpdate() {
     { id: 3, name: 'Tiramisu', category: 'Dessert', price: 1500, available: false, updatedAt: '2025-10-09' }
   ];
   const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
   useEffect(() => {
-    let mounted = true;
-    getMenuEditable(defaultRows).then(data => { if (mounted) setRows(data); });
-    return () => { mounted = false; };
+    async function loadMenu() {
+      setLoading(true);
+      try {
+        const menuData = await fetchMenuData();
+        // Ajout d'une date de mise à jour par défaut si elle n'existe pas
+        const dataWithDate = menuData.map(item => ({
+          ...item,
+          image: item.image || null, // Assurer que image est null et non undefined
+          updatedAt: item.updatedAt || new Date().toISOString().slice(0, 10)
+        }));
+        setRows(dataWithDate);
+      } catch (error) {
+        console.error("Erreur lors du chargement du menu:", error);
+        setFlashMessage("Erreur lors du chargement du menu.");
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadMenu();
   }, []);
 
   const kpis = useMemo(() => {
@@ -85,22 +105,67 @@ export default function MenuUpdate() {
   function updateAndSave(next){ setRows(next); saveMenuEditable(next); }
   function toggleAvailable(id){ const next = rows.map(r=>r.id===id?{...r, available: !r.available, updatedAt: new Date().toISOString().slice(0,10)}:r); updateAndSave(next); setFlashMessage('Disponibilité mise à jour.'); }
 
-  function openNew(){ setEditing(null); setForm({ name: '', category: 'Plat', price: 0, available: true, image: '' }); setShowModal(true); }
-  function openEdit(r){ setEditing(r.id); setForm({ name: r.name, category: r.category, price: r.price, available: r.available, image: r.image || '' }); setShowModal(true); }
-  function saveForm(e){
+  function openNew(){ setEditing(null); setForm({ name: '', description: '', category: 'Plat', price: 0, available: true, image: '' }); setShowModal(true); }
+  function openEdit(r){ setEditing(r); setForm({ name: r.name, description: r.description || '', category: r.category, price: r.price, available: r.available, image: r.image || '', image_id: r.image_id || null }); setShowModal(true); }
+  
+  async function handleImageChange(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsSubmitting(true); // Figer l'interface
+    setFlashMessage("Téléversement de l'image...");
+
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        const imageBase64 = String(reader.result || '');
+        const oldImageId = editing ? editing.image_id : null;
+        let newFile;
+        if (editing) {
+          newFile = await updateFile(imageBase64, oldImageId);
+        } else {
+          newFile = await createFile(imageBase64);
+        }
+
+        setForm(prevForm => ({ ...prevForm, image: imageBase64, image_id: newFile.id_file }));
+        setFlashMessage("Image téléversée avec succès !");
+      } catch (error) {
+        console.error("Erreur lors du téléversement de l'image:", error);
+        setFlashMessage("Erreur lors du téléversement.");
+      } finally {
+        setIsSubmitting(false); // Dégeler l'interface
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+
+  async function saveForm(e) {
     e.preventDefault();
     if (!form.name) return;
-    if (editing){
-      const next = rows.map(r=>r.id===editing?{...r, ...form, updatedAt: new Date().toISOString().slice(0,10)}:r);
+    setIsSubmitting(true);
+
+    if (editing) {
+      // TODO: Implémenter la logique de mise à jour via l'API
+      setFlashMessage('Plat mis à jour (simulation).');
+      const next = rows.map(r => r.id === editing.id ? { ...r, ...form, updatedAt: new Date().toISOString().slice(0, 10) } : r);
       updateAndSave(next);
-      setFlashMessage('Plat mis à jour.');
+      setIsSubmitting(false);
+      setShowModal(false);
     } else {
-      const id = Math.max(0, ...rows.map(r=>r.id)) + 1;
-      const next = [{ id, ...form, updatedAt: new Date().toISOString().slice(0,10) }, ...rows];
-      updateAndSave(next);
-      setFlashMessage('Plat ajouté.');
+      try {
+        // Appel de l'API pour créer le menu
+        const newMenu = await createMenu(form);
+        // Mise à jour de l'état local avec la réponse de l'API
+        const next = [{ ...newMenu, id: newMenu.id_menu, name: newMenu.nom_menu, category: newMenu.libelle_menu, price: newMenu.prix_menu, available: newMenu.statut_menu === 'disponible', description: newMenu.description_menu, updatedAt: new Date().toISOString().slice(0,10) }, ...rows];
+        setRows(next); // Pas besoin de saveMenuEditable si on utilise l'API
+        setFlashMessage('Plat ajouté avec succès !');
+        setShowModal(false);
+      } catch (error) {
+        setFlashMessage("Erreur lors de l'ajout du plat.");
+      } finally {
+        setIsSubmitting(false);
+      }
     }
-    setShowModal(false);
   }
 
   return (
@@ -155,6 +220,7 @@ export default function MenuUpdate() {
             <option value="Entrée">Entrée</option>
             <option value="Plat">Plat</option>
             <option value="Dessert">Dessert</option>
+            <option value="Boisson">Boisson</option>
           </select>
         </div>
         <div>
@@ -180,7 +246,11 @@ export default function MenuUpdate() {
             </tr>
           </thead>
           <tbody>
-            {pageItems.map(r => (
+            {loading ? (
+              <tr>
+                <td colSpan="7" style={{ padding: '16px', textAlign: 'center', color: '#6b7280' }}>Chargement du menu...</td>
+              </tr>
+            ) : pageItems.length > 0 ? (pageItems.map(r => (
               <tr key={r.id} style={{ borderTop: '1px solid #eef2f7' }}>
                 <td style={{ padding: '12px 16px' }}>
                   <img
@@ -202,9 +272,8 @@ export default function MenuUpdate() {
                   </div>
                 </td>
               </tr>
-            ))}
-            {pageItems.length === 0 && (
-              <tr><td colSpan={6} style={{ padding: 16, color: '#6b7280' }}>Aucun plat trouvé.</td></tr>
+            ))) : (
+              <tr><td colSpan="7" style={{ padding: 16, textAlign: 'center', color: '#6b7280' }}>Aucun plat trouvé.</td></tr>
             )}
           </tbody>
         </table>
@@ -221,7 +290,7 @@ export default function MenuUpdate() {
       </div>
 
       {showModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }}>
+        <div style={{ position: 'fixed', inset: 0, background: isSubmitting ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, pointerEvents: isSubmitting ? 'auto' : 'all' }}>
           <div style={{ width: 'min(520px, 92vw)', background: '#fff', borderRadius: 12, boxShadow: '0 10px 30px rgba(0,0,0,0.15)' }}>
             <div style={{ padding: 16, borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -230,7 +299,7 @@ export default function MenuUpdate() {
                 </div>
                 <div style={{ fontWeight: 700 }}>{editing ? 'Éditer le plat' : 'Nouveau plat'}</div>
               </div>
-              <button onClick={()=>setShowModal(false)} style={{ border: 'none', background: 'transparent', cursor: 'pointer' }} aria-label="Fermer">
+              <button onClick={()=>setShowModal(false)} style={{ border: 'none', background: 'transparent', cursor: 'pointer' }} aria-label="Fermer" disabled={isSubmitting}>
                 <IconX />
               </button>
             </div>
@@ -238,7 +307,11 @@ export default function MenuUpdate() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12 }}>
                 <div>
                   <label style={{ display: 'block', fontSize: 12, color: '#6b7280', marginBottom: 6 }}>Nom</label>
-                  <input required value={form.name} onChange={(e)=>setForm({ ...form, name: e.target.value })} placeholder="Nom du plat" style={{ width: '100%', border: '1px solid #e5e7eb', padding: '8px 12px', borderRadius: 8 }} />
+                  <input required value={form.name} onChange={(e)=>setForm({ ...form, name: e.target.value })} placeholder="Nom du plat" style={{ width: '100%', border: '1px solid #e5e7eb', padding: '8px 12px', borderRadius: 8 }} disabled={isSubmitting} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, color: '#6b7280', marginBottom: 6 }}>Description</label>
+                  <textarea value={form.description} onChange={(e)=>setForm({ ...form, description: e.target.value })} placeholder="Description du plat" style={{ width: '100%', border: '1px solid #e5e7eb', padding: '8px 12px', borderRadius: 8, minHeight: '80px' }} disabled={isSubmitting} />
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                   <div>
@@ -251,7 +324,7 @@ export default function MenuUpdate() {
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, color: '#6b7280', marginBottom: 6 }}>Prix (FCFA)</label>
-                    <input type="number" value={form.price} onChange={(e)=>setForm({ ...form, price: Number(e.target.value) })} style={{ width: '100%', border: '1px solid #e5e7eb', padding: '8px 12px', borderRadius: 8 }} />
+                    <input type="number" value={form.price} onChange={(e)=>setForm({ ...form, price: Number(e.target.value) })} style={{ width: '100%', border: '1px solid #e5e7eb', padding: '8px 12px', borderRadius: 8 }} disabled={isSubmitting} />
                   </div>
                 </div>
                 <div>
@@ -259,32 +332,27 @@ export default function MenuUpdate() {
                   {form.image && (
                     <div style={{ marginBottom: 8 }}>
                       <img src={form.image} alt="aperçu" style={{ width: 120, height: 80, objectFit: 'cover', borderRadius: 8, border: '1px solid #e5e7eb' }} />
-                      <button type="button" onClick={()=>setForm({ ...form, image: '' })} style={{ marginLeft: 8, border: '1px solid #e5e7eb', background: '#fff', padding: '6px 10px', borderRadius: 8 }}>Retirer</button>
+                      <button type="button" onClick={()=>setForm({ ...form, image: '', image_id: null })} style={{ marginLeft: 8, border: '1px solid #e5e7eb', background: '#fff', padding: '6px 10px', borderRadius: 8 }} disabled={isSubmitting}>Retirer</button>
                     </div>
                   )}
                   <input
                     type="file"
                     accept="image/*"
-                    onChange={(e)=>{
-                      const file = e.target.files?.[0];
-                      if (!file) return;
-                      const reader = new FileReader();
-                      reader.onload = () => setForm({ ...form, image: String(reader.result||'') });
-                      reader.readAsDataURL(file);
-                    }}
+                    onChange={handleImageChange}
+                    disabled={isSubmitting}
                   />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: 12, color: '#6b7280', marginBottom: 6 }}>Disponibilité</label>
-                  <select value={form.available ? 'yes' : 'no'} onChange={(e)=>setForm({ ...form, available: e.target.value==='yes' })} style={{ width: '100%', border: '1px solid #e5e7eb', padding: '8px 12px', borderRadius: 8 }}>
+                  <select value={form.available ? 'yes' : 'no'} onChange={(e)=>setForm({ ...form, available: e.target.value==='yes' })} style={{ width: '100%', border: '1px solid #e5e7eb', padding: '8px 12px', borderRadius: 8 }} disabled={isSubmitting}>
                     <option value="yes">Disponible</option>
                     <option value="no">Indisponible</option>
                   </select>
                 </div>
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 16 }}>
-                <button type="button" onClick={()=>setShowModal(false)} style={{ border: '1px solid #e5e7eb', background: '#fff', padding: '8px 12px', borderRadius: 8 }}>Annuler</button>
-                <button type="submit" style={{ border: '1px solid #2563eb', background: '#2563eb', color: '#fff', padding: '8px 12px', borderRadius: 8 }}>{editing ? 'Enregistrer' : 'Créer'}</button>
+                <button type="button" onClick={()=>setShowModal(false)} style={{ border: '1px solid #e5e7eb', background: '#fff', padding: '8px 12px', borderRadius: 8 }} disabled={isSubmitting}>Annuler</button>
+                <button type="submit" style={{ border: '1px solid #2563eb', background: '#2563eb', color: '#fff', padding: '8px 12px', borderRadius: 8 }} disabled={isSubmitting}>{isSubmitting ? 'Sauvegarde...' : (editing ? 'Enregistrer' : 'Créer')}</button>
               </div>
             </form>
           </div>
