@@ -38,6 +38,8 @@ Route::get('/administrateurs/{id}', [administrateurController::class, 'show']);
 Route::post('/administrateurs', [administrateurController::class, 'store']);
 Route::put('/administrateurs/{id}', [administrateurController::class, 'update']);
 Route::delete('/administrateurs/{id}', [administrateurController::class, 'destroy']);
+Route::get('/getemployeesrestaurant/{id}', [administrateurController::class, 'getEmployees']);
+
 Route::get('/files', [fileController::class, 'index']);
 Route::get('/files/{id}', [fileController::class, 'show']);
 Route::post('/files', [fileController::class, 'store']);

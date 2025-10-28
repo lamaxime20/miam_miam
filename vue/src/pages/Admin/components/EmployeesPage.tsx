@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent } from './ui/card';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
@@ -28,6 +28,7 @@ import {
 } from './ui/dialog';
 import { Label } from './ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { getEmployees } from '../../../services/GestionEmploye.js';
 import { Search, Eye, Edit, Trash2, Plus, Users, CheckCircle, Calendar, UserPlus } from 'lucide-react';
 
 interface Employee {
@@ -41,81 +42,6 @@ interface Employee {
   phone?: string;
 }
 
-const mockEmployees: Employee[] = [
-  {
-    id: '1',
-    name: 'Marie Dubois',
-    email: 'marie.dubois@company.com',
-    position: 'Employée',
-    status: 'active',
-    hireDate: '2022-03-15',
-    phone: '+33 6 12 34 56 78',
-  },
-  {
-    id: '2',
-    name: 'Jean Martin',
-    email: 'jean.martin@company.com',
-    position: 'Gérant',
-    status: 'active',
-    hireDate: '2021-01-08',
-    phone: '+33 6 23 45 67 89',
-  },
-  {
-    id: '3',
-    name: 'Sophie Laurent',
-    email: 'sophie.laurent@company.com',
-    position: 'Livreur',
-    status: 'inactive',
-    hireDate: '2020-12-06',
-    phone: '+33 6 34 56 78 90',
-  },
-  {
-    id: '4',
-    name: 'Pierre Durand',
-    email: 'pierre.durand@company.com',
-    position: 'Employé',
-    status: 'active',
-    hireDate: '2023-09-22',
-    phone: '+33 6 45 67 89 01',
-  },
-  {
-    id: '5',
-    name: 'Julie Bernard',
-    email: 'julie.bernard@company.com',
-    position: 'Employée',
-    status: 'active',
-    hireDate: '2023-02-14',
-    phone: '+33 6 56 78 90 12',
-  },
-  {
-    id: '6',
-    name: 'Thomas Petit',
-    email: 'thomas.petit@company.com',
-    position: 'Employé',
-    status: 'active',
-    hireDate: '2019-05-10',
-    phone: '+33 6 67 89 01 23',
-  },
-  {
-    id: '7',
-    name: 'Emma Rousseau',
-    email: 'emma.rousseau@company.com',
-    position: 'Employée',
-    status: 'active',
-    hireDate: '2024-01-03',
-    phone: '+33 6 78 90 12 34',
-  },
-  {
-    id: '8',
-    name: 'Lucas Moreau',
-    email: 'lucas.moreau@company.com',
-    position: 'Livreur',
-    status: 'inactive',
-    hireDate: '2023-11-20',
-    phone: '+33 6 89 01 23 45',
-  },
-];
-
 const statusConfig = {
   active: { label: 'Actif', color: 'bg-green-100 text-green-700 border-green-200' },
   inactive: { label: 'Inactif', color: 'bg-gray-100 text-gray-700 border-gray-200' },
@@ -125,8 +51,24 @@ export function EmployeesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
-  const [employees, setEmployees] = useState<Employee[]>(mockEmployees);
+  const [employees, setEmployees] = useState<Employee[]>([]);
   const [viewMode, setViewMode] = useState<'view' | 'edit'>('view');
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchEmployees = async () => {
+      try {
+        setIsLoading(true);
+        const data = await getEmployees();
+        setEmployees(data);
+      } catch (error) {
+        console.error("Erreur lors de la récupération des employés:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchEmployees();
+  }, []);
 
   const filteredEmployees = employees.filter((employee) => {
     const matchesSearch = 
@@ -157,6 +99,23 @@ export function EmployeesPage() {
     setSelectedEmployee(null);
   };
 
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <Card key={i} className="border-gray-200 animate-pulse">
+              <CardContent className="p-6">
+                <div className="h-6 bg-gray-200 rounded w-1/2 mb-2"></div>
+                <div className="h-8 bg-gray-300 rounded w-1/3"></div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        <Card className="border-gray-200 p-6 h-96 animate-pulse"></Card>
+      </div>
+    );
+  }
   return (
     <>
       <div className="space-y-6">
@@ -298,33 +257,26 @@ export function EmployeesPage() {
                           <TableCell className="text-right">
                             <div className="flex items-center justify-end gap-2">
                               <Button
-                                variant="ghost"
+                                variant="outline"
                                 size="sm"
                                 onClick={() => {
                                   setSelectedEmployee(employee);
                                   setViewMode('view');
                                 }}
+                                className="gap-2"
                               >
-                                <Eye className="h-4 w-4 text-blue-600" />
+                                <Eye className="h-4 w-4" />
+                                Détails
                               </Button>
                               <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                  setSelectedEmployee(employee);
-                                  setViewMode('edit');
-                                }}
-                              >
-                                <Edit className="h-4 w-4 text-green-600" />
-                              </Button>
-                              <Button
-                                variant="ghost"
+                                variant="outline"
                                 size="sm"
                                 onClick={() => {
                                   if (confirm('Êtes-vous sûr de vouloir supprimer cet employé ?')) {
                                     deleteEmployee(employee.id);
                                   }
                                 }}
+                                className="gap-2 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
                               >
                                 <Trash2 className="h-4 w-4 text-red-600" />
                               </Button>

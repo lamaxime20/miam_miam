@@ -59,4 +59,43 @@ class administrateurController extends Controller
          $admin = DB::select('SELECT * FROM supprimer_admin(?)', [$id]);
                return response()->json(['message' => 'Administrateur supprimé avec succès'], 200);  
     }
+
+    public function getEmployees($restaurantId)
+    {
+        try {
+            // Convertir en entier et valider
+            $restaurantId = (int)$restaurantId;
+            
+            if ($restaurantId <= 0) {
+                return response()->json(['error' => 'ID de restaurant invalide'], 400);
+            }
+
+            // Les bindings doivent être dans un tableau
+            $results = DB::select('SELECT * FROM get_employees(?)', [$restaurantId]);
+            
+            // array_map avec seulement 2 arguments
+            $employees = array_map(function($item) {
+                return [
+                    'id' => $item->id,
+                    'name' => $item->name,
+                    'email' => $item->email,
+                    'position' => $item->employee_position,
+                    'status' => $item->status,
+                    'hireDate' => $item->hire_date,
+                    'phone' => $item->phone
+                ];
+            }, $results); // Retirer le troisième argument "205"
+            
+            return response()->json($employees);
+            
+        } catch (\Exception $e) {
+            \Log::error('Erreur lors de la récupération des employés:', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
+            
+            return response()->json(['error' => 'Erreur interne du serveur'], 500);
+        }
+    }
 }

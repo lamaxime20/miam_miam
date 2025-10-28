@@ -458,3 +458,78 @@ BEGIN
 
 END;
 $$;
+
+CREATE OR REPLACE FUNCTION get_employees(restaurant_id INT)
+RETURNS TABLE(
+    id TEXT,
+    name TEXT,
+    email TEXT,
+    employee_position TEXT,
+    status TEXT,
+    hire_date TEXT,
+    phone TEXT
+) 
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    -- Récupération des gérants du restaurant
+    RETURN QUERY 
+    SELECT 
+        'G-' || g.id_user::TEXT as id,  -- Correction: utiliser id_user au lieu de id_gerant
+        u.nom_user::TEXT as name,
+        u.email_user::TEXT as email,
+        'Gérant'::TEXT as employee_position,
+        CASE 
+            WHEN gr.service_employe = TRUE THEN 'active'::TEXT  -- Correction: utiliser gr.service_employe
+            ELSE 'inactive'::TEXT
+        END as status,
+        TO_CHAR(gr.date_debut, 'YYYY-MM-DD') as hire_date,
+        u.num_user::TEXT as phone
+    FROM gerant g
+    INNER JOIN "Utilisateur" u ON g.id_user = u.id_user
+    INNER JOIN gerer gr ON g.id_user = gr.id_gerant
+    WHERE gr.id_restaurant = restaurant_id
+    AND gr.service_employe = TRUE
+
+    UNION ALL
+
+    -- Récupération des employés du restaurant
+    SELECT 
+        'E-' || e.id_user::TEXT as id,
+        u.nom_user::TEXT as name,
+        u.email_user::TEXT as email,
+        'Employé'::TEXT as employee_position,
+        CASE 
+            WHEN tp.service_employe = TRUE THEN 'active'::TEXT
+            ELSE 'inactive'::TEXT
+        END as status,
+        TO_CHAR(tp.date_debut, 'YYYY-MM-DD') as hire_date,
+        u.num_user::TEXT as phone
+    FROM employe e
+    INNER JOIN "Utilisateur" u ON e.id_user = u.id_user
+    INNER JOIN travailler_pour tp ON e.id_user = tp.id_employe
+    WHERE tp.id_restaurant = restaurant_id
+
+    UNION ALL
+
+    -- Récupération des livreurs du restaurant
+    SELECT 
+        'L-' || l.id_user::TEXT as id,
+        u.nom_user::TEXT as name,
+        u.email_user::TEXT as email,
+        'Livreur'::TEXT as employee_position,
+        CASE 
+            WHEN el.service_employe = TRUE THEN 'active'::TEXT
+            ELSE 'inactive'::TEXT
+        END as status,
+        TO_CHAR(el.date_debut, 'YYYY-MM-DD') as hire_date,
+        u.num_user::TEXT as phone
+    FROM livreur l
+    INNER JOIN "Utilisateur" u ON l.id_user = u.id_user
+    INNER JOIN etre_livreur el ON l.id_user = el.id_livreur
+    WHERE el.id_restaurant = restaurant_id
+
+    ORDER BY hire_date DESC;
+
+END;
+$$;
