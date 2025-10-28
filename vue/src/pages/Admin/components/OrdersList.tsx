@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { convertirPrix } from '../../../services/dashboard';
+import { getOrders } from '../../../services/OrderList.js';
 import { Card, CardContent } from './ui/card';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
@@ -39,128 +40,9 @@ interface Order {
   status: OrderStatus;
   items: number;
   paymentMethod: string;
-  shippingAddress: string;
+  numero: string;
   products: { name: string; quantity: number; price: number }[];
 }
-
-const mockOrders: Order[] = [
-  {
-    id: 'CMD-1284',
-    customer: 'Marie Dubois',
-    email: 'marie.dubois@email.com',
-    date: '2025-10-24',
-    total: 245.00,
-    status: 'validée',
-    items: 3,
-    paymentMethod: 'Carte bancaire',
-    shippingAddress: '15 Rue de la Paix, 75002 Paris',
-    products: [
-      { name: 'Burger Premium', quantity: 2, price: 15.90 },
-      { name: 'Frites Maison', quantity: 2, price: 4.50 },
-      { name: 'Dessert du jour', quantity: 1, price: 6.50 },
-    ],
-  },
-  {
-    id: 'CMD-1283',
-    customer: 'Pierre Martin',
-    email: 'pierre.martin@email.com',
-    date: '2025-10-24',
-    total: 128.50,
-    status: 'en_cours',
-    items: 2,
-    paymentMethod: 'PayPal',
-    shippingAddress: '28 Avenue des Champs-Élysées, 75008 Paris',
-    products: [
-      { name: 'Pizza Margherita', quantity: 1, price: 12.90 },
-      { name: 'Salade César', quantity: 1, price: 9.50 },
-    ],
-  },
-  {
-    id: 'CMD-1282',
-    customer: 'Sophie Laurent',
-    email: 'sophie.laurent@email.com',
-    date: '2025-10-23',
-    total: 320.00,
-    status: 'en_cours',
-    items: 4,
-    paymentMethod: 'Carte bancaire',
-    shippingAddress: '42 Boulevard Saint-Germain, 75005 Paris',
-    products: [
-      { name: 'Menu Famille', quantity: 1, price: 45.00 },
-      { name: 'Boissons x4', quantity: 4, price: 3.00 },
-    ],
-  },
-  {
-    id: 'CMD-1281',
-    customer: 'Luc Bernard',
-    email: 'luc.bernard@email.com',
-    date: '2025-10-23',
-    total: 95.00,
-    status: 'validée',
-    items: 1,
-    paymentMethod: 'Virement',
-    shippingAddress: '10 Rue du Commerce, 69001 Lyon',
-    products: [
-      { name: 'Plat du jour', quantity: 1, price: 14.90 },
-    ],
-  },
-  {
-    id: 'CMD-1280',
-    customer: 'Julie Petit',
-    email: 'julie.petit@email.com',
-    date: '2025-10-22',
-    total: 410.00,
-    status: 'en_cours',
-    items: 5,
-    paymentMethod: 'Carte bancaire',
-    shippingAddress: '8 Place Bellecour, 69002 Lyon',
-    products: [
-      { name: 'Menu Groupe', quantity: 1, price: 89.00 },
-    ],
-  },
-  {
-    id: 'CMD-1279',
-    customer: 'Thomas Rousseau',
-    email: 'thomas.rousseau@email.com',
-    date: '2025-10-22',
-    total: 185.00,
-    status: 'en_cours',
-    items: 2,
-    paymentMethod: 'Carte bancaire',
-    shippingAddress: '33 Rue de la République, 13001 Marseille',
-    products: [
-      { name: 'Sushi Mix', quantity: 2, price: 24.50 },
-    ],
-  },
-  {
-    id: 'CMD-1278',
-    customer: 'Émilie Moreau',
-    email: 'emilie.moreau@email.com',
-    date: '2025-10-21',
-    total: 75.00,
-    status: 'annulée',
-    items: 1,
-    paymentMethod: 'PayPal',
-    shippingAddress: '5 Avenue du Prado, 13006 Marseille',
-    products: [
-      { name: 'Plateau Dégustation', quantity: 1, price: 32.00 },
-    ],
-  },
-  {
-    id: 'CMD-1277',
-    customer: 'Antoine Leroy',
-    email: 'antoine.leroy@email.com',
-    date: '2025-10-21',
-    total: 560.00,
-    status: 'validée',
-    items: 3,
-    paymentMethod: 'Carte bancaire',
-    shippingAddress: '12 Rue Nationale, 59000 Lille',
-    products: [
-      { name: 'Buffet Traiteur', quantity: 1, price: 150.00 },
-    ],
-  },
-];
 
 const statusConfig = {
   en_cours: { label: 'En cours', color: 'bg-blue-100 text-blue-700 border-blue-200', icon: Clock },
@@ -172,7 +54,19 @@ export function OrdersList() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-  const [orders, setOrders] = useState<Order[]>(mockOrders);
+  const [orders, setOrders] = useState<Order[]>([]);
+
+  useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        const data = await getOrders();
+        setOrders(data);
+      } catch (error) {
+        console.error("Erreur lors de la récupération des commandes:", error);
+      }
+    };
+    fetchOrders();
+  }, []);
 
   const filteredOrders = orders.filter((order) => {
     const matchesSearch = 
@@ -340,12 +234,8 @@ export function OrdersList() {
                       <span className="text-sm">{selectedOrder.email}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">Adresse</span>
-                      <span className="text-sm text-right">{selectedOrder.shippingAddress}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">Paiement</span>
-                      <span className="text-sm">{selectedOrder.paymentMethod}</span>
+                      <span className="text-sm text-gray-600">Numéro</span>
+                      <span className="text-sm text-right">{selectedOrder.numero}</span>
                     </div>
                   </div>
                 </div>
@@ -375,29 +265,6 @@ export function OrdersList() {
                     <span className="text-2xl font-bold text-[#cfbd97]">
                       {(convertirPrix(selectedOrder.total) as { xafFormate: string }).xafFormate}
                     </span>
-                  </div>
-                </div>
-
-                {/* Update Status */}
-                <div>
-                  <h4 className="text-sm mb-3">Modifier le statut</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {Object.entries(statusConfig).map(([status, config]) => {
-                      const Icon = config.icon;
-                      const isActive = selectedOrder.status === status;
-                      return (
-                        <Button
-                          key={status}
-                          variant={isActive ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => updateOrderStatus(selectedOrder.id, status as OrderStatus)}
-                          className={`gap-2 ${isActive ? 'bg-[#cfbd97] hover:bg-[#bfad87] text-black' : ''}`}
-                        >
-                          <Icon className="h-4 w-4" />
-                          {config.label}
-                        </Button>
-                      );
-                    })}
                   </div>
                 </div>
               </div>

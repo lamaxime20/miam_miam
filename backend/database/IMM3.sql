@@ -381,3 +381,80 @@ EXCEPTION
         END LOOP;
 END;
 $$;
+
+
+CREATE OR REPLACE FUNCTION get_orders_detailed()
+RETURNS TABLE(
+    id TEXT,
+    customer TEXT,
+    email TEXT,
+    date TEXT,
+    total_eur DECIMAL(10,2),
+    status TEXT,
+    items INTEGER,
+    payment_method TEXT,
+    numero TEXT
+) 
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY 
+    WITH commande_details AS (
+        SELECT 
+            c.id_commande,
+            u.nom_user,
+            u.email_user,
+            c.date_commande,
+            SUM(co.prix_unitaire * co.quantite) as total,
+            COUNT(DISTINCT co.id_menu) as nb_items,
+            u.num_user,
+            c.statut_commande,
+            bc.statut_bon,
+            l.statut_livraison,
+            p.statut_paiement,
+            p.moyen_paiement
+        FROM commande c
+        INNER JOIN "Utilisateur" u ON c.acheteur = u.id_user
+        INNER JOIN contenir co ON c.id_commande = co.id_commande
+        LEFT JOIN bon_commande bc ON c.id_commande = bc.commande_associe
+        LEFT JOIN livraison l ON bc.id_bon = l.bon_associe
+        LEFT JOIN paiement p ON c.id_commande = p.id_commande
+        GROUP BY 
+            c.id_commande, u.nom_user, u.email_user, c.date_commande, 
+            u.num_user, c.statut_commande, bc.statut_bon, l.statut_livraison,
+            p.statut_paiement, p.moyen_paiement
+    )
+    SELECT 
+        'CMD-' || cd.id_commande::TEXT as id,
+        cd.nom_user as customer,
+        cd.email_user as email,
+        TO_CHAR(cd.date_commande, 'YYYY-MM-DD') as date,
+        cd.total as total_eur,
+        CASE 
+            WHEN cd.statut_commande = 'annulée' OR cd.statut_bon = 'annulée' OR cd.statut_livraison = 'annulée' THEN 'annulée'
+            WHEN cd.statut_commande = 'validée' AND cd.statut_bon = 'validée' AND cd.statut_livraison = 'validée' THEN 'fait'
+            WHEN cd.statut_commande = 'validée' AND cd.statut_bon = 'validée' AND cd.statut_livraison = 'en_cours' THEN 'en_livraison'
+            WHEN cd.statut_commande = 'validée' AND cd.statut_bon = 'en_cours' THEN 'en_préparation'
+            WHEN cd.statut_commande = 'en_cours' THEN 'non_lu'
+            ELSE 'non_lu'
+        END as status,
+        cd.nb_items as items,
+        CASE 
+            WHEN cd.statut_commande = 'annulée' OR cd.statut_bon = 'annulée' OR cd.statut_livraison = 'annulée' THEN 'Paiement annulé'
+            WHEN cd.statut_paiement IS NULL THEN 'Pas encore payé'
+            WHEN cd.statut_paiement = 'reussi' THEN 
+                CASE cd.moyen_paiement
+                    WHEN 'carte' THEN 'Carte bancaire'
+                    WHEN 'mobile_money' THEN 'Mobile Money'
+                    WHEN 'especes' THEN 'Espèces'
+                    ELSE 'Autre'
+                END
+            WHEN cd.statut_paiement = 'en_attente' THEN 'Paiement en attente'
+            ELSE 'Échec paiement'
+        END as payment_method,
+        cd.num_user as numero
+    FROM commande_details cd
+    ORDER BY cd.date_commande DESC;
+
+END;
+$$;

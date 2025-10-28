@@ -94,3 +94,5 @@ Route::get('/dashboard/user-distribution', [statsDashboardAdminController::class
 Route::get('/dashboard/recent-orders', [statsDashboardAdminController::class, 'getRecentOrders']);
 Route::get('/dashboard/recent-complaints', [statsDashboardAdminController::class, 'getRecentComplaints']);
 Route::get('/dashboard/ventes-semaine', [statsDashboardAdminController::class, 'getVentesSemaine']);
+
+Route::get('/orders', [statsDashboardAdminController::class, 'getOrders']);

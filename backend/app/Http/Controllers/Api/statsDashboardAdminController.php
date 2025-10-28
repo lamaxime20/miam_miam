@@ -219,6 +219,55 @@ class statsDashboardAdminController extends Controller
         }
     }
 
+    /**
+     * Récupère la liste des commandes
+     */
+    public function getOrders()
+    {
+        try {
+            $results = DB::select('SELECT * FROM get_orders()');
+            
+            return array_map(function($item) {
+                // Conversion des produits JSON en array PHP
+                $products = json_decode($item->products, true) ?? [];
+                
+                // Mapping des statuts détaillés vers les statuts frontend
+                $statusMapping = [
+                    'non_lu' => 'en_cours',
+                    'en_préparation' => 'validée',
+                    'en_livraison' => 'validée', 
+                    'fait' => 'validée',
+                    'annulée' => 'annulée'
+                ];
+                
+                $frontendStatus = $statusMapping[$item->status] ?? $item->status;
+                
+                return [
+                    'id' => $item->id,
+                    'customer' => $item->customer,
+                    'email' => $item->email,
+                    'date' => $item->date,
+                    'total' => (float) $item->total,
+                    'status' => $frontendStatus,
+                    'detailed_status' => $item->status, // Garder le statut détaillé si besoin
+                    'items' => (int) $item->items,
+                    'paymentMethod' => $item->payment_method,
+                    'numero' => $item->numero,
+                    'products' => $products
+                ];
+            }, $results);
+            
+        } catch (\Exception $e) {
+            \Log::error('Erreur lors de la récupération des commandes:', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
+            
+            return [];
+        }
+    }
+
     public function index()
     {
         //
