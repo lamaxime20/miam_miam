@@ -20,6 +20,7 @@
  * 1 EUR = 655.957 XAF (taux fixe Franc CFA)
  */
 const TAUX_EUR_TO_XAF = 655.957;
+const API_URL = 'http://localhost:8000';
 
 /**
  * Formater un montant en XAF avec séparateurs de milliers
@@ -73,23 +74,16 @@ export function convertirEURversXAF(montantEUR) {
  */
 export async function getVentesAujourdhui() {
   try {
-    // TODO: Remplacer par un appel API réel
-    // const response = await fetch('/api/dashboard/ventes-aujourdhui');
-    // const data = await response.json();
-    
-    // DONNÉES MOCKÉES (à remplacer)
-    const dataMockee = {
-      total_eur: 2847.50, // Montant en EUR depuis la BDD
-      pourcentage_vs_hier: 12.3
-    };
+    const response = await fetch(API_URL + '/api/dashboard/ventes-aujourdhui');
+    const data = await response.json();
     
     // Conversion EUR -> XAF
-    const totalXAF = convertirEURversXAF(dataMockee.total_eur);
+    const totalXAF = convertirEURversXAF(data.total_eur);
     
     return {
       total: totalXAF,
       totalFormate: formaterMontantXAF(totalXAF),
-      pourcentage_vs_hier: dataMockee.pourcentage_vs_hier
+      pourcentage_vs_hier: data.pourcentage_vs_hier
     };
     
   } catch (error) {
@@ -133,23 +127,11 @@ export async function getVentesAujourdhui() {
  */
 export async function getVentesSemaine() {
   try {
-    // TODO: Remplacer par un appel API réel
-    // const response = await fetch('/api/dashboard/ventes-semaine');
-    // const data = await response.json();
-    
-    // DONNÉES MOCKÉES (à remplacer)
-    const dataMockee = [
-      { jour: 'Lun', ventes_eur: 2800 },
-      { jour: 'Mar', ventes_eur: 3200 },
-      { jour: 'Mer', ventes_eur: 2900 },
-      { jour: 'Jeu', ventes_eur: 4500 },
-      { jour: 'Ven', ventes_eur: 5100 },
-      { jour: 'Sam', ventes_eur: 4800 },
-      { jour: 'Dim', ventes_eur: 3500 },
-    ];
+    const response = await fetch('/api/dashboard/ventes-semaine');
+    const data = await response.json();
     
     // Conversion EUR -> XAF pour chaque jour
-    return dataMockee.map(jour => ({
+    return data.map(jour => ({
       jour: jour.jour,
       ventes: convertirEURversXAF(jour.ventes_eur),
       ventesFormatees: formaterMontantXAF(convertirEURversXAF(jour.ventes_eur))
@@ -2043,34 +2025,46 @@ export async function getCategoriesMenu() {
  * 
  * @returns {Promise<Object>} - Toutes les stats du dashboard
  */
+// Pour les statistiques principales
 export async function getStatsDashboard() {
   try {
-    // TODO: Remplacer par un appel API réel
-    // const response = await fetch('/api/dashboard/stats');
-    // const data = await response.json();
-    
-    // DONNÉES MOCKÉES (à remplacer)
-    const dataMockee = {
-      ventes_aujourdhui_eur: 2847.50,
-      utilisateurs_actifs: 1234,
-      reclamations: 23,
-      points_fidelite: 45678
-    };
+    const response = await fetch(API_URL + '/api/dashboard/stats');
+    const data = await response.json();
     
     return {
       ventesAujourdhui: {
-        total: convertirEURversXAF(dataMockee.ventes_aujourdhui_eur),
-        totalFormate: formaterMontantXAF(convertirEURversXAF(dataMockee.ventes_aujourdhui_eur))
+        total: convertirEURversXAF(data.ventes_aujourdhui_eur),
+        totalFormate: formaterMontantXAF(convertirEURversXAF(data.ventes_aujourdhui_eur))
       },
-      utilisateursActifs: dataMockee.utilisateurs_actifs,
-      reclamations: dataMockee.reclamations,
-      pointsFidelite: dataMockee.points_fidelite
+      utilisateursActifs: data.utilisateurs_actifs,
+      reclamations: data.reclamations,
+      pointsFidelite: data.points_fidelite,
+      pourcentage_utilisateurs_ajoutes_ce_mois: data.pourcentage_utilisateurs_ajoutes_ce_mois,
+      reclamations_non_traitees: data.reclamations_non_traitees,
+      pourcentage_reclamation_non_traite_ajoute_ce_mois: data.pourcentage_reclamation_non_traite_ajoute_ce_mois,
+      pourcentage_points_donne_ce_mois: data.pourcentage_points_donne_ce_mois
     };
     
   } catch (error) {
     console.error('Erreur lors de la récupération des statistiques:', error);
     return null;
   }
+}
+
+// Pour les autres endpoints
+export async function getUserdistribution() {
+  const response = await fetch(API_URL + '/api/dashboard/user-distribution');
+  return await response.json();
+}
+
+export async function getRecentOrder(){
+  const response = await fetch(API_URL + '/api/dashboard/recent-orders');
+  return await response.json();
+}
+
+export async function getRecentComplaints() {
+  const response = await fetch(API_URL + '/api/dashboard/recent-complaints');
+  return await response.json();
 }
 
 // ============================================================================

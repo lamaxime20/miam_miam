@@ -10,6 +10,9 @@ use App\Http\Controllers\Api\clientController;
 use App\Http\Controllers\Api\promotionController;
 use App\Http\Controllers\Api\notificationsController;
 use App\Http\Controllers\Api\menuController;
+use App\Http\Controllers\Api\statsDashboardAdminController;
+
+
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -84,3 +87,10 @@ Route::prefix('notifications')->group(function () {
 
 // Routes pour les menus
 Route::get('/menu/{id_menu}/restaurant', [menuController::class, 'getRestaurantByMenuId']);
+
+Route::get('/dashboard/ventes-aujourdhui', [statsDashboardAdminController::class, 'getVentesAujourdhui']);
+Route::get('/dashboard/stats', [statsDashboardAdminController::class, 'getStatsDashboard']);
+Route::get('/dashboard/user-distribution', [statsDashboardAdminController::class, 'getUserDistribution']);
+Route::get('/dashboard/recent-orders', [statsDashboardAdminController::class, 'getRecentOrders']);
+Route::get('/dashboard/recent-complaints', [statsDashboardAdminController::class, 'getRecentComplaints']);
+Route::get('/dashboard/ventes-semaine', [statsDashboardAdminController::class, 'getVentesSemaine']);
