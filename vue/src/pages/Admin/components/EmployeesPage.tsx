@@ -28,7 +28,7 @@ import {
 } from './ui/dialog';
 import { Label } from './ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
-import { getEmployees } from '../../../services/GestionEmploye.js';
+import { getEmployees, createEmployee } from '../../../services/GestionEmploye.js';
 import { Search, Eye, Edit, Trash2, Plus, Users, CheckCircle, Calendar, UserPlus } from 'lucide-react';
 
 interface Employee {
@@ -54,12 +54,16 @@ export function EmployeesPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [viewMode, setViewMode] = useState<'view' | 'edit'>('view');
   const [isLoading, setIsLoading] = useState(true);
+  const [newEmployeeEmail, setNewEmployeeEmail] = useState('');
+  const [newEmployeeRole, setNewEmployeeRole] = useState<'employe' | 'gerant' | 'livreur'>('employe');
+  const [formError, setFormError] = useState<string | null>(null);
+
 
   useEffect(() => {
     const fetchEmployees = async () => {
       try {
         setIsLoading(true);
-        const data = await getEmployees();
+        const data = await getEmployees(1);
         setEmployees(data);
       } catch (error) {
         console.error("Erreur lors de la récupération des employés:", error);
@@ -67,8 +71,42 @@ export function EmployeesPage() {
         setIsLoading(false);
       }
     };
+
+    // Appel initial pour charger les employés
     fetchEmployees();
   }, []);
+
+  // Fonction pour recharger les employés après une action (création, suppression, etc.)
+  const fetchEmployees = async () => {
+    try {
+      setIsLoading(true);
+      const data = await getEmployees(1); // Supposons que l'ID du restaurant est 1
+      setEmployees(data);
+    } catch (error) {
+      console.error("Erreur lors de la récupération des employés:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCreateEmployee = async () => {
+    try {
+      setFormError(null); // Réinitialiser les erreurs avant une nouvelle tentative
+      setIsLoading(true);
+      await createEmployee({
+        email: newEmployeeEmail,
+        role: newEmployeeRole,
+        restaurant: 1,
+      });
+      await fetchEmployees(); // Recharger la liste des employés après la création
+      setShowAddDialog(false);
+      resetAddForm(); // Réinitialiser le formulaire après succès
+    } catch (error) {
+      setFormError(error.message || 'Une erreur inconnue est survenue lors de la création.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const filteredEmployees = employees.filter((employee) => {
     const matchesSearch = 
@@ -97,6 +135,12 @@ export function EmployeesPage() {
   const deleteEmployee = (id: string) => {
     setEmployees(employees.filter(e => e.id !== id));
     setSelectedEmployee(null);
+  };
+
+  const resetAddForm = () => {
+    setNewEmployeeEmail('');
+    setNewEmployeeRole('employe');
+    setFormError(null);
   };
 
   if (isLoading) {
@@ -384,31 +428,45 @@ export function EmployeesPage() {
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Nom complet</Label>
-                <Input placeholder="Jean Dupont" />
+                <Label htmlFor="email-add">Email</Label>
+                <Input
+                  id="email-add"
+                  type="email"
+                  placeholder="jean.dupont@company.com"
+                  value={newEmployeeEmail}
+                  onChange={(e) => setNewEmployeeEmail(e.target.value)}
+                />
               </div>
               <div className="space-y-2">
-                <Label>Email</Label>
-                <Input type="email" placeholder="jean.dupont@company.com" />
-              </div>
-              <div className="space-y-2">
-                <Label>Téléphone</Label>
-                <Input placeholder="+33 6 12 34 56 78" />
-              </div>
-              <div className="space-y-2">
-                <Label>Poste</Label>
-                <Input placeholder="Développeur" />
+                <Label htmlFor="role-add">Poste</Label>
+                <Select value={newEmployeeRole} onValueChange={(value: 'employe' | 'gerant' | 'livreur') => setNewEmployeeRole(value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner un poste" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="employé">Employé</SelectItem>
+                    <SelectItem value="gérant">Gérant</SelectItem>
+                    <SelectItem value="livreur">Livreur</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
+            {formError && (
+              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+                <strong className="font-bold">Erreur: </strong>
+                <span className="block sm:inline">{formError}</span>
+              </div>
+            )}
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddDialog(false)}>
+            <Button variant="outline" onClick={resetAddForm} disabled={isLoading}>
               Annuler
             </Button>
-            <Button 
+            <Button
               className="bg-[#cfbd97] hover:bg-[#bfad87] text-black"
-              onClick={() => setShowAddDialog(false)}
+              onClick={handleCreateEmployee}
+              disabled={isLoading}
             >
               Créer l'employé
             </Button>
@@ -416,5 +474,7 @@ export function EmployeesPage() {
         </DialogContent>
       </Dialog>
     </>
+
+
   );
 }

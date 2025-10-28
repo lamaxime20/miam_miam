@@ -21,6 +21,7 @@ Route::get('/utilisateurs/{id}', [UtilisateurController::class, 'show']);
 Route::post('/utilisateurs', [UtilisateurController::class, 'store']);
 Route::put('/utilisateurs/{id}', [UtilisateurController::class, 'update']);
 Route::delete('/utilisateurs/{id}', [UtilisateurController::class, 'destroy']);
+Route::get('/checkUserDejaEmploye', [UtilisateurController::class, 'checkUserDejaEmploye']);
 
 // Vérifications et authentification
 Route::post('/checkEmailExiste', [UtilisateurController::class, 'checkEmailExiste']);
@@ -39,6 +40,7 @@ Route::post('/administrateurs', [administrateurController::class, 'store']);
 Route::put('/administrateurs/{id}', [administrateurController::class, 'update']);
 Route::delete('/administrateurs/{id}', [administrateurController::class, 'destroy']);
 Route::get('/getemployeesrestaurant/{id}', [administrateurController::class, 'getEmployees']);
+Route::post('/createemployee', [administrateurController::class, 'createEmployee']);
 
 Route::get('/files', [fileController::class, 'index']);
 Route::get('/files/{id}', [fileController::class, 'show']);

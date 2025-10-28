@@ -1,3 +1,4 @@
+import { VerifEmailExist } from "./user";
 /**
  * Service de gestion des employés
  * 
@@ -93,4 +94,77 @@ export async function getEmployees(restaurantId) {
     console.error('Erreur lors de la récupération des employés:', error);
     return [];
   }
+}
+
+/**
+ * Crée un nouvel employé.
+ * 
+ * @param {Object} employeeData - Données du nouvel employé.
+ * @param {string} employeeData.email - Email du nouvel employé.
+ * @param {string} employeeData.role - Rôle/Poste de l'employé ('employe', 'gerant', 'livreur').
+ * @param {int} employeeData.restaurant
+ * @returns {Promise<Object>} - L'employé créé.
+ */
+export async function createEmployee(employeeData) {
+  try {
+    const emailExist = await VerifEmailExist(employeeData.email);
+    if (!emailExist) {
+      throw new Error("L'utilisateur avec cet email n'existe pas.");
+    }
+
+    const est_employe = await UserDejaEmploye(employeeData.email, employeeData.role);
+    if (est_employe) {
+      throw new Error("Cet utilisateur est déjà employé avec ce rôle.");
+    }
+
+    const response = await fetch(`${API_URL}api/createemployee`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(employeeData),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      // Utilise le message d'erreur du backend s'il existe, sinon un message par défaut
+      const errorMessage = data.error || `Erreur HTTP: ${response.status}`;
+      throw new Error(errorMessage);
+    }
+
+    return data;
+
+  } catch (error) {
+    console.error("Erreur détaillée lors de la création de l'employé:", error);
+    // Relance l'erreur pour que le composant React puisse la capturer
+    throw error;
+  }
+}
+
+async function UserDejaEmploye(email, role) {
+    try {
+        const response = await fetch(API_URL +'api/check-employee-exists', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                email: email,
+                role: role
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`Erreur HTTP: ${response.status}`);
+        }
+
+        const data = await response.json();
+        return data.est_employe;
+        
+    } catch (error) {
+        console.error('Erreur lors de la vérification employé:', error);
+        return false; // En cas d'erreur, on considère que l'utilisateur n'est pas employé
+    }
 }

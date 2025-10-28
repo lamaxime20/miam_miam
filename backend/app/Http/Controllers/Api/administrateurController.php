@@ -98,4 +98,62 @@ class administrateurController extends Controller
             return response()->json(['error' => 'Erreur interne du serveur'], 500);
         }
     }
+
+    /**
+     * Crée un nouvel employé
+     */
+    public function createEmployee(Request $request)
+    {
+        try {
+            $request->validate([
+                'email' => 'required|email',
+                'role' => 'required|string|in:gérant,employé,livreur',
+                'restaurant' => 'required|integer|min:1'
+            ]);
+
+            $email = $request->input('email');
+            $role = $request->input('role');
+            $restaurantId = $request->input('restaurant');
+
+            $result = DB::select('SELECT create_employee(?, ?, ?) as resultat', [$email, $role, $restaurantId]);
+            
+            if (empty($result)) {
+                return response()->json(['error' => 'Erreur lors de la création'], 500);
+            }
+            
+            $resultat = $result[0]->resultat;
+            
+            // Gérer les différents retours
+            switch ($resultat) {
+                case 'EMPLOYE_CREE':
+                    return response()->json(['success' => 'Employé créé avec succès']);
+                    
+                case 'EMPLOYE_REACTIVE':
+                    return response()->json(['success' => 'Employé réactivé avec succès']);
+                    
+                case 'UTILISATEUR_NON_TROUVE':
+                    return response()->json(['error' => 'Utilisateur non trouvé'], 404);
+                    
+                case 'ROLE_INVALIDE':
+                    return response()->json(['error' => 'Rôle invalide'], 400);
+                    
+                default:
+                    if (str_starts_with($resultat, 'ERREUR:')) {
+                        \Log::error('Erreur PostgreSQL create_employee: ' . $resultat);
+                        return response()->json(['error' => 'Erreur lors de la création'], 500);
+                    }
+                    return response()->json(['error' => 'Erreur inconnue'], 500);
+            }
+            
+        } catch (\Exception $e) {
+            \Log::error('Erreur lors de la création employé:', [
+                'message' => $e->getMessage(),
+                'email' => $request->input('email'),
+                'role' => $request->input('role'),
+                'restaurant' => $request->input('restaurant')
+            ]);
+            
+            return response()->json(['error' => 'Erreur interne du serveur'], 500);
+        }
+    }
 }
