@@ -45,11 +45,12 @@ Route::post('/desactiveremploye', [administrateurController::class, 'desactiverE
 
 // Routes pour les fichiers
 
-Route::get('/files', [fileController::class, 'index']);
-Route::get('/files/{id}', [fileController::class, 'show']);
-Route::post('/files', [fileController::class, 'store']);
-Route::put('/files/{id}', [fileController::class, 'update']);
-Route::delete('/files/{id}', [fileController::class, 'destroy']);
+Route::prefix('files')->group(function () {
+    Route::get('/', [FileController::class, 'index']);
+    Route::post('/upload', [FileController::class, 'upload']);
+    Route::get('/{id}', [FileController::class, 'show']);
+    Route::delete('/{id}', [FileController::class, 'destroy']);
+});
 
 Route::get('/choisir_menu_jour', [choisir_menu_jourController::class, 'index']);
 Route::get('/choisir_menu_jour/popularite', [choisir_menu_jourController::class, 'menusParPopularite']);
