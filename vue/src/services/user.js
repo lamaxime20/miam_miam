@@ -369,6 +369,13 @@ export function recupererToken() {
     return access_token;
 }
 
+export function recupererAuth() {
+    const stored = localStorage.getItem('auth_token');
+    if (!stored) return null;
+
+    return JSON.parse(stored);
+}
+
 // Récupère toutes les infos du token (y compris display_name)
 export function getAuthInfo() {
     const stored = localStorage.getItem('auth_token');

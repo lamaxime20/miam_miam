@@ -26,6 +26,7 @@ Route::post('/utilisateurs', [UtilisateurController::class, 'store']);
 Route::put('/utilisateurs/{id}', [UtilisateurController::class, 'update']);
 Route::delete('/utilisateurs/{id}', [UtilisateurController::class, 'destroy']);
 Route::get('/checkUserDejaEmploye', [UtilisateurController::class, 'checkUserDejaEmploye']);
+Route::post('/getRestaurantsUtilisateur', [UtilisateurController::class, 'getRestaurantsUtilisateur']);
 
 // Vérifications et authentification
 Route::post('/checkEmailExiste', [UtilisateurController::class, 'checkEmailExiste']);
@@ -59,6 +60,7 @@ Route::prefix('files')->group(function () {
 
 Route::get('/choisir_menu_jour', [choisir_menu_jourController::class, 'index']);
 Route::get('/choisir_menu_jour/popularite', [choisir_menu_jourController::class, 'menusParPopularite']);
+
 Route::get('/clients', [ClientController::class, 'index']);
 Route::get('/clients/{id}', [ClientController::class, 'show']);
 Route::put('/clients/{id}', [ClientController::class, 'update']);
