@@ -398,4 +398,19 @@ class promotionController extends Controller
             return response()->json(['error' => 'Erreur interne du serveur'], 500);
         }
     }
+
+    public function getMenusPromotion($promotionId)
+    {
+        try {
+            $rows = DB::select('SELECT id_menu FROM concerner_menu WHERE id_promo = ?', [(int)$promotionId]);
+            $ids = array_map(function($r) { return (int)$r->id_menu; }, $rows);
+            return response()->json($ids);
+        } catch (\Exception $e) {
+            \Log::error('Erreur lors de la récupération des menus de la promotion:', [
+                'message' => $e->getMessage(),
+                'promotion_id' => $promotionId,
+            ]);
+            return response()->json([], 500);
+        }
+    }
 }

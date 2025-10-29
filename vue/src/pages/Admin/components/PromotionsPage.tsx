@@ -20,10 +20,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from './ui/select';
-import { getPromotions, createPromotion, updatePromotion } from '../../../services/GestionPromotion';
-import { uploadImage, updateImage } from '../../../services/GestionMenu';
+import { getPromotions, createPromotion, updatePromotion, addMenusToPromotion, removeMenusFromPromotion, getPromotionMenus } from '../../../services/GestionPromotion';
+import { uploadImage, updateImage, getAllMenuItems } from '../../../services/GestionMenu';
 import { ImageWithFallback } from './figma/ImageWithFallback';
-import { Plus, Edit, Trash2, Tag, TrendingUp, Calendar, Percent, UploadCloud, X } from 'lucide-react';
+import { Plus, Minus, Edit, Trash2, Tag, TrendingUp, Calendar, Percent, UploadCloud, X } from 'lucide-react';
 
 interface Promotion {
   id: string;
@@ -81,6 +81,82 @@ export function PromotionsPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [menuDialogPromo, setMenuDialogPromo] = useState<Promotion | null>(null);
+  const [menusAll, setMenusAll] = useState<any[]>([]);
+  const [associatedIds, setAssociatedIds] = useState<string[]>([]);
+  const [initialAssociatedIds, setInitialAssociatedIds] = useState<string[]>([]);
+  const [ajoutIds, setAjoutIds] = useState<string[]>([]);
+  const [retraitIds, setRetraitIds] = useState<string[]>([]);
+  const [menuSearch, setMenuSearch] = useState('');
+
+  useEffect(() => {
+    const loadMenus = async () => {
+      if (!menuDialogPromo) return;
+      try {
+        const [allMenus, assoc] = await Promise.all([
+          getAllMenuItems(),
+          getPromotionMenus(menuDialogPromo.id),
+        ]);
+        setMenusAll(allMenus || []);
+        const assocIds = (assoc || []).map((id: any) => String(id));
+        setAssociatedIds(assocIds);
+        setInitialAssociatedIds(assocIds);
+        setAjoutIds([]);
+        setRetraitIds([]);
+        setMenuSearch('');
+      } catch (e) {
+        console.error(e);
+        setMenusAll([]);
+        setAssociatedIds([]);
+        setInitialAssociatedIds([]);
+        setAjoutIds([]);
+        setRetraitIds([]);
+      }
+    };
+    loadMenus();
+  }, [menuDialogPromo]);
+
+  const associatedMenus = menusAll.filter((m) => associatedIds.includes(String(m.id)));
+  const unassociatedMenus = menusAll.filter((m) => !associatedIds.includes(String(m.id)) && (m.name?.toLowerCase().includes(menuSearch.toLowerCase())));
+
+  const handleMoveUp = (id: string) => {
+    if (associatedIds.includes(id)) return;
+    const updated = [...associatedIds, id];
+    setAssociatedIds(updated);
+    if (!initialAssociatedIds.includes(id)) {
+      setAjoutIds((prev) => Array.from(new Set([...prev, id])));
+    }
+    setRetraitIds((prev) => prev.filter((x) => x !== id));
+  };
+
+  const handleMoveDown = (id: string) => {
+    if (!associatedIds.includes(id)) return;
+    const updated = associatedIds.filter((x) => x !== id);
+    setAssociatedIds(updated);
+    if (initialAssociatedIds.includes(id)) {
+      setRetraitIds((prev) => Array.from(new Set([...prev, id])));
+    }
+    setAjoutIds((prev) => prev.filter((x) => x !== id));
+  };
+
+  const saveMenusForPromotion = async () => {
+    if (!menuDialogPromo) return;
+    try {
+      setIsLoading(true);
+      if (ajoutIds.length) {
+        await addMenusToPromotion(menuDialogPromo.id, ajoutIds);
+      }
+      if (retraitIds.length) {
+        await removeMenusFromPromotion(menuDialogPromo.id, retraitIds);
+      }
+      alert('Menus mis à jour');
+      setMenuDialogPromo(null);
+    } catch (e: any) {
+      alert(e?.message || 'Erreur lors de la mise à jour des menus');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     const fetchPromotions = async () => {
@@ -441,6 +517,15 @@ export function PromotionsPage() {
                           variant="outline"
                           size="sm"
                           className="flex-1"
+                          onClick={() => setMenuDialogPromo(promo)}
+                        >
+                          <Plus className="h-4 w-4 mr-1" />
+                          Menus
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
                           onClick={() => openEditDialog(promo)}
                         >
                           <Edit className="h-4 w-4 mr-1" />
@@ -716,6 +801,87 @@ export function PromotionsPage() {
               {isUploading ? 'Téléversement...' : (isLoading ? 'Création...' : 'Créer la promotion')}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!menuDialogPromo} onOpenChange={() => setMenuDialogPromo(null)}>
+        <DialogContent className="max-w-2xl max-h-[50vh] overflow-y-auto">
+          {menuDialogPromo && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Menus de la promotion</DialogTitle>
+                <DialogDescription>
+                  Gérer les menus associés à {menuDialogPromo.name}
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-4">
+                <div>
+                  <h4 className="text-sm font-medium mb-2">Menus concernés</h4>
+                  <div className="max-h-56 overflow-y-auto rounded-md border">
+                    {associatedMenus.length === 0 ? (
+                      <div className="p-4 text-sm text-gray-500">Aucun menu associé</div>
+                    ) : (
+                      <div className="divide-y">
+                        {associatedMenus.map((m) => (
+                          <div key={m.id} className="flex items-center justify-between p-3">
+                            <div className="flex items-center gap-3">
+                              <img src={m.image} alt={m.name} className="w-10 h-10 rounded object-cover shrink-0" />
+                              <div>
+                                <div className="text-sm font-medium">{m.name}</div>
+                                <div className="text-xs text-gray-500">{m.price?.toFixed ? m.price.toFixed(2) : m.price} €</div>
+                              </div>
+                            </div>
+                            <Button variant="outline" size="sm" onClick={() => handleMoveDown(String(m.id))}>
+                              <Minus className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="text-sm font-medium">Autres menus</h4>
+                  </div>
+                  <Input placeholder="Rechercher un menu" value={menuSearch} onChange={(e) => setMenuSearch(e.target.value)} />
+                  <div className="max-h-64 overflow-y-auto rounded-md border mt-2">
+                    {unassociatedMenus.length === 0 ? (
+                      <div className="p-4 text-sm text-gray-500">Aucun résultat</div>
+                    ) : (
+                      <div className="divide-y">
+                        {unassociatedMenus.map((m) => (
+                          <div key={m.id} className="flex items-center justify-between p-3">
+                            <div className="flex items-center gap-3">
+                              <img src={m.image} alt={m.name} className="w-12 h-12 rounded object-cover" />
+                              <div>
+                                <div className="text-sm font-medium">{m.name}</div>
+                                <div className="text-xs text-gray-500">{m.price?.toFixed ? m.price.toFixed(2) : m.price} €</div>
+                              </div>
+                            </div>
+                            <Button variant="outline" size="sm" onClick={() => handleMoveUp(String(m.id))}>
+                              <Plus className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setMenuDialogPromo(null)} disabled={isLoading}>
+                  Annuler
+                </Button>
+                <Button className="bg-[#cfbd97] hover:bg-[#bfad87] text-black" onClick={saveMenusForPromotion} disabled={isLoading}>
+                  {isLoading ? 'Enregistrement...' : 'Enregistrer'}
+                </Button>
+              </DialogFooter>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </>

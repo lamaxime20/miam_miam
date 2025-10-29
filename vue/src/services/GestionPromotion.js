@@ -116,3 +116,79 @@ export async function updatePromotion(id, promoData) {
     throw error;
   }
 }
+
+/**
+ * Récupère les menus actuellement liés à une promotion.
+ * Essaie /api/promotions/{id}/menus si disponible, sinon renvoie [].
+ * Le résultat est normalisé en tableau d'IDs (string[]).
+ */
+export async function getPromotionMenus(promotionId) {
+  try {
+    const url = `${API_URL}api/promotions/${promotionId}/menus`;
+    const response = await fetch(url);
+    if (!response.ok) {
+      return [];
+    }
+    const data = await response.json();
+    const ids = Array.isArray(data) ? data.map((m) => {
+      const id = m?.id ?? m?.id_menu ?? m?.menu_id ?? m;
+      return id != null ? String(id) : null;
+    }).filter(Boolean) : [];
+    return ids;
+  } catch (e) {
+    console.warn('getPromotionMenus fallback (route indisponible):', e);
+    return [];
+  }
+}
+
+/**
+ * Ajoute plusieurs menus à une promotion.
+ * @param {string|number} promotionId
+ * @param {Array<string|number>} menuIds
+ */
+export async function addMenusToPromotion(promotionId, menuIds) {
+  if (!menuIds || menuIds.length === 0) return { success: true };
+  const payload = {
+    id_promo: Number(promotionId),
+    ids_menu: menuIds.map((id) => Number(id)),
+  };
+  const resp = await fetch(`${API_URL}api/promotions/ajouter-menus`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+  const json = await resp.json().catch(() => ({}));
+  if (!resp.ok) {
+    throw new Error(json.error || 'Erreur lors de l\'ajout des menus à la promotion');
+  }
+  return json;
+}
+
+/**
+ * Supprime plusieurs menus d'une promotion.
+ * @param {string|number} promotionId
+ * @param {Array<string|number>} menuIds
+ */
+export async function removeMenusFromPromotion(promotionId, menuIds) {
+  if (!menuIds || menuIds.length === 0) return { success: true };
+  const payload = {
+    id_promo: Number(promotionId),
+    ids_menu: menuIds.map((id) => Number(id)),
+  };
+  const resp = await fetch(`${API_URL}api/promotions/supprimer-menus`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+  const json = await resp.json().catch(() => ({}));
+  if (!resp.ok) {
+    throw new Error(json.error || 'Erreur lors de la suppression des menus de la promotion');
+  }
+  return json;
+}

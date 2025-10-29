@@ -87,6 +87,7 @@ Route::get('/promotions/actives', [promotionController::class, 'promotionsActive
 Route::get('/promotions', [promotionController::class, 'index']);
 Route::post('/promotions', [promotionController::class, 'store']);
 Route::put('/promotions/{id}', [promotionController::class, 'update']);
+Route::get('/promotions/{id}/menus', [promotionController::class, 'getMenusPromotion']);
 
 // Routes pour les notifications
 Route::prefix('notifications')->group(function () {
