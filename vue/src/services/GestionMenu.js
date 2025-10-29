@@ -112,6 +112,7 @@ export async function getAllMenuItems() {
       const status = rawStatus === 'disponible' ? 'available' : rawStatus === 'indisponible' ? 'unavailable' : (rawStatus || 'available');
       const rawImage = item.image ?? item.image_path ?? item.image_menu_path ?? item.image_menu;
       const image = API_URL + item.image
+      const imageId = item.image_menu;
 
       return {
         id: id != null ? String(id) : crypto?.randomUUID?.() || Math.random().toString(36).slice(2),
@@ -121,6 +122,7 @@ export async function getAllMenuItems() {
         category,
         status,
         image,
+        imageId,
       };
     });
     
@@ -269,5 +271,88 @@ export async function createMenuItem(menuItemData) {
       throw new Error('Erreur de connexion au serveur. Vérifiez votre connexion internet et que le serveur est bien démarré.');
     }
     throw error; // Relancer l'erreur pour la gestion dans le composant
+  }
+}
+
+/**
+ * Met à jour une image existante.
+ * @param {number} oldImageId - L'ID de l'image à remplacer.
+ * @param {File} file - Le nouveau fichier image.
+ * @returns {Promise<object>} - Les informations de la nouvelle image.
+ */
+export async function updateImage(oldImageId, file) {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  try {
+    const response = await fetch(`${API_URL}api/files/${oldImageId}`, {
+      method: 'PUT', // La méthode est POST même pour une mise à jour de fichier
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: 'Réponse non-JSON du serveur.' }));
+      throw new Error(errorData.message || `Erreur HTTP ${response.status} lors de la mise à jour de l'image.`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Erreur lors de la mise à jour de l'image:", error);
+    throw error;
+  }
+}
+
+/**
+ * Met à jour un article de menu existant.
+ * @param {string} menuItemId - L'ID de l'article à mettre à jour.
+ * @param {object} menuItemData - Les nouvelles données de l'article.
+ * @returns {Promise<object>} - L'article de menu mis à jour.
+ */
+export async function updateMenuItem(menuItemId, menuItemData) {
+  const restaurant_id = 1;
+
+  // Traduire les catégories et statuts pour le backend
+  const categoryMap = {
+    'Entrées': 'entree',
+    'Plats': 'plat',
+    'Desserts': 'dessert',
+    'Boissons': 'boisson',
+  };
+
+  const payload = {
+    nom_menu: menuItemData.name,
+    description_menu: menuItemData.description,
+    prix_menu: menuItemData.price,
+    libelle_menu: categoryMap[menuItemData.category] || menuItemData.category.toLowerCase(),
+    statut_menu: menuItemData.status === 'available' ? 'disponible' : 'indisponible',
+    image_menu: menuItemData.id_file,
+    restaurant_hote: restaurant_id,
+  };
+
+  try {
+    const response = await fetch(`${API_URL}api/menu/${menuItemId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const responseData = await response.json();
+
+    if (!response.ok) {
+      const errorMessage = responseData.error || responseData.message || `Erreur HTTP: ${response.status}`;
+      throw new Error(errorMessage);
+    }
+
+    return responseData;
+
+  } catch (error) {
+    console.error('Erreur lors de la mise à jour du menu:', error);
+    if (error.message.includes('Failed to fetch')) {
+      throw new Error('Erreur de connexion au serveur.');
+    }
+    throw error;
   }
 }

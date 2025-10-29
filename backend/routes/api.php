@@ -50,6 +50,7 @@ Route::prefix('files')->group(function () {
     Route::post('/upload', [FileController::class, 'upload']);
     Route::get('/{id}', [FileController::class, 'show']);
     Route::delete('/{id}', [FileController::class, 'destroy']);
+    Route::put('/{id}', [FileController::class, 'replaceSimple']);
 });
 
 Route::get('/choisir_menu_jour', [choisir_menu_jourController::class, 'index']);
@@ -97,6 +98,7 @@ Route::prefix('notifications')->group(function () {
 Route::get('/menu/{id_menu}/restaurant', [menuController::class, 'getRestaurantByMenuId']);
 Route::get('/menu/{id_restaurant}/items', [menuController::class, 'getAllMenuItems']);
 Route::post('/menu', [menuController::class, 'index']);
+Route::put('/menu/{id_menu}', [menuController::class, 'update']);
 
 // Routes pour les statistiques admin
 

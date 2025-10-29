@@ -152,4 +152,77 @@ class menuController extends Controller
             return response()->json([], 500);
         }
     }
+
+    /**
+    * Met à jour un article de menu existant
+    */
+    public function update(Request $request, $menuId)
+    {
+        try {
+            $request->validate([
+                'nom_menu' => 'required|string|max:100',
+                'description_menu' => 'required|string',
+                'prix_menu' => 'required|numeric|min:0.01',
+                'libelle_menu' => 'required|string|in:entree,plat,dessert,boisson',
+                'statut_menu' => 'required|string|in:disponible,indisponible',
+                'restaurant_hote' => 'required|integer|min:1',
+                'image_menu' => 'nullable|integer'
+            ]);
+
+            $result = DB::select('SELECT update_menu_item(?, ?, ?, ?, ?, ?, ?, ?) as resultat', [
+                (int)$menuId,
+                $request->input('nom_menu'),
+                $request->input('description_menu'),
+                $request->input('prix_menu'),
+                $request->input('libelle_menu'),
+                $request->input('statut_menu'),
+                $request->input('restaurant_hote'),
+                $request->input('image_menu')
+            ]);
+            
+            if (empty($result)) {
+                return response()->json(['error' => 'Erreur lors de la mise à jour'], 500);
+            }
+            
+            $resultat = $result[0]->resultat;
+            
+            // Gérer les différents retours
+            if (str_starts_with($resultat, 'MENU_MODIFIE:')) {
+                return response()->json([
+                    'success' => 'Menu modifié avec succès',
+                    'menu_id' => $menuId
+                ]);
+            }
+            
+            switch ($resultat) {
+                case 'MENU_NON_TROUVE':
+                    return response()->json(['error' => 'Menu non trouvé dans ce restaurant'], 404);
+                    
+                case 'NOM_EXISTE_DEJA':
+                    return response()->json(['error' => 'Un autre menu avec ce nom existe déjà dans ce restaurant'], 409);
+                    
+                case 'IMAGE_NON_TROUVEE':
+                    return response()->json(['error' => 'Image non trouvée'], 404);
+                    
+                case 'AUCUNE_MODIFICATION':
+                    return response()->json(['error' => 'Aucune modification effectuée'], 400);
+                    
+                default:
+                    if (str_starts_with($resultat, 'ERREUR:')) {
+                        \Log::error('Erreur PostgreSQL update_menu_item: ' . $resultat);
+                        return response()->json(['error' => 'Erreur lors de la mise à jour'], 500);
+                    }
+                    return response()->json(['error' => 'Erreur inconnue'], 500);
+            }
+            
+        } catch (\Exception $e) {
+            \Log::error('Erreur lors de la mise à jour du menu:', [
+                'message' => $e->getMessage(),
+                'menu_id' => $menuId,
+                'data' => $request->all()
+            ]);
+            
+            return response()->json(['error' => 'Erreur interne du serveur'], 500);
+        }
+    }
 }

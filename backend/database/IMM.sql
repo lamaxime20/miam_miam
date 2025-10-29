@@ -237,6 +237,32 @@ BEGIN
 END;
 $$;
 
+CREATE OR REPLACE FUNCTION update_file(
+    p_id_file INTEGER,
+    p_nom_fichier NAME,
+    p_extension VARCHAR(10),
+    p_chemin TEXT
+)
+RETURNS TABLE(
+    id_file INTEGER,
+    nom_fichier NAME,
+    extension VARCHAR(10),
+    chemin TEXT
+) 
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    UPDATE file 
+    SET 
+        nom_fichier = p_nom_fichier,
+        extension = p_extension,
+        chemin = p_chemin
+    WHERE id_file = p_id_file
+    RETURNING file.id_file, file.nom_fichier, file.extension, file.chemin;
+END;
+$$;
+
 -- ==============================================
 -- FONCTION : lister_menu_du_jour()
 -- ==============================================

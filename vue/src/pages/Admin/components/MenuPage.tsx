@@ -22,7 +22,7 @@ import {
 } from './ui/select';
 import { Search, Plus, Edit, Trash2, UtensilsCrossed, ChefHat, Coffee, Cake, Image as ImageIcon, UploadCloud, X } from 'lucide-react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
-import { getAllMenuItems, convertirPrix, uploadImage, createMenuItem } from '../../../services/GestionMenu';
+import { getAllMenuItems, convertirPrix, uploadImage, createMenuItem, updateImage, updateMenuItem } from '../../../services/GestionMenu';
 
 interface MenuItem {
   id: string;
@@ -34,6 +34,7 @@ interface MenuItem {
   category: string;
   status: 'available' | 'unavailable';
   image?: string;
+  imageId?: number;
 }
 
 interface FormData {
@@ -42,7 +43,7 @@ interface FormData {
   priceEUR: string;
   category: string;
   imageUrl: string;
-  id_file?: string; // ID du fichier téléversé
+  id_file?: number; // ID du fichier téléversé
   available: boolean;
 }
 
@@ -85,6 +86,16 @@ export function MenuPage() {
     available: true,
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [editFormData, setEditFormData] = useState<FormData>({
+    name: '',
+    description: '',
+    priceEUR: '',
+    category: '',
+    imageUrl: '',
+    id_file: undefined,
+    available: true,
+  });
+
   const [isUploading, setIsUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -153,7 +164,7 @@ export function MenuPage() {
       // Assumant que l'API retourne un objet avec `url` et `data.id_file`
       if (response && response.url && response.data?.id_file) {
         console.log(API_URL +response.url, response.data.id_file);
-        setFormData({ ...formData, imageUrl: API_URL + response.url, id_file: response.data.id_file });
+        setFormData({ ...formData, imageUrl: API_URL + response.url, id_file: response.data.id_file as number });
       } else {
         alert("L'image a été téléversée, mais l'URL n'a pas pu être récupérée.");
       }
@@ -162,6 +173,34 @@ export function MenuPage() {
       alert(error.message || "Une erreur est survenue lors du téléversement de l'image.");
       // Optionnel: réinitialiser l'image si l'upload échoue
       setFormData({ ...formData, imageUrl: '' });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleEditFileSelect = async (file: File | null) => {
+    if (!file || !selectedItem) return;
+  
+    if (!file.type.startsWith('image/')) {
+      alert("Veuillez sélectionner un fichier image.");
+      return;
+    }
+  
+    setIsUploading(true);
+    try {
+      // Utiliser l'ID de l'image existante pour la mise à jour
+      const oldImageId = selectedItem.imageId;
+      if (oldImageId === undefined) {
+        throw new Error("L'ID de l'image originale est manquant.");
+      }
+      const response = await updateImage(oldImageId, file);
+  
+      if (response && response.url && response.data?.id_file) {
+        setEditFormData({ ...editFormData, imageUrl: API_URL + response.url, id_file: response.data.id_file as number });
+      }
+    } catch (error) {
+      console.error("Erreur lors de la mise à jour de l'image:", error);
+      alert(error.message || "Une erreur est survenue lors de la mise à jour de l'image.");
     } finally {
       setIsUploading(false);
     }
@@ -223,12 +262,67 @@ export function MenuPage() {
     }
   };
 
+  const handleEditItem = async () => {
+    if (!selectedItem) return;
+  
+    try {
+      setFormError(null);
+  
+      if (!editFormData.name || !editFormData.description || !editFormData.priceEUR || !editFormData.category) {
+        setFormError('Veuillez remplir tous les champs obligatoires.');
+        return;
+      }
+  
+      const priceNum = parseFloat(editFormData.priceEUR);
+      if (isNaN(priceNum) || priceNum <= 0) {
+        setFormError('Le prix saisi est invalide.');
+        return;
+      }
+  
+      setIsLoading(true);
+  
+      const updatedItemData = {
+        name: editFormData.name,
+        description: editFormData.description,
+        price: priceNum,
+        category: editFormData.category,
+        status: editFormData.available ? 'available' : 'unavailable',
+        id_file: editFormData.id_file ?? selectedItem.imageId,
+      };
+  
+      await updateMenuItem(selectedItem.id, updatedItemData);
+      await loadMenuItems();
+  
+      setSelectedItem(null);
+      alert('Article modifié avec succès !');
+    } catch (error) {
+      console.error("Erreur lors de la modification:", error);
+      setFormError(error.message || "Une erreur inconnue est survenue.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const toggleStatus = (id: string) => {
     setMenuItems(menuItems.map(item => 
       item.id === id 
         ? { ...item, status: item.status === 'available' ? 'unavailable' : 'available' as const }
         : item
     ));
+  };
+
+  const openEditDialog = (item: MenuItem) => {
+    setSelectedItem(item);
+    setEditFormData({
+      name: item.name,
+      description: item.description,
+      priceEUR: item.price.toString(),
+      category: item.category,
+      imageUrl: item.image || '',
+      id_file: item.imageId,
+      available: item.status === 'available',
+    });
+    setFormError(null);
   };
 
   return (
@@ -338,7 +432,7 @@ export function MenuPage() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => setSelectedItem(item)}
+                              onClick={() => openEditDialog(item)}
                             >
                               <Edit className="h-4 w-4 text-blue-600" />
                             </Button>
@@ -383,22 +477,75 @@ export function MenuPage() {
 
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label>Nom du plat</Label>
-                  <Input defaultValue={selectedItem.name} />
+                  <Label>Nom du plat *</Label>
+                  <Input 
+                    value={editFormData.name}
+                    onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                  />
                 </div>
                 <div className="space-y-2">
-                  <Label>Description</Label>
-                  <Textarea defaultValue={selectedItem.description} rows={3} />
+                  <Label>Description *</Label>
+                  <Textarea 
+                    value={editFormData.description}
+                    onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
+                    rows={3} 
+                  />
                 </div>
                 <div className="space-y-2">
-                  <Label>Prix (€)</Label>
-                  <Input type="number" step="0.01" defaultValue={selectedItem.price} />
+                  <Label>Prix en EUR *</Label>
+                  <Input 
+                    type="number" 
+                    step="0.01" 
+                    value={editFormData.priceEUR}
+                    onChange={(e) => setEditFormData({ ...editFormData, priceEUR: e.target.value })}
+                  />
+                   {editFormData.priceEUR && !isNaN(parseFloat(editFormData.priceEUR)) && (
+                    <p className="text-sm text-gray-500">
+                      Prix en XAF : <span className="font-bold text-[#cfbd97]">{(convertirPrix(parseFloat(editFormData.priceEUR)) as { xafFormate: string }).xafFormate}</span>
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-2">
-                  <Label>Catégorie</Label>
-                  <Select defaultValue={selectedItem.category}>
+                  <Label>Image du plat</Label>
+                  <div
+                    className={`relative border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors
+                      ${isDragging ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400'}`}
+                    onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                    onDragEnter={(e) => { e.preventDefault(); setIsDragging(true); }}
+                    onDragLeave={(e) => { e.preventDefault(); setIsDragging(false); }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setIsDragging(false);
+                      handleEditFileSelect(e.dataTransfer.files[0]);
+                    }}
+                    onClick={() => document.getElementById('edit-file-upload')?.click()}
+                  >
+                    <input 
+                      id="edit-file-upload" 
+                      type="file" 
+                      className="hidden" 
+                      accept="image/*"
+                      onChange={(e) => handleEditFileSelect(e.target.files ? e.target.files[0] : null)}
+                    />
+                    <div className="flex flex-col items-center justify-center space-y-2 text-gray-500">
+                      <UploadCloud className="h-8 w-8" />
+                      <p className="text-sm">{isUploading ? 'Téléversement...' : 'Glissez une image ou cliquez'}</p>
+                    </div>
+                  </div>
+                  {editFormData.imageUrl && (
+                    <div className="mt-2 relative">
+                      <ImageWithFallback src={editFormData.imageUrl} alt="Aperçu" className="w-full h-auto rounded-lg" />
+                      <Button variant="destructive" size="sm" className="absolute top-2 right-2 h-7 w-7 p-0" onClick={() => setEditFormData({ ...editFormData, imageUrl: '', id_file: undefined })}>
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label>Catégorie *</Label>
+                  <Select value={editFormData.category} onValueChange={(value) => setEditFormData({ ...editFormData, category: value })}>
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue placeholder="Sélectionner une catégorie" />
                     </SelectTrigger>
                     <SelectContent>
                       {categories.map(cat => (
@@ -408,14 +555,14 @@ export function MenuPage() {
                   </Select>
                 </div>
                 <div className="flex items-center gap-2">
-                  <input
+                  <input 
                     type="checkbox"
-                    id="available"
-                    checked={selectedItem.status === 'available'}
-                    onChange={() => toggleStatus(selectedItem.id)}
+                    id="available-edit"
+                    checked={editFormData.available}
+                    onChange={(e) => setEditFormData({ ...editFormData, available: e.target.checked })}
                     className="h-4 w-4"
                   />
-                  <Label htmlFor="available">Article disponible</Label>
+                  <Label htmlFor="available-edit">Article disponible</Label>
                 </div>
               </div>
 
@@ -425,9 +572,10 @@ export function MenuPage() {
                 </Button>
                 <Button 
                   className="bg-[#cfbd97] hover:bg-[#bfad87] text-black"
-                  onClick={() => setSelectedItem(null)}
+                  onClick={handleEditItem}
+                  disabled={isLoading || isUploading}
                 >
-                  Enregistrer
+                  {isLoading ? 'Enregistrement...' : 'Enregistrer'}
                 </Button>
               </DialogFooter>
             </>

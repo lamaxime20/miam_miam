@@ -373,3 +373,83 @@ EXCEPTION
         RETURN 'ERREUR: ' || SQLERRM;
 END;
 $$;
+
+CREATE OR REPLACE FUNCTION update_menu_item(
+    p_menu_id INT,
+    p_nom_menu Name,
+    p_description_menu TEXT,
+    p_prix_menu prices,
+    p_libelle_menu typeRepas,
+    p_statut_menu menuState,
+    p_restaurant_hote INT,
+    p_image_menu INT DEFAULT NULL
+)
+RETURNS TEXT 
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    fidelity_points_calcules pointFidelite;
+    rows_affected INT;
+BEGIN
+    -- Vérifier si le menu existe et appartient au restaurant
+    IF NOT EXISTS (
+        SELECT 1 
+        FROM menu 
+        WHERE id_menu = p_menu_id 
+        AND restaurant_hote = p_restaurant_hote
+    ) THEN
+        RETURN 'MENU_NON_TROUVE';
+    END IF;
+    
+    -- Vérifier si le nom est déjà utilisé par un autre menu dans le même restaurant
+    IF EXISTS (
+        SELECT 1 
+        FROM menu 
+        WHERE nom_menu = p_nom_menu 
+        AND restaurant_hote = p_restaurant_hote
+        AND id_menu != p_menu_id
+    ) THEN
+        RETURN 'NOM_EXISTE_DEJA';
+    END IF;
+    
+    -- Vérifier si l'image existe (si fournie)
+    IF p_image_menu IS NOT NULL AND NOT EXISTS (SELECT 1 FROM file WHERE id_file = p_image_menu) THEN
+        RETURN 'IMAGE_NON_TROUVEE';
+    END IF;
+    
+    -- Calculer les nouveaux points de fidélité : prix / 1000 (arrondi à l'entier)
+    fidelity_points_calcules := ROUND(p_prix_menu / 1000)::INT;
+    
+    -- S'assurer que les points sont au minimum 1
+    IF fidelity_points_calcules < 1 THEN
+        fidelity_points_calcules := 1;
+    END IF;
+    
+    -- Mettre à jour le menu
+    UPDATE menu 
+    SET 
+        nom_menu = p_nom_menu,
+        description_menu = p_description_menu,
+        image_menu = p_image_menu,
+        prix_menu = p_prix_menu,
+        fidelity_point = fidelity_points_calcules,
+        statut_menu = p_statut_menu,
+        libelle_menu = p_libelle_menu,
+        updated_at = CURRENT_TIMESTAMP
+    WHERE id_menu = p_menu_id
+    AND restaurant_hote = p_restaurant_hote;
+    
+    GET DIAGNOSTICS rows_affected = ROW_COUNT;
+    
+    IF rows_affected = 0 THEN
+        RETURN 'AUCUNE_MODIFICATION';
+    END IF;
+    
+    RETURN 'MENU_MODIFIE:' || p_menu_id::TEXT;
+    
+EXCEPTION
+    WHEN OTHERS THEN
+        -- En cas d'erreur, retourner le message d'erreur
+        RETURN 'ERREUR: ' || SQLERRM;
+END;
+$$;
