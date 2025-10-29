@@ -3,10 +3,10 @@
 use App\Http\Controllers\Api\administrateurController;
 use App\Http\Controllers\Api\UtilisateurController;
 use App\Models\Utilisateur;
-use App\Http\Controllers\Api\fileController;
+use App\Http\Controllers\Api\fileController as FileController;
 use App\Http\Controllers\Api\choisir_menu_jourController;
 use App\Models\choisir_menu_jour;
-use App\Http\Controllers\Api\clientController;
+use App\Http\Controllers\Api\clientController as ClientController;
 use App\Http\Controllers\Api\promotionController;
 use App\Http\Controllers\Api\notificationsController;
 use App\Http\Controllers\Api\menuController;
@@ -15,7 +15,9 @@ use App\Http\Controllers\Api\reponseController;
 use App\Http\Controllers\Api\reclamationController;
 use App\Http\Controllers\employeController;
 use App\Http\Controllers\Api\statsDashboardAdminController;
-
+use App\Http\Controllers\Api\commandeController;
+use App\Http\Controllers\Api\livraisonController;
+use App\Http\Controllers\Api\etre_livreurController;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -44,17 +46,16 @@ Route::get('/administrateurs/{id}', [administrateurController::class, 'show']);
 Route::post('/administrateurs', [administrateurController::class, 'store']);
 Route::put('/administrateurs/{id}', [administrateurController::class, 'update']);
 Route::delete('/administrateurs/{id}', [administrateurController::class, 'destroy']);
-Route::get('/files', [fileController::class, 'index']);
-Route::get('/files/{id}', [fileController::class, 'show']);
-Route::post('/files', [fileController::class, 'store']);
-Route::put('/files/{id}', [fileController::class, 'update']);
-Route::delete('/files/{id}', [fileController::class, 'destroy']);
+Route::get('/files', [FileController::class, 'index']);
+Route::get('/files/{id}', [FileController::class, 'show']);
+Route::post('/files', [FileController::class, 'store']);
+Route::put('/files/{id}', [FileController::class, 'update']);
+Route::delete('/files/{id}', [FileController::class, 'destroy']);
 Route::get('/getemployeesrestaurant/{id}', [administrateurController::class, 'getEmployees']);
 Route::post('/createemployee', [administrateurController::class, 'createEmployee']);
 Route::post('/desactiveremploye', [administrateurController::class, 'desactiverEmploye']);
 
 // Routes pour les fichiers
-
 Route::prefix('files')->group(function () {
     Route::get('/', [FileController::class, 'index']);
     Route::post('/upload', [FileController::class, 'upload']);
@@ -70,33 +71,23 @@ Route::get('/clients/{id}', [ClientController::class, 'show']);
 Route::put('/clients/{id}', [ClientController::class, 'update']);
 Route::delete('/clients/{id}', [ClientController::class, 'destroy']);
 Route::prefix('client')->group(function () {
-    // GET /api/client/{id}/filleuls
     Route::get('{id}/filleuls', [ClientController::class, 'totalFilleuls']);
-
-    // GET /api/client/{id}/commandes
     Route::get('{id}/commandes', [ClientController::class, 'totalCommandes']);
-
-    // GET /api/client/{id}/points
     Route::get('{id}/points', [ClientController::class, 'pointsFidelite']);
-
-    // GET /api/client/{id}/dashboard-stats
     Route::get('{id}/dashboard-stats', [ClientController::class, 'dashboardStats']);
-
-    // GET /api/client/{id}/commandes-recentes
     Route::get('{id}/commandes-recentes', [ClientController::class, 'commandesRecentes']);
-
-    // GET /api/client/{id}/details-fidelite
     Route::get('{id}/details-fidelite', [ClientController::class, 'detailsFidelite']);
-
-    // NEW: GET /api/client/{id}/referral-details
-    Route::get('{id}/referral-details', [ClientController::class, 'referralDetails']);
-
-    // NEW: POST /api/client/{id}/bonus-quotidien
-    Route::post('{id}/bonus-quotidien', [ClientController::class, 'claimDailyBonus']);
-
-    // GET /api/client/top-clients
     Route::get('top-clients', [ClientController::class, 'topClients']);
 });
+
+// === Employer/Commande & Livraison endpoints ===
+Route::get('/employe/commandes', [commandeController::class, 'employerIndex']);
+Route::put('/commandes/{id}/status', [commandeController::class, 'updateStatus']);
+Route::post('/commandes/{id}/assigner-livreur', [commandeController::class, 'assignerLivreur']);
+Route::get('/livreurs/disponibles', [etre_livreurController::class, 'disponibles']);
+
+// Livraison status update (optional for future steps)
+Route::put('/livraisons/{id}/status', [livraisonController::class, 'updateStatus']);
 
 // Routes pour les promotions
 Route::get('/promotions/actives', [promotionController::class, 'promotionsActives']);

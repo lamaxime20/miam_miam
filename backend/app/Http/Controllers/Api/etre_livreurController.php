@@ -4,46 +4,28 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class etre_livreurController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function disponibles(Request $request)
     {
-        //
-    }
+        // Optionally filter by restaurant: ?restaurant_id=...
+        $restaurantId = $request->query('restaurant_id');
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        //
-    }
+        $params = [];
+        $sql = 'SELECT el.id_livreur AS id, u.nom_user AS nom, u.num_user AS tel, el.note_livreur AS evaluation
+                FROM Etre_livreur el
+                JOIN Livreur l ON l.id_user = el.id_livreur
+                JOIN "Utilisateur" u ON u.id_user = el.id_livreur
+                WHERE el.service_employe = TRUE';
+        if ($restaurantId) {
+            $sql .= ' AND el.id_restaurant = ?';
+            $params[] = $restaurantId;
+        }
+        $sql .= ' ORDER BY evaluation DESC, nom ASC';
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
+        $rows = DB::select($sql, $params);
+        return response()->json($rows);
     }
 }
