@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import '../assets/styles/login.css';
 import { loginUser, recupererToken } from '../services/user';
 import { avoirRoleUser } from '../services/login';
+import { getAuthInfo } from '../services/user';
+import { roleAdmin, roleClient, roleEmploye, roleGerant, roleLivreur } from '../App';
 
 const LoginFormChoixRole = ({ onBack }) => {
     const navigate = useNavigate();
@@ -96,16 +98,22 @@ const LoginFormChoixRole = ({ onBack }) => {
         const { email, password } = credentials;
         const res = await loginUser({ email, password, role: roleKey, restaurant: String(restaurantId) });
         console.log(recupererToken());
+        console.log(roleKey);
+        console.log(restaurantId);
+        const roleAuth = await getAuthInfo();
+        console.log(roleAuth);
         if (res.success) {
-            switch (roleKey) {
-                case 'administrateur':
+            switch (roleAuth.role) {
+                case roleAdmin:
                     navigate('/admin');
                     break;
-                case 'gerant':
-                case 'employe':
+                case roleGerant:
+                    navigate('/gerant');
+                    break;
+                case roleEmploye:
                     navigate('/employer');
                     break;
-                case 'livreur':
+                case roleLivreur:
                     navigate('/livreur-dashboard');
                     break;
                 case 'client':
