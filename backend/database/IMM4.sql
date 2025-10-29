@@ -494,3 +494,201 @@ BEGIN
 
 END;
 $$;
+
+CREATE OR REPLACE FUNCTION create_promotion(
+    p_titre Name,
+    p_description_promotion TEXT,
+    p_pourcentage_reduction DECIMAL(5,2),
+    p_date_debut TIMESTAMP,
+    p_date_fin TIMESTAMP,
+    p_image_promo INT DEFAULT NULL
+)
+RETURNS TEXT 
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    nouveau_id INT;
+BEGIN
+    -- Validation des dates
+    IF p_date_debut >= p_date_fin THEN
+        RETURN 'DATES_INVALIDES';
+    END IF;
+    
+    IF p_date_debut < CURRENT_TIMESTAMP THEN
+        RETURN 'DATE_DEBUT_PASSEE';
+    END IF;
+    
+    -- Validation du pourcentage de réduction
+    IF p_pourcentage_reduction <= 0 OR p_pourcentage_reduction > 100 THEN
+        RETURN 'POURCENTAGE_INVALIDE';
+    END IF;
+    
+    -- Vérifier si l'image existe (si fournie)
+    IF p_image_promo IS NOT NULL AND NOT EXISTS (SELECT 1 FROM file WHERE id_file = p_image_promo) THEN
+        RETURN 'IMAGE_NON_TROUVEE';
+    END IF;
+    
+    -- Vérifier les conflits de dates avec d'autres promotions
+    IF EXISTS (
+        SELECT 1 
+        FROM promotion 
+        WHERE (
+            (p_date_debut BETWEEN date_debut AND date_fin) OR
+            (p_date_fin BETWEEN date_debut AND date_fin) OR
+            (date_debut BETWEEN p_date_debut AND p_date_fin) OR
+            (date_fin BETWEEN p_date_debut AND p_date_fin)
+        )
+    ) THEN
+        RETURN 'CONFLIT_DATES';
+    END IF;
+    
+    -- Insérer la nouvelle promotion
+    INSERT INTO promotion (
+        titre,
+        description_promotion,
+        date_debut,
+        date_fin,
+        image_promo,
+        pourcentage_reduction
+    ) VALUES (
+        p_titre,
+        p_description_promotion,
+        p_date_debut,
+        p_date_fin,
+        p_image_promo,
+        p_pourcentage_reduction
+    )
+    RETURNING id_promo INTO nouveau_id;
+    
+    RETURN 'PROMOTION_CREE:' || nouveau_id::TEXT;
+    
+EXCEPTION
+    WHEN OTHERS THEN
+        -- En cas d'erreur, retourner le message d'erreur
+        RETURN 'ERREUR: ' || SQLERRM;
+END;
+$$;
+
+
+CREATE OR REPLACE FUNCTION update_promotion(
+    p_id_promo INT,
+    p_titre Name,
+    p_description_promotion TEXT,
+    p_pourcentage_reduction DECIMAL(5,2),
+    p_date_debut TIMESTAMP,
+    p_date_fin TIMESTAMP,
+    p_image_promo INT DEFAULT NULL
+)
+RETURNS TEXT 
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    rows_affected INT;
+BEGIN
+    -- Vérifier si la promotion existe
+    IF NOT EXISTS (SELECT 1 FROM promotion WHERE id_promo = p_id_promo) THEN
+        RETURN 'PROMOTION_NON_TROUVEE';
+    END IF;
+    
+    -- Validation des dates
+    IF p_date_debut >= p_date_fin THEN
+        RETURN 'DATES_INVALIDES';
+    END IF;
+    
+    -- Validation du pourcentage de réduction
+    IF p_pourcentage_reduction <= 0 OR p_pourcentage_reduction > 100 THEN
+        RETURN 'POURCENTAGE_INVALIDE';
+    END IF;
+    
+    -- Vérifier si l'image existe (si fournie)
+    IF p_image_promo IS NOT NULL AND NOT EXISTS (SELECT 1 FROM file WHERE id_file = p_image_promo) THEN
+        RETURN 'IMAGE_NON_TROUVEE';
+    END IF;
+    
+    -- Vérifier les conflits de dates avec d'autres promotions (exclure la promotion actuelle)
+    IF EXISTS (
+        SELECT 1 
+        FROM promotion 
+        WHERE id_promo != p_id_promo
+        AND (
+            (p_date_debut BETWEEN date_debut AND date_fin) OR
+            (p_date_fin BETWEEN date_debut AND date_fin) OR
+            (date_debut BETWEEN p_date_debut AND p_date_fin) OR
+            (date_fin BETWEEN p_date_debut AND p_date_fin)
+        )
+    ) THEN
+        RETURN 'CONFLIT_DATES';
+    END IF;
+    
+    -- Mettre à jour la promotion
+    UPDATE promotion 
+    SET 
+        titre = p_titre,
+        description_promotion = p_description_promotion,
+        date_debut = p_date_debut,
+        date_fin = p_date_fin,
+        image_promo = p_image_promo,
+        pourcentage_reduction = p_pourcentage_reduction
+    WHERE id_promo = p_id_promo;
+    
+    GET DIAGNOSTICS rows_affected = ROW_COUNT;
+    
+    IF rows_affected = 0 THEN
+        RETURN 'AUCUNE_MODIFICATION';
+    END IF;
+    
+    RETURN 'PROMOTION_MODIFIEE:' || p_id_promo::TEXT;
+    
+EXCEPTION
+    WHEN OTHERS THEN
+        -- En cas d'erreur, retourner le message d'erreur
+        RETURN 'ERREUR: ' || SQLERRM;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION ajouter_menu_promotion(
+    p_id_promo INTEGER,
+    p_id_menu INTEGER
+)
+RETURNS TEXT 
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    promotion_exists BOOLEAN;
+    menu_exists BOOLEAN;
+    already_linked BOOLEAN;
+BEGIN
+    -- Vérifier si la promotion existe
+    SELECT EXISTS(SELECT 1 FROM promotion WHERE id_promo = p_id_promo) INTO promotion_exists;
+    IF NOT promotion_exists THEN
+        RETURN 'PROMOTION_NON_TROUVEE';
+    END IF;
+    
+    -- Vérifier si le menu existe
+    SELECT EXISTS(SELECT 1 FROM menu WHERE id_menu = p_id_menu) INTO menu_exists;
+    IF NOT menu_exists THEN
+        RETURN 'MENU_NON_TROUVE';
+    END IF;
+    
+    -- Vérifier si l'association existe déjà
+    SELECT EXISTS(
+        SELECT 1 
+        FROM concerner_menu 
+        WHERE id_promo = p_id_promo AND id_menu = p_id_menu
+    ) INTO already_linked;
+    
+    IF already_linked THEN
+        RETURN 'ASSOCIATION_EXISTE_DEJA';
+    END IF;
+    
+    -- Insérer l'association
+    INSERT INTO concerner_menu (id_promo, id_menu)
+    VALUES (p_id_promo, p_id_menu);
+    
+    RETURN 'ASSOCIATION_CREEE';
+    
+EXCEPTION
+    WHEN OTHERS THEN
+        RETURN 'ERREUR: ' || SQLERRM;
+END;
+$$;

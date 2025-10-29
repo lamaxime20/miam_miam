@@ -20,8 +20,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from './ui/select';
-import { getPromotions } from '../../../services/GestionPromotion';
-import { Plus, Edit, Trash2, Tag, TrendingUp, Calendar, Percent } from 'lucide-react';
+import { getPromotions, createPromotion, updatePromotion } from '../../../services/GestionPromotion';
+import { uploadImage, updateImage } from '../../../services/GestionMenu';
+import { ImageWithFallback } from './figma/ImageWithFallback';
+import { Plus, Edit, Trash2, Tag, TrendingUp, Calendar, Percent, UploadCloud, X } from 'lucide-react';
 
 interface Promotion {
   id: string;
@@ -31,6 +33,7 @@ interface Promotion {
   discount: number;
   startDate: string;
   endDate: string;
+  imageId?: number;
   status: 'active' | 'scheduled' | 'expired';
 }
 
@@ -40,6 +43,8 @@ interface FormData {
   discount: string;
   startDate: string;
   endDate: string;
+  imageUrl: string;
+  id_file?: number;
 }
 
 const statusConfig = {
@@ -49,6 +54,9 @@ const statusConfig = {
 };
 
 export function PromotionsPage() {
+  const API_URL = import.meta.env.VITE_API_URL;
+  const URL_image = API_URL + 'storage/';
+
   const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [selectedPromo, setSelectedPromo] = useState<Promotion | null>(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -58,6 +66,8 @@ export function PromotionsPage() {
     discount: '',
     startDate: '',
     endDate: '',
+    imageUrl: '',
+    id_file: undefined,
   });
   const [editFormData, setEditFormData] = useState<FormData>({
     name: '',
@@ -65,8 +75,12 @@ export function PromotionsPage() {
     discount: '',
     startDate: '',
     endDate: '',
+    imageUrl: '',
+    id_file: undefined,
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
   useEffect(() => {
     const fetchPromotions = async () => {
@@ -81,6 +95,7 @@ export function PromotionsPage() {
           startDate: new Date(p.date_debut).toISOString().split('T')[0],
           endDate: new Date(p.date_fin).toISOString().split('T')[0],
           status: calculateStatus(p.date_debut, p.date_fin),
+          imageId: p.image_promo,
           image_path: p.image_path,
         }));
         setPromotions(formattedPromotions);
@@ -95,6 +110,60 @@ export function PromotionsPage() {
     fetchPromotions();
   }, []);
 
+  const handleFileSelect = async (file: File | null) => {
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      alert("Veuillez sélectionner un fichier image (jpeg, png, etc.).");
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const response = await uploadImage(file);
+      
+      if (response && response.url && response.data?.id_file) {
+        setFormData({ ...formData, imageUrl: `${URL_image}${response.data.chemin}`, id_file: response.data.id_file as number });
+      } else {
+        alert("L'image a été téléversée, mais les informations n'ont pas pu être récupérées.");
+      }
+    } catch (error: any) {
+      console.error("Erreur lors du téléversement:", error);
+      alert(error.message || "Une erreur est survenue lors du téléversement de l'image.");
+      setFormData({ ...formData, imageUrl: '', id_file: undefined });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleEditFileSelect = async (file: File | null) => {
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      alert("Veuillez sélectionner un fichier image.");
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      let response;
+      const oldImageId = editFormData.id_file;
+
+      if (oldImageId) {
+        response = await updateImage(oldImageId, file);
+      } else {
+        response = await uploadImage(file);
+      }
+
+      if (response && response.url && response.data?.id_file) {
+        setEditFormData({ ...editFormData, imageUrl: `${URL_image}${response.data.chemin}`, id_file: response.data.id_file as number });
+      }
+    } catch (error: any) {
+      alert(error.message || "Une erreur est survenue lors de la mise à jour de l'image.");
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const stats = {
     total: promotions.length,
@@ -120,7 +189,7 @@ export function PromotionsPage() {
   };
 
   // Ajouter une promotion
-  const handleAddPromotion = () => {
+  const handleAddPromotion = async () => {
     try {
       // Validation
       if (!formData.name || !formData.description || !formData.discount || !formData.startDate || !formData.endDate) {
@@ -142,28 +211,30 @@ export function PromotionsPage() {
 
       setIsLoading(true);
 
-      // Créer la nouvelle promotion
-      const newPromo: Promotion = {
-        id: Date.now().toString(),
+      const newPromoData = {
         name: formData.name,
         description: formData.description,
         discount: discountNum,
-        image_path: undefined, // Pas d'image à la création pour l'instant
         startDate: formData.startDate,
         endDate: formData.endDate,
-        status: calculateStatus(formData.startDate, formData.endDate),
+        id_file: formData.id_file,
       };
 
-      // TODO: Décommenter quand l'API est prête
-      // await sauvegarderPromotion(newPromo);
+      await createPromotion(newPromoData);
 
-      // Ajouter à la liste
-      setPromotions([...promotions, newPromo]);
+      // Recharger les promotions pour afficher la nouvelle
+      const data = await getPromotions();
+      const formattedPromotions = data.map((p: any) => ({
+        id: p.id_promo.toString(), name: p.titre, description: p.description_promotion,
+        discount: parseFloat(p.pourcentage_reduction), startDate: new Date(p.date_debut).toISOString().split('T')[0],
+        endDate: new Date(p.date_fin).toISOString().split('T')[0], status: calculateStatus(p.date_debut, p.date_fin),
+        image_path: p.image_path, imageId: p.image_promo,
+      }));
+      setPromotions(formattedPromotions);
 
       // Réinitialiser le formulaire
       setFormData({
-        name: '',
-        description: '',
+        name: '', description: '',
         discount: '',
         startDate: '',
         endDate: '',
@@ -172,7 +243,7 @@ export function PromotionsPage() {
       setShowAddDialog(false);
       alert('Promotion créée avec succès !');
     } catch (error) {
-      console.error('Erreur lors de l\'ajout:', error);
+      console.error("Erreur lors de l'ajout:", error);
       alert('Erreur lors de la création de la promotion');
     } finally {
       setIsLoading(false);
@@ -180,7 +251,7 @@ export function PromotionsPage() {
   };
 
   // Modifier une promotion
-  const handleEditPromotion = () => {
+  const handleEditPromotion = async () => {
     if (!selectedPromo) return;
 
     try {
@@ -203,22 +274,26 @@ export function PromotionsPage() {
 
       setIsLoading(true);
 
-      // Mettre à jour la promotion
-      const updatedPromo: Promotion = {
-        ...selectedPromo,
+      const updatedPromoData = {
         name: editFormData.name,
         description: editFormData.description,
         discount: discountNum,
         startDate: editFormData.startDate,
         endDate: editFormData.endDate,
-        status: calculateStatus(editFormData.startDate, editFormData.endDate),
+        id_file: editFormData.id_file,
       };
 
-      // TODO: Décommenter quand l'API est prête
-      // await modifierPromotion(updatedPromo);
+      await updatePromotion(selectedPromo.id, updatedPromoData);
 
-      // Mettre à jour dans la liste
-      setPromotions(promotions.map(p => p.id === selectedPromo.id ? updatedPromo : p));
+      // Recharger les promotions pour afficher les modifications
+      const data = await getPromotions();
+      const formattedPromotions = data.map((p: any) => ({
+        id: p.id_promo.toString(), name: p.titre, description: p.description_promotion,
+        discount: parseFloat(p.pourcentage_reduction), startDate: new Date(p.date_debut).toISOString().split('T')[0],
+        endDate: new Date(p.date_fin).toISOString().split('T')[0], status: calculateStatus(p.date_debut, p.date_fin),
+        image_path: p.image_path, imageId: p.image_promo,
+      }));
+      setPromotions(formattedPromotions);
 
       setSelectedPromo(null);
       alert('Promotion modifiée avec succès !');
@@ -238,6 +313,8 @@ export function PromotionsPage() {
       discount: promo.discount.toString(),
       startDate: promo.startDate,
       endDate: promo.endDate,
+      imageUrl: promo.image_path ? `${URL_image}${promo.image_path}` : '',
+      id_file: promo.imageId,
     });
     setSelectedPromo(promo);
   };
@@ -328,7 +405,7 @@ export function PromotionsPage() {
                     {promo.image_path && (
                       <div className="mb-4 rounded-lg overflow-hidden h-40">
                         <img 
-                          src={`http://localhost:8000${promo.image_path}`} 
+                          src={`${URL_image}${promo.image_path}`} 
                           alt={promo.name} className="w-full h-full object-cover" />
                       </div>
                     )}
@@ -438,6 +515,42 @@ export function PromotionsPage() {
                     max="100" 
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label>Image de la promotion</Label>
+                  <div
+                    className={`relative border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors
+                      ${isDragging ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400'}`}
+                    onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                    onDragEnter={(e) => { e.preventDefault(); setIsDragging(true); }}
+                    onDragLeave={(e) => { e.preventDefault(); setIsDragging(false); }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setIsDragging(false);
+                      handleEditFileSelect(e.dataTransfer.files[0]);
+                    }}
+                    onClick={() => document.getElementById('edit-promo-file-upload')?.click()}
+                  >
+                    <input 
+                      id="edit-promo-file-upload" 
+                      type="file" 
+                      className="hidden" 
+                      accept="image/*"
+                      onChange={(e) => handleEditFileSelect(e.target.files ? e.target.files[0] : null)}
+                    />
+                    <div className="flex flex-col items-center justify-center space-y-2 text-gray-500">
+                      <UploadCloud className="h-8 w-8" />
+                      <p className="text-sm">{isUploading ? 'Téléversement...' : 'Glissez une image ou cliquez'}</p>
+                    </div>
+                  </div>
+                  {editFormData.imageUrl && (
+                    <div className="mt-2 relative">
+                      <ImageWithFallback src={editFormData.imageUrl} alt="Aperçu" className="w-full h-auto rounded-lg" />
+                      <Button variant="destructive" size="sm" className="absolute top-2 right-2 h-7 w-7 p-0" onClick={() => setEditFormData({ ...editFormData, imageUrl: '', id_file: undefined })}>
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Date de début *</Label>
@@ -462,16 +575,16 @@ export function PromotionsPage() {
                 <Button 
                   variant="outline" 
                   onClick={() => setSelectedPromo(null)}
-                  disabled={isLoading}
+                  disabled={isLoading || isUploading}
                 >
                   Annuler
                 </Button>
                 <Button 
                   className="bg-[#cfbd97] hover:bg-[#bfad87] text-black"
                   onClick={handleEditPromotion}
-                  disabled={isLoading}
+                  disabled={isLoading || isUploading}
                 >
-                  {isLoading ? 'Enregistrement...' : 'Enregistrer'}
+                  {isUploading ? 'Téléversement...' : (isLoading ? 'Enregistrement...' : 'Enregistrer')}
                 </Button>
               </DialogFooter>
             </>
@@ -519,6 +632,43 @@ export function PromotionsPage() {
               />
               <p className="text-xs text-gray-500">Entre 1% et 100%</p>
             </div>
+            <div className="space-y-2">
+              <Label>Image de la promotion</Label>
+              <div
+                className={`relative border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors
+                  ${isDragging ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400'}`}
+                onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                onDragEnter={(e) => { e.preventDefault(); setIsDragging(true); }}
+                onDragLeave={(e) => { e.preventDefault(); setIsDragging(false); }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setIsDragging(false);
+                  const file = e.dataTransfer.files[0];
+                  handleFileSelect(file);
+                }}
+                onClick={() => document.getElementById('promo-file-upload')?.click()}
+              >
+                <input 
+                  id="promo-file-upload" 
+                  type="file" 
+                  className="hidden" 
+                  accept="image/*"
+                  onChange={(e) => handleFileSelect(e.target.files ? e.target.files[0] : null)}
+                />
+                <div className="flex flex-col items-center justify-center space-y-2 text-gray-500">
+                  <UploadCloud className="h-8 w-8" />
+                  <p className="text-sm">{isUploading ? 'Téléversement...' : 'Glissez une image ou cliquez'}</p>
+                </div>
+              </div>
+              {formData.imageUrl && (
+                <div className="mt-2 relative">
+                  <ImageWithFallback src={formData.imageUrl} alt="Aperçu" className="w-full h-auto rounded-lg" />
+                  <Button variant="destructive" size="sm" className="absolute top-2 right-2 h-7 w-7 p-0" onClick={() => setFormData({ ...formData, imageUrl: '', id_file: undefined })}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+            </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Date de début *</Label>
@@ -550,18 +700,20 @@ export function PromotionsPage() {
                   discount: '',
                   startDate: '',
                   endDate: '',
+                  imageUrl: '',
+                  id_file: undefined,
                 });
               }}
-              disabled={isLoading}
+              disabled={isLoading || isUploading}
             >
               Annuler
             </Button>
             <Button 
               className="bg-[#cfbd97] hover:bg-[#bfad87] text-black"
               onClick={handleAddPromotion}
-              disabled={isLoading}
+              disabled={isLoading || isUploading}
             >
-              {isLoading ? 'Création...' : 'Créer la promotion'}
+              {isUploading ? 'Téléversement...' : (isLoading ? 'Création...' : 'Créer la promotion')}
             </Button>
           </DialogFooter>
         </DialogContent>

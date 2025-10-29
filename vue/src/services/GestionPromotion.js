@@ -41,3 +41,78 @@ export async function getPromotions() {
     return [];
   }
 }
+
+/**
+ * Créer une nouvelle promotion
+ *
+ * CONNEXION BASE DE DONNÉES :
+ * ---------------------------
+ * Cette fonction doit appeler un endpoint de l'API (ex: POST /api/promotions)
+ * qui exécutera la fonction SQL `create_promotion`.
+ *
+ * Le corps de la requête doit contenir les données de la promotion.
+ *
+ * @param {Object} promoData - Données de la promotion à créer.
+ * @param {string} promoData.name - Titre de la promotion.
+ * @param {string} promoData.description - Description.
+ * @param {number} promoData.discount - Pourcentage de réduction.
+ * @param {string} promoData.startDate - Date de début (YYYY-MM-DD).
+ * @param {string} promoData.endDate - Date de fin (YYYY-MM-DD).
+ * @param {number|undefined} promoData.id_file - ID de l'image (optionnel).
+ * @returns {Promise<Object>} - La promotion créée.
+ */
+export async function createPromotion(promoData) {
+  try {
+    const response = await fetch(API_URL + 'api/promotions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(promoData),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Erreur lors de la création de la promotion: ${response.statusText}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Erreur dans createPromotion:', error);
+    throw error;
+  }
+}
+
+/**
+ * Mettre à jour une promotion existante
+ *
+ * CONNEXION BASE DE DONNÉES :
+ * ---------------------------
+ * Cette fonction doit appeler un endpoint de l'API (ex: PUT /api/promotions/{id})
+ * qui exécutera la fonction SQL `update_promotion`.
+ *
+ * @param {string} id - ID de la promotion à mettre à jour.
+ * @param {Object} promoData - Données de la promotion.
+ * @returns {Promise<Object>} - La promotion mise à jour.
+ */
+export async function updatePromotion(id, promoData) {
+  try {
+    const response = await fetch(`${API_URL}api/promotions/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(promoData),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Erreur lors de la mise à jour de la promotion: ${response.statusText}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Erreur dans updatePromotion:', error);
+    throw error;
+  }
+}

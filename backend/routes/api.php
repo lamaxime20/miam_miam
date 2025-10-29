@@ -85,6 +85,8 @@ Route::prefix('client')->group(function () {
 // Routes pour les promotions
 Route::get('/promotions/actives', [promotionController::class, 'promotionsActives']);
 Route::get('/promotions', [promotionController::class, 'index']);
+Route::post('/promotions', [promotionController::class, 'store']);
+Route::put('/promotions/{id}', [promotionController::class, 'update']);
 
 // Routes pour les notifications
 Route::prefix('notifications')->group(function () {
@@ -111,3 +113,5 @@ Route::get('/dashboard/recent-complaints', [statsDashboardAdminController::class
 Route::get('/dashboard/ventes-semaine', [statsDashboardAdminController::class, 'getVentesSemaine']);
 
 Route::get('/orders', [statsDashboardAdminController::class, 'getOrders']);
+
+Route::post('/promotions/ajouter-menus-simple', [promotionController::class, 'ajouterPlusieursMenusPromotion']);
