@@ -13,7 +13,33 @@ class promotionController extends Controller
      */
     public function index()
     {
-        //
+        try {
+            $results = DB::select('SELECT * FROM get_all_promotions()');
+            
+            $promotions = array_map(function($item) {
+                return [
+                    'id_promo' => (int)$item->id_promo,
+                    'titre' => $item->titre,
+                    'description_promotion' => $item->description_promotion,
+                    'pourcentage_reduction' => (float)$item->pourcentage_reduction,
+                    'date_debut' => $item->date_debut,
+                    'date_fin' => $item->date_fin,
+                    'image_path' => $item->image_path,
+                    'statut' => $item->statut
+                ];
+            }, $results);
+            
+            return response()->json($promotions);
+            
+        } catch (\Exception $e) {
+            \Log::error('Erreur lors de la récupération des promotions:', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
+            
+            return response()->json([], 500);
+        }
     }
 
     /**

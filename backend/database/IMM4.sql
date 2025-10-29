@@ -453,3 +453,44 @@ EXCEPTION
         RETURN 'ERREUR: ' || SQLERRM;
 END;
 $$;
+
+CREATE OR REPLACE FUNCTION get_all_promotions()
+RETURNS TABLE(
+    id_promo INT,
+    titre TEXT,
+    description_promotion TEXT,
+    pourcentage_reduction DECIMAL(5,2),
+    date_debut TIMESTAMP,
+    date_fin TIMESTAMP,
+    image_path TEXT,
+    statut TEXT
+) 
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY 
+    SELECT 
+        p.id_promo,
+        p.titre::TEXT,
+        p.description_promotion::TEXT,
+        p.pourcentage_reduction,
+        p.date_debut,
+        p.date_fin,
+        COALESCE(f.chemin::TEXT, '') as image_path,
+        CASE 
+            WHEN p.date_debut > CURRENT_TIMESTAMP THEN 'programmee'::TEXT
+            WHEN p.date_fin < CURRENT_TIMESTAMP THEN 'expiree'::TEXT
+            ELSE 'active'::TEXT
+        END as statut
+    FROM promotion p
+    LEFT JOIN file f ON p.image_promo = f.id_file
+    ORDER BY 
+        CASE 
+            WHEN p.date_debut > CURRENT_TIMESTAMP THEN 1  -- Programmées d'abord
+            WHEN p.date_fin < CURRENT_TIMESTAMP THEN 3    -- Expirées en dernier
+            ELSE 2                                        -- Actives au milieu
+        END,
+        p.date_debut DESC;
+
+END;
+$$;

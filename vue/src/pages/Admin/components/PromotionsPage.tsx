@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -20,12 +20,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from './ui/select';
+import { getPromotions } from '../../../services/GestionPromotion';
 import { Plus, Edit, Trash2, Tag, TrendingUp, Calendar, Percent } from 'lucide-react';
 
 interface Promotion {
   id: string;
   name: string;
   description: string;
+  image_path?: string;
   discount: number;
   startDate: string;
   endDate: string;
@@ -40,45 +42,6 @@ interface FormData {
   endDate: string;
 }
 
-const mockPromotions: Promotion[] = [
-  {
-    id: '1',
-    name: 'Promo Printemps',
-    description: 'Réduction de 20% sur tous les plats',
-    discount: 20,
-    startDate: '2025-03-01',
-    endDate: '2025-03-31',
-    status: 'scheduled',
-  },
-  {
-    id: '2',
-    name: 'Happy Hour',
-    description: 'Réduction de 15% sur les menus le soir',
-    discount: 15,
-    startDate: '2025-01-15',
-    endDate: '2025-12-31',
-    status: 'active',
-  },
-  {
-    id: '3',
-    name: 'Fête des Mères',
-    description: '15% de réduction sur les desserts',
-    discount: 15,
-    startDate: '2025-05-20',
-    endDate: '2025-05-26',
-    status: 'scheduled',
-  },
-  {
-    id: '4',
-    name: 'Black Friday',
-    description: 'Méga promotion de 30%',
-    discount: 30,
-    startDate: '2024-11-25',
-    endDate: '2024-11-29',
-    status: 'expired',
-  },
-];
-
 const statusConfig = {
   active: { label: 'Active', color: 'bg-green-100 text-green-700 border-green-200' },
   scheduled: { label: 'Programmée', color: 'bg-blue-100 text-blue-700 border-blue-200' },
@@ -86,7 +49,7 @@ const statusConfig = {
 };
 
 export function PromotionsPage() {
-  const [promotions, setPromotions] = useState<Promotion[]>(mockPromotions);
+  const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [selectedPromo, setSelectedPromo] = useState<Promotion | null>(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [formData, setFormData] = useState<FormData>({
@@ -104,6 +67,34 @@ export function PromotionsPage() {
     endDate: '',
   });
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchPromotions = async () => {
+      setIsLoading(true);
+      try {
+        const data = await getPromotions();
+        const formattedPromotions = data.map((p: any) => ({
+          id: p.id_promo.toString(),
+          name: p.titre,
+          description: p.description_promotion,
+          discount: parseFloat(p.pourcentage_reduction),
+          startDate: new Date(p.date_debut).toISOString().split('T')[0],
+          endDate: new Date(p.date_fin).toISOString().split('T')[0],
+          status: calculateStatus(p.date_debut, p.date_fin),
+          image_path: p.image_path,
+        }));
+        setPromotions(formattedPromotions);
+      } catch (error) {
+        console.error("Erreur lors de la récupération des promotions:", error);
+        alert("Impossible de charger les promotions.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchPromotions();
+  }, []);
+
 
   const stats = {
     total: promotions.length,
@@ -157,6 +148,7 @@ export function PromotionsPage() {
         name: formData.name,
         description: formData.description,
         discount: discountNum,
+        image_path: undefined, // Pas d'image à la création pour l'instant
         startDate: formData.startDate,
         endDate: formData.endDate,
         status: calculateStatus(formData.startDate, formData.endDate),
@@ -333,6 +325,13 @@ export function PromotionsPage() {
               {promotions.map((promo) => (
                 <Card key={promo.id} className="border-gray-200">
                   <CardContent className="p-6">
+                    {promo.image_path && (
+                      <div className="mb-4 rounded-lg overflow-hidden h-40">
+                        <img 
+                          src={`http://localhost:8000${promo.image_path}`} 
+                          alt={promo.name} className="w-full h-full object-cover" />
+                      </div>
+                    )}
                     <div className="space-y-4">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
@@ -389,8 +388,12 @@ export function PromotionsPage() {
             </div>
 
             {promotions.length === 0 && (
-              <div className="text-center py-12 text-gray-500">
-                Aucune promotion créée
+              <div className="text-center py-12 text-gray-500 ">
+                {isLoading ? (
+                  <div className="spinner-border text-primary" role="status"></div>
+                ) : (
+                  "Aucune promotion créée"
+                )}
               </div>
             )}
           </div>

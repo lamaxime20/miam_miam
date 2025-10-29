@@ -439,10 +439,11 @@ export function MenuPage() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => {
-                                if (confirm('Êtes-vous sûr de vouloir supprimer cet article ?')) {
-                                  deleteItem(item.id);
-                                }
+                              onClick={() => { if (confirm('Êtes-vous sûr de vouloir supprimer cet article ?')) {
+                                deleteItem(item.id);
+                              } }}
+                              style={{
+                                display: 'none'
                               }}
                             >
                               <Trash2 className="h-4 w-4 text-red-600" />

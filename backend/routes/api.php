@@ -84,6 +84,7 @@ Route::prefix('client')->group(function () {
 
 // Routes pour les promotions
 Route::get('/promotions/actives', [promotionController::class, 'promotionsActives']);
+Route::get('/promotions', [promotionController::class, 'index']);
 
 // Routes pour les notifications
 Route::prefix('notifications')->group(function () {
