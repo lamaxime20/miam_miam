@@ -692,3 +692,80 @@ EXCEPTION
         RETURN 'ERREUR: ' || SQLERRM;
 END;
 $$;
+
+CREATE OR REPLACE FUNCTION supprimer_menus_promotion(
+    p_id_promo INTEGER,
+    p_ids_menu INTEGER[]
+)
+RETURNS JSON 
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    menu_id INTEGER;
+    promotion_exists BOOLEAN;
+    association_exists BOOLEAN;
+    v_success_count INTEGER := 0;
+    v_error_count INTEGER := 0;
+    v_success_ids INTEGER[] := '{}';
+    v_error_details JSONB := '[]'::JSONB;
+BEGIN
+    -- Vérifier si la promotion existe
+    SELECT EXISTS(SELECT 1 FROM promotion WHERE id_promo = p_id_promo) INTO promotion_exists;
+    IF NOT promotion_exists THEN
+        RETURN json_build_object(
+            'success', false,
+            'error', 'Promotion non trouvée',
+            'success_count', 0,
+            'error_count', 1,
+            'details', '[]'::JSON
+        );
+    END IF;
+    
+    -- Parcourir tous les IDs de menu
+    FOREACH menu_id IN ARRAY p_ids_menu
+    LOOP
+        BEGIN
+            -- Vérifier si l'association existe
+            SELECT EXISTS(
+                SELECT 1 
+                FROM concerner_menu 
+                WHERE id_promo = p_id_promo AND id_menu = menu_id
+            ) INTO association_exists;
+            
+            IF NOT association_exists THEN
+                v_error_details := v_error_details || jsonb_build_object(
+                    'menu_id', menu_id,
+                    'error', 'Association non trouvée'
+                );
+                v_error_count := v_error_count + 1;
+                CONTINUE;
+            END IF;
+            
+            -- Supprimer l'association
+            DELETE FROM concerner_menu 
+            WHERE id_promo = p_id_promo AND id_menu = menu_id;
+            
+            v_success_count := v_success_count + 1;
+            v_success_ids := v_success_ids || menu_id;
+            
+        EXCEPTION
+            WHEN OTHERS THEN
+                v_error_details := v_error_details || jsonb_build_object(
+                    'menu_id', menu_id,
+                    'error', SQLERRM
+                );
+                v_error_count := v_error_count + 1;
+        END;
+    END LOOP;
+    
+    -- Retourner les résultats au format JSON
+    RETURN json_build_object(
+        'success', true,
+        'success_count', v_success_count,
+        'error_count', v_error_count,
+        'success_ids', v_success_ids,
+        'errors', v_error_details
+    );
+    
+END;
+$$;

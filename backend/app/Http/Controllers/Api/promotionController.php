@@ -321,4 +321,81 @@ class promotionController extends Controller
         
         return $messages[$resultat] ?? 'Erreur inconnue';
     }
+
+    public function supprimerMenusPromotion(Request $request)
+    {
+        try {
+            $request->validate([
+                'id_promo' => 'required|integer|min:1',
+                'ids_menu' => 'required|array',
+                'ids_menu.*' => 'integer|min:1'
+            ]);
+
+            $promotionId = $request->input('id_promo');
+            $menuIds = $request->input('ids_menu');
+
+            // Convertir le tableau en format PostgreSQL array
+            $menuIdsString = '{' . implode(',', $menuIds) . '}';
+
+            $result = DB::select('SELECT supprimer_menus_promotion(?, ?) as resultat', [
+                $promotionId,
+                $menuIdsString
+            ]);
+            
+            if (empty($result)) {
+                return response()->json(['error' => 'Erreur lors de la suppression'], 500);
+            }
+            
+            $resultData = json_decode($result[0]->resultat, true);
+            
+            // Adapter la réponse selon les résultats
+            if (isset($resultData['error'])) {
+                return response()->json([
+                    'error' => $resultData['error'],
+                    'success_count' => $resultData['success_count'],
+                    'error_count' => $resultData['error_count'],
+                    'success_ids' => $resultData['success_ids'] ?? [],
+                    'errors' => $resultData['errors'] ?? []
+                ], 404);
+            }
+            
+            $successCount = $resultData['success_count'];
+            $errorCount = $resultData['error_count'];
+            
+            if ($successCount > 0 && $errorCount === 0) {
+                return response()->json([
+                    'success' => "Tous les menus ($successCount) ont été supprimés de la promotion",
+                    'success_count' => $successCount,
+                    'error_count' => $errorCount,
+                    'success_ids' => $resultData['success_ids'],
+                    'errors' => $resultData['errors']
+                ]);
+            } elseif ($successCount > 0) {
+                return response()->json([
+                    'success' => "$successCount menus supprimés avec succès",
+                    'warning' => "$errorCount erreurs rencontrées",
+                    'success_count' => $successCount,
+                    'error_count' => $errorCount,
+                    'success_ids' => $resultData['success_ids'],
+                    'errors' => $resultData['errors']
+                ]);
+            } else {
+                return response()->json([
+                    'error' => 'Aucun menu n\'a pu être supprimé',
+                    'success_count' => $successCount,
+                    'error_count' => $errorCount,
+                    'success_ids' => $resultData['success_ids'],
+                    'errors' => $resultData['errors']
+                ], 400);
+            }
+            
+        } catch (\Exception $e) {
+            \Log::error('Erreur lors de la suppression des menus de la promotion:', [
+                'message' => $e->getMessage(),
+                'data' => $request->all()
+            ]);
+            
+            return response()->json(['error' => 'Erreur interne du serveur'], 500);
+        }
+    }
 }

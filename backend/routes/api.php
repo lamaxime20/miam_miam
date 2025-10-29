@@ -114,4 +114,5 @@ Route::get('/dashboard/ventes-semaine', [statsDashboardAdminController::class, '
 
 Route::get('/orders', [statsDashboardAdminController::class, 'getOrders']);
 
-Route::post('/promotions/ajouter-menus-simple', [promotionController::class, 'ajouterPlusieursMenusPromotion']);
+Route::post('/promotions/ajouter-menus', [promotionController::class, 'ajouterPlusieursMenusPromotion']);
+Route::post('/promotions/supprimer-menus', [promotionController::class, 'supprimerMenusPromotion']);
