@@ -168,3 +168,37 @@ async function UserDejaEmploye(email, role) {
         return false; // En cas d'erreur, on considère que l'utilisateur n'est pas employé
     }
 }
+
+export async function DesactiverEmploye(email, role, restaurant) {
+    try {
+        const response = await fetch(API_URL + 'api/desactiveremploye', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                email: email,
+                role: role,
+                restaurant: restaurant
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`Erreur HTTP: ${response.status}`);
+        }
+
+        const data = await response.json();
+        
+        if (data.success) {
+            return data.success;
+        } else if (data.error) {
+            return data.error;
+        } else {
+            return "Réponse inattendue du serveur";
+        }
+        
+    } catch (error) {
+        console.error('Erreur lors de la désactivation de l\'employé:', error);
+        return "Erreur lors de la désactivation de l'employé";
+    }
+}

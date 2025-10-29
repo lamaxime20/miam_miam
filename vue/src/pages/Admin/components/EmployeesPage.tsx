@@ -26,9 +26,9 @@ import {
   DialogTitle,
   DialogFooter,
 } from './ui/dialog';
-import { Label } from './ui/label';
+import { Label } from './ui/label'; // Assurez-vous que Label est importé
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
-import { getEmployees, createEmployee } from '../../../services/GestionEmploye.js';
+import { getEmployees, createEmployee, DesactiverEmploye } from '../../../services/GestionEmploye.js';
 import { Search, Eye, Edit, Trash2, Plus, Users, CheckCircle, Calendar, UserPlus } from 'lucide-react';
 
 interface Employee {
@@ -132,9 +132,27 @@ export function EmployeesPage() {
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
   };
 
-  const deleteEmployee = (id: string) => {
-    setEmployees(employees.filter(e => e.id !== id));
-    setSelectedEmployee(null);
+  const deleteEmployee = async (employee: Employee) => {
+    if (!confirm(`Êtes-vous sûr de vouloir désactiver l'employé ${employee.name} (${employee.position}) ?`)) {
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      // Appel au service pour désactiver l'employé
+      const result = await DesactiverEmploye(employee.email, employee.position.toLowerCase(), 1); // Supposons restaurantId = 1
+
+      if (result === 'EMPLOYE_DESACTIVE') {
+        await fetchEmployees(); // Recharger la liste des employés après la désactivation
+        alert('Employé désactivé avec succès !');
+      } else {
+        alert(`Erreur lors de la désactivation: ${result}`);
+      }
+    } catch (error: any) {
+      alert(`Erreur lors de la désactivation de l'employé: ${error.message || 'Erreur inconnue'}`);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const resetAddForm = () => {
@@ -315,11 +333,7 @@ export function EmployeesPage() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => {
-                                  if (confirm('Êtes-vous sûr de vouloir supprimer cet employé ?')) {
-                                    deleteEmployee(employee.id);
-                                  }
-                                }}
+                                onClick={() => deleteEmployee(employee)}
                                 className="gap-2 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
                               >
                                 <Trash2 className="h-4 w-4 text-red-600" />
@@ -401,14 +415,6 @@ export function EmployeesPage() {
                 <Button variant="outline" onClick={() => setSelectedEmployee(null)}>
                   Fermer
                 </Button>
-                {viewMode === 'view' && (
-                  <Button 
-                    className="bg-[#cfbd97] hover:bg-[#bfad87] text-black"
-                    onClick={() => setViewMode('edit')}
-                  >
-                    Modifier
-                  </Button>
-                )}
               </DialogFooter>
             </>
           )}

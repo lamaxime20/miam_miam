@@ -181,3 +181,69 @@ EXCEPTION
         RETURN 'ERREUR: ' || SQLERRM;
 END;
 $$;
+
+CREATE OR REPLACE FUNCTION desactiver_employe(
+    user_email Email,
+    user_role TEXT,
+    restaurant_id INT
+)
+RETURNS TEXT 
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    user_id INT;
+    rows_affected INT := 0;
+BEGIN
+    -- Trouver l'ID de l'utilisateur par email
+    SELECT id_user INTO user_id
+    FROM "Utilisateur" 
+    WHERE email_user = user_email;
+    
+    -- Si l'utilisateur n'existe pas, retourner une erreur
+    IF user_id IS NULL THEN
+        RETURN 'UTILISATEUR_NON_TROUVE';
+    END IF;
+    
+    -- Désactiver l'employé selon le rôle
+    CASE user_role
+        WHEN 'gérant' THEN
+            UPDATE gerer 
+            SET service_employe = FALSE
+            WHERE id_gerant = user_id 
+            AND id_restaurant = restaurant_id;
+            
+            GET DIAGNOSTICS rows_affected = ROW_COUNT;
+            
+        WHEN 'employé' THEN
+            UPDATE travailler_pour 
+            SET service_employe = FALSE
+            WHERE id_employe = user_id 
+            AND id_restaurant = restaurant_id;
+            
+            GET DIAGNOSTICS rows_affected = ROW_COUNT;
+            
+        WHEN 'livreur' THEN
+            UPDATE etre_livreur 
+            SET service_employe = FALSE
+            WHERE id_livreur = user_id 
+            AND id_restaurant = restaurant_id;
+            
+            GET DIAGNOSTICS rows_affected = ROW_COUNT;
+            
+        ELSE
+            RETURN 'ROLE_INVALIDE';
+    END CASE;
+    
+    -- Vérifier si une ligne a été mise à jour
+    IF rows_affected = 0 THEN
+        RETURN 'EMPLOYE_NON_TROUVE';
+    END IF;
+    
+    RETURN 'EMPLOYE_DESACTIVE';
+    
+EXCEPTION
+    WHEN OTHERS THEN
+        -- En cas d'erreur, retourner le message d'erreur
+        RETURN 'ERREUR: ' || SQLERRM;
+END;
+$$;

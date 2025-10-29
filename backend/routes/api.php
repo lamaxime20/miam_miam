@@ -41,6 +41,9 @@ Route::put('/administrateurs/{id}', [administrateurController::class, 'update'])
 Route::delete('/administrateurs/{id}', [administrateurController::class, 'destroy']);
 Route::get('/getemployeesrestaurant/{id}', [administrateurController::class, 'getEmployees']);
 Route::post('/createemployee', [administrateurController::class, 'createEmployee']);
+Route::post('/desactiveremploye', [administrateurController::class, 'desactiverEmploye']);
+
+// Routes pour les fichiers
 
 Route::get('/files', [fileController::class, 'index']);
 Route::get('/files/{id}', [fileController::class, 'show']);
