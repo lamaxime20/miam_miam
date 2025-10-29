@@ -96,6 +96,7 @@ Route::prefix('notifications')->group(function () {
 // Routes pour les menus
 Route::get('/menu/{id_menu}/restaurant', [menuController::class, 'getRestaurantByMenuId']);
 Route::get('/menu/{id_restaurant}/items', [menuController::class, 'getAllMenuItems']);
+Route::post('/menu', [menuController::class, 'index']);
 
 // Routes pour les statistiques admin
 

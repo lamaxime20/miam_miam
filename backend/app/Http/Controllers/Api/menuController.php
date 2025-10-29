@@ -11,6 +11,74 @@ class menuController extends Controller
     /**
      * Récupérer les restaurants par IDs de menus
      */
+    /**
+    * Crée un nouvel article de menu
+    */
+    public function index(Request $request)
+    {
+        try {
+            $request->validate([
+                'nom_menu' => 'required|string|max:100',
+                'description_menu' => 'required|string',
+                'prix_menu' => 'required|numeric|min:0.01',
+                'libelle_menu' => 'required|string|in:entree,plat,dessert,boisson',
+                'statut_menu' => 'required|string|in:disponible,indisponible',
+                'restaurant_hote' => 'required|integer|min:1',
+                'image_menu' => 'nullable|integer'
+            ]);
+
+            $result = DB::select('SELECT create_menu_item(?, ?, ?, ?, ?, ?, ?) as resultat', [
+                $request->input('nom_menu'),
+                $request->input('description_menu'),
+                $request->input('prix_menu'),
+                $request->input('libelle_menu'),
+                $request->input('statut_menu'),
+                $request->input('restaurant_hote'),
+                $request->input('image_menu') // Maintenant en dernier paramètre
+            ]);
+            
+            if (empty($result)) {
+                return response()->json(['error' => 'Erreur lors de la création'], 500);
+            }
+            
+            $resultat = $result[0]->resultat;
+            
+            // Gérer les différents retours
+            if (str_starts_with($resultat, 'MENU_CREE:')) {
+                $menuId = str_replace('MENU_CREE:', '', $resultat);
+                return response()->json([
+                    'success' => 'Menu créé avec succès',
+                    'menu_id' => $menuId
+                ]);
+            }
+            
+            switch ($resultat) {
+                case 'RESTAURANT_NON_TROUVE':
+                    return response()->json(['error' => 'Restaurant non trouvé'], 404);
+                    
+                case 'IMAGE_NON_TROUVEE':
+                    return response()->json(['error' => 'Image non trouvée'], 404);
+                    
+                case 'NOM_EXISTE_DEJA':
+                    return response()->json(['error' => 'Un menu avec ce nom existe déjà dans ce restaurant'], 409);
+                    
+                default:
+                    if (str_starts_with($resultat, 'ERREUR:')) {
+                        \Log::error('Erreur PostgreSQL create_menu_item: ' . $resultat);
+                        return response()->json(['error' => 'Erreur lors de la création'], 500);
+                    }
+                    return response()->json(['error' => 'Erreur inconnue'], 500);
+            }
+            
+        } catch (\Exception $e) {
+            \Log::error('Erreur lors de la création du menu:', [
+                'message' => $e->getMessage(),
+                'data' => $request->all()
+            ]);
+            
+            return response()->json(['error' => 'Erreur interne du serveur'], 500);
+        }
+    }
     public function getRestaurantByMenuId(string $id_menu)
     {
         try {

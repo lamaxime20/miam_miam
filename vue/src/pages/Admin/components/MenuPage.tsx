@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent } from './ui/card';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
-import { Badge } from './ui/badge';
+import { Badge } from './ui/badge'; 
 import {
   Dialog,
   DialogContent,
@@ -20,9 +20,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from './ui/select';
-import { Search, Plus, Edit, Trash2, UtensilsCrossed, ChefHat, Coffee, Cake, Image as ImageIcon } from 'lucide-react';
+import { Search, Plus, Edit, Trash2, UtensilsCrossed, ChefHat, Coffee, Cake, Image as ImageIcon, UploadCloud, X } from 'lucide-react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
-import { getAllMenuItems, convertirPrix } from '../../../services/GestionMenu';
+import { getAllMenuItems, convertirPrix, uploadImage, createMenuItem } from '../../../services/GestionMenu';
 
 interface MenuItem {
   id: string;
@@ -42,6 +42,7 @@ interface FormData {
   priceEUR: string;
   category: string;
   imageUrl: string;
+  id_file?: string; // ID du fichier téléversé
   available: boolean;
 }
 
@@ -67,6 +68,8 @@ const categoryIcons = {
 };
 
 export function MenuPage() {
+  const API_URL = import.meta.env.VITE_API_URL;
+
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
@@ -78,9 +81,12 @@ export function MenuPage() {
     priceEUR: '',
     category: '',
     imageUrl: '',
+    id_file: undefined,
     available: true,
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
   // Charger les plats depuis l'API (optionnel)
   useEffect(() => {
@@ -127,6 +133,37 @@ export function MenuPage() {
     }
   };
 
+  const handleFileSelect = async (file: File | null) => {
+    if (!file) return;
+
+    // Vérification du type de fichier
+    if (!file.type.startsWith('image/')) {
+      alert("Veuillez sélectionner un fichier image (jpeg, png, etc.).");
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      // Appel de la nouvelle fonction d'upload
+      const response = await uploadImage(file);
+      
+      // Assumant que l'API retourne un objet avec `url` et `data.id_file`
+      if (response && response.url && response.data?.id_file) {
+        console.log(API_URL +response.url, response.data.id_file);
+        setFormData({ ...formData, imageUrl: API_URL + response.url, id_file: response.data.id_file });
+      } else {
+        alert("L'image a été téléversée, mais l'URL n'a pas pu être récupérée.");
+      }
+    } catch (error) {
+      console.error("Erreur lors du téléversement:", error);
+      alert(error.message || "Une erreur est survenue lors du téléversement de l'image.");
+      // Optionnel: réinitialiser l'image si l'upload échoue
+      setFormData({ ...formData, imageUrl: '' });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const handleAddItem = async () => {
     try {
       // Validation
@@ -146,28 +183,21 @@ export function MenuPage() {
       // Convertir le prix en XAF
       const prix = convertirPrix(priceNum) as { eur: number; xaf: number; xafFormate: string; eurFormate: string };
 
-      // Créer le nouvel item
-      const newItem: MenuItem = {
-        id: Date.now().toString(),
+      // Préparer les données pour l'API
+      const newItemData = {
         name: formData.name,
         description: formData.description,
-        price: priceNum,
-        priceXAF: prix.xaf,
-        priceFormatted: prix.xafFormate,
+        price: priceNum, // prix en EUR
         category: formData.category,
         status: formData.available ? 'available' : 'unavailable',
-        image: formData.imageUrl || undefined,
+        id_file: formData.id_file,
       };
 
-      // TODO: Décommenter quand l'API est prête
-      // await sauvegarderPlat({
-      //   nom: formData.name,
-      //   description: formData.description,
-      //   prixEUR: priceNum,
-      //   categorie: formData.category,
-      //   disponible: formData.available,
-      //   imageUrl: formData.imageUrl,
-      // });
+      // Appeler la nouvelle fonction de service
+      const createdItemFromApi = await createMenuItem(newItemData);
+
+      // Créer l'objet MenuItem complet pour l'affichage
+      const newItem: MenuItem = { ...createdItemFromApi, priceXAF: prix.xaf, priceFormatted: prix.xafFormate };
 
       // Ajouter à la liste
       setMenuItems([...menuItems, newItem]);
@@ -179,6 +209,7 @@ export function MenuPage() {
         priceEUR: '',
         category: '',
         imageUrl: '',
+        id_file: undefined,
         available: true,
       });
 
@@ -448,42 +479,55 @@ export function MenuPage() {
               )}
             </div>
             <div className="space-y-2">
-              <Label>URL de l'image</Label>
-              <div className="flex gap-2">
-                <Input 
-                  placeholder="https://exemple.com/image.jpg"
-                  value={formData.imageUrl}
-                  onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+              <Label>Image du plat</Label>
+              <div
+                className={`relative border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors
+                  ${isDragging ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400'}`}
+                onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                onDragEnter={(e) => { e.preventDefault(); setIsDragging(true); }}
+                onDragLeave={(e) => { e.preventDefault(); setIsDragging(false); }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setIsDragging(false);
+                  const file = e.dataTransfer.files[0];
+                  handleFileSelect(file);
+                }}
+                onClick={() => document.getElementById('file-upload')?.click()}
+              >
+                <input 
+                  id="file-upload" 
+                  type="file" 
+                  className="hidden" 
+                  accept="image/*"
+                  onChange={(e) => handleFileSelect(e.target.files ? e.target.files[0] : null)}
                 />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  className="shrink-0"
-                >
-                  <ImageIcon className="h-4 w-4" />
-                </Button>
+                <div className="flex flex-col items-center justify-center space-y-2 text-gray-500">
+                  <UploadCloud className="h-8 w-8" />
+                  <p className="text-sm">
+                    {isUploading ? 'Téléversement en cours...' : 'Glissez-déposez une image ou cliquez pour choisir'}
+                  </p>
+                  <p className="text-xs">PNG, JPG, GIF jusqu'à 5Mo</p>
+                </div>
               </div>
-              <p className="text-xs text-gray-500">Collez l'URL d'une image pour votre plat</p>
               {formData.imageUrl && (
-                <div className="mt-2 aspect-video bg-gray-100 rounded-lg overflow-hidden">
-                  <img 
-                    src={formData.imageUrl} 
-                    alt="Aperçu" 
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=300&fit=crop';
-                    }}
-                  />
+                <div className="mt-2">
+                  <p className="text-xs text-gray-500 mb-1">Aperçu :</p>
+                  <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden relative">
+                    <ImageWithFallback
+                      src={formData.imageUrl}
+                      alt="Aperçu"
+                      className="w-full h-full object-cover"
+                    />
+                    <Button variant="destructive" size="sm" className="absolute top-2 right-2 h-7 w-7 p-0" onClick={() => setFormData({ ...formData, imageUrl: '' })}>
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               )}
             </div>
             <div className="space-y-2">
               <Label>Catégorie *</Label>
-              <Select 
-                value={formData.category}
-                onValueChange={(value: string) => setFormData({ ...formData, category: value })}
-              >
+              <Select value={formData.category} onValueChange={(value: string) => setFormData({ ...formData, category: value })}>
                 <SelectTrigger>
                   <SelectValue placeholder="Sélectionner une catégorie" />
                 </SelectTrigger>
@@ -517,19 +561,20 @@ export function MenuPage() {
                   priceEUR: '',
                   category: '',
                   imageUrl: '',
+                  id_file: undefined,
                   available: true,
                 });
               }}
-              disabled={isLoading}
+              disabled={isLoading || isUploading}
             >
               Annuler
             </Button>
             <Button 
               className="bg-[#cfbd97] hover:bg-[#bfad87] text-black"
               onClick={handleAddItem}
-              disabled={isLoading}
+              disabled={isLoading || isUploading}
             >
-              {isLoading ? 'Création...' : 'Créer l\'article'}
+              {isUploading ? 'Téléversement...' : (isLoading ? 'Création...' : 'Créer l\'article')}
             </Button>
           </DialogFooter>
         </DialogContent>

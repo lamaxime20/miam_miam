@@ -296,3 +296,80 @@ BEGIN
 
 END;
 $$;
+
+CREATE OR REPLACE FUNCTION create_menu_item(
+    nom_menu Name,
+    description_menu TEXT,
+    prix_menu prices,
+    libelle_menu typeRepas,
+    statut_menu menuState,
+    restaurant_hote INT,
+    image_menu INT DEFAULT NULL
+)
+RETURNS TEXT 
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    nouveau_id INT;
+    fidelity_points_calcules pointFidelite;
+BEGIN
+    -- Calculer les points de fidélité : prix / 1000 (arrondi à l'entier)
+    fidelity_points_calcules := ROUND(prix_menu / 1000)::INT;
+    
+    -- S'assurer que les points sont au minimum 1
+    IF fidelity_points_calcules < 1 THEN
+        fidelity_points_calcules := 1;
+    END IF;
+    
+    -- Vérifier si le restaurant existe
+    IF NOT EXISTS (SELECT 1 FROM restaurant WHERE id_restaurant = restaurant_hote) THEN
+        RETURN 'RESTAURANT_NON_TROUVE';
+    END IF;
+    
+    -- Vérifier si l'image existe (si fournie)
+    IF image_menu IS NOT NULL AND NOT EXISTS (SELECT 1 FROM file WHERE id_file = image_menu) THEN
+        RETURN 'IMAGE_NON_TROUVEE';
+    END IF;
+    
+    -- Vérifier si un menu avec le même nom existe déjà dans ce restaurant
+    IF EXISTS (
+        SELECT 1 
+        FROM menu 
+        WHERE nom_menu = $1 
+        AND restaurant_hote = $6
+    ) THEN
+        RETURN 'NOM_EXISTE_DEJA';
+    END IF;
+    
+    -- Insérer le nouveau menu
+    INSERT INTO menu (
+        nom_menu,
+        description_menu,
+        image_menu,
+        prix_menu,
+        fidelity_point,
+        statut_menu,
+        restaurant_hote,
+        libelle_menu,
+        updated_at
+    ) VALUES (
+        nom_menu,
+        description_menu,
+        image_menu,
+        prix_menu,
+        fidelity_points_calcules,
+        statut_menu,
+        restaurant_hote,
+        libelle_menu,
+        CURRENT_TIMESTAMP
+    )
+    RETURNING id_menu INTO nouveau_id;
+    
+    RETURN 'MENU_CREE:' || nouveau_id::TEXT;
+    
+EXCEPTION
+    WHEN OTHERS THEN
+        -- En cas d'erreur, retourner le message d'erreur
+        RETURN 'ERREUR: ' || SQLERRM;
+END;
+$$;

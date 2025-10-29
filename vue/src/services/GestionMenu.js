@@ -143,3 +143,104 @@ export function convertirPrix(prixEUR) {
     eurFormate: `${prixEUR.toFixed(2)} €`
   };
 }
+
+// Dans c:\Users\user\Desktop\X2\Developpement web\miam_miam\vue\src\services\GestionMenu.js
+
+// Assurez-vous que API_URL est bien défini dans votre configuration
+
+// ... autres fonctions du fichier
+
+/**
+ * Envoie un fichier image à l'API et retourne les informations de l'image uploadée.
+ * @param {File} file - Le fichier image à téléverser.
+ * @returns {Promise<object>} - Le JSON retourné par l'API.
+ */
+export async function uploadImage(file) {
+  const formData = new FormData();
+  formData.append('file', file); // La clé 'file' doit correspondre à ce que votre backend attend
+
+  try {
+    const response = await fetch(`${API_URL}api/files/upload`, {
+      method: 'POST',
+      body: formData,
+      // Si une authentification est requise, ajoutez les en-têtes ici.
+      // headers: {
+      //   'Authorization': `Bearer ${votre_token}`,
+      // },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: 'Réponse non-JSON du serveur.' }));
+      throw new Error(errorData.message || `Erreur HTTP ${response.status} lors du téléversement de l'image.`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Erreur lors du téléversement de l'image:", error);
+    throw error; // Propage l'erreur pour la gérer dans le composant
+  }
+}
+
+/**
+ * Crée un nouvel article de menu.
+ * @param {object} menuItemData - Les données de l'article de menu.
+ * @param {string} menuItemData.name - Nom du plat.
+ * @param {string} menuItemData.description - Description du plat.
+ * @param {string} menuItemData.id_file - ID du fichier image téléversé.
+ * @param {number} menuItemData.price - Prix en EUR.
+ * @param {'available' | 'unavailable'} menuItemData.status - Statut du plat.
+ * @param {string} menuItemData.category - Catégorie du plat ('Entrées', 'Plats', 'Desserts', 'Boissons').
+ * @returns {Promise<object>} - L'article de menu créé.
+ */
+export async function createMenuItem(menuItemData) {
+  const restaurant_id = 1;
+
+  // Traduire les catégories et statuts pour le backend si nécessaire
+  const categoryMap = {
+    'Entrées': 'entree',
+    'Plats': 'plat',
+    'Desserts': 'dessert',
+    'Boissons': 'boisson',
+  };
+
+  const payload = {
+    nom_menu: menuItemData.name,
+    description_menu: menuItemData.description,
+    prix_menu: menuItemData.price,
+    libelle_menu: categoryMap[menuItemData.category] || menuItemData.category.toLowerCase(),
+    statut_menu: menuItemData.status === 'available' ? 'disponible' : 'indisponible',
+    image_menu: menuItemData.id_file,
+    restaurant_hote: restaurant_id,
+  };
+
+  try {
+    const response = await fetch(`${API_URL}api/menu`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const responseData = await response.json();
+
+    if (!response.ok) {
+      // Utiliser le message d'erreur du backend s'il existe
+      const errorMessage = responseData.error || responseData.message || `Erreur HTTP: ${response.status}`;
+      throw new Error(errorMessage);
+    }
+
+    return responseData;
+
+  } catch (error) {
+    console.error('Erreur lors de la création du menu:', error);
+    
+    // Relancer l'erreur avec un message plus clair si nécessaire
+    if (error.name === 'TypeError' && error.message.includes('fetch')) {
+      throw new Error('Erreur de connexion au serveur. Vérifiez votre connexion internet.');
+    }
+    
+    throw error; // Relancer l'erreur originale
+  }
+}
