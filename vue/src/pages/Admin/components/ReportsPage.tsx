@@ -9,48 +9,103 @@ import {
   SelectTrigger,
   SelectValue,
 } from './ui/select';
-
-const revenueData = [
-  { month: 'Jan', revenus: 12500, commandes: 342 },
-  { month: 'Fév', revenus: 11800, commandes: 318 },
-  { month: 'Mar', revenus: 15200, commandes: 425 },
-  { month: 'Avr', revenus: 14600, commandes: 398 },
-  { month: 'Mai', revenus: 18100, commandes: 512 },
-  { month: 'Jun', revenus: 17800, commandes: 489 },
-  { month: 'Jul', revenus: 21200, commandes: 598 },
-  { month: 'Aoû', revenus: 19500, commandes: 542 },
-  { month: 'Sep', revenus: 16800, commandes: 467 },
-  { month: 'Oct', revenus: 18900, commandes: 523 },
-];
-
-const categoryData = [
-  { name: 'Plats', value: 45, color: '#cfbd97' },
-  { name: 'Entrées', value: 20, color: '#6b7280' },
-  { name: 'Desserts', value: 18, color: '#000000' },
-  { name: 'Boissons', value: 17, color: '#3b82f6' },
-];
-
-const topProducts = [
-  { name: 'Burger Premium', sales: 1234, revenue: 19620.60 },
-  { name: 'Pizza Margherita', sales: 987, revenue: 12732.30 },
-  { name: 'Salade César', sales: 845, revenue: 8027.50 },
-  { name: 'Pâtes Carbonara', sales: 756, revenue: 10508.40 },
-  { name: 'Tiramisu Maison', sales: 623, revenue: 4049.50 },
-];
-
-const hourlyData = [
-  { hour: '11h', commandes: 12 },
-  { hour: '12h', commandes: 45 },
-  { hour: '13h', commandes: 38 },
-  { hour: '14h', commandes: 22 },
-  { hour: '18h', commandes: 28 },
-  { hour: '19h', commandes: 52 },
-  { hour: '20h', commandes: 48 },
-  { hour: '21h', commandes: 35 },
-  { hour: '22h', commandes: 18 },
-];
+import { fetchReportsPageData } from '../../../services/ReportAdmin';
+import { useEffect, useState } from 'react';
 
 export function ReportsPage() {
+  const [revenueData, setRevenueData] = useState([]);
+  const [categoryData, setCategoryData] = useState([]);
+  const [topProducts, setTopProducts] = useState([]);
+  const [hourlyData, setHourlyData] = useState([]);
+  const [kpis, setKpis] = useState({
+    total_revenue: 0,
+    total_orders: 0,
+    avg_basket: 0,
+    unique_customers: 0
+  });
+  const [summary, setSummary] = useState({
+    best_day: 'N/A',
+    avg_orders: 0,
+    peak_hour: 'N/A',
+    peak_hour_orders: 0,
+    satisfaction_percent: 0
+  });
+  const [period, setPeriod] = useState('month');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Fonction pour calculer les dates de début/fin selon la période
+  const getDateRange = (period: 'week' | 'month' | 'quarter' | 'year') => {
+    const now = new Date();
+    let start = new Date();
+    let end = now;
+
+    switch (period) {
+      case 'week':
+        start.setDate(now.getDate() - 7);
+        break;
+      case 'month':
+        start = new Date(now.getFullYear(), now.getMonth(), 1);
+        break;
+      case 'quarter':
+        start.setMonth(now.getMonth() - 3);
+        break;
+      case 'year':
+        start.setFullYear(now.getFullYear(), 0, 1);
+        break;
+      default:
+        start.setMonth(now.getMonth() - 1);
+    }
+
+    return {
+      start: start.toISOString().split('T')[0],
+      end: end.toISOString().split('T')[0]
+    };
+  };
+
+  const loadData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const dateRange = getDateRange(period);
+      const data = await fetchReportsPageData({
+        restaurantId: 1, // TODO: get from context/props
+        startDate: dateRange.start,
+        endDate: dateRange.end,
+        months: 10,
+        limit: 5
+      });
+
+      setRevenueData(data.revenueData);
+      setCategoryData(data.categoryData);
+      setTopProducts(data.topProducts);
+      setHourlyData(data.hourlyData);
+      setKpis(data.kpis);
+      setSummary(data.summary);
+    } catch (err) {
+      setError(err.message);
+      console.error('Erreur chargement données:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Charger les données au montage et quand la période change
+  useEffect(() => {
+    loadData();
+  }, [period]);
+
+  const handlePeriodChange = (newPeriod) => {
+    setPeriod(newPeriod);
+  };
+
+  if (loading) {
+    return <div className="p-8 text-center">Chargement des données...</div>;
+  }
+
+  if (error) {
+    return <div className="p-8 text-center text-red-600">Erreur: {error}</div>;
+  }
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
@@ -59,16 +114,16 @@ export function ReportsPage() {
           <p className="text-sm text-gray-500">Vue d'ensemble de vos performances</p>
         </div>
         <div className="flex items-center gap-2">
-          <Select defaultValue="month">
+          <Select value={period} onValueChange={handlePeriodChange}>
             <SelectTrigger className="w-[180px] border-gray-300">
               <Calendar className="h-4 w-4 mr-2" />
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="week">Cette semaine</SelectItem>
-              <SelectItem value="month">Ce mois</SelectItem>
-              <SelectItem value="quarter">Ce trimestre</SelectItem>
-              <SelectItem value="year">Cette année</SelectItem>
+              <SelectItem value="week">7 derniers jours</SelectItem>
+              <SelectItem value="month">30 derniers jours</SelectItem>
+              <SelectItem value="quarter">3 derniers mois</SelectItem>
+              <SelectItem value="year">12 derniers mois</SelectItem>
             </SelectContent>
           </Select>
           <Button className="bg-[#cfbd97] hover:bg-[#bfad87] text-black gap-2">
@@ -85,11 +140,7 @@ export function ReportsPage() {
             <div className="flex items-start justify-between">
               <div className="space-y-1">
                 <p className="text-sm text-gray-500">Revenus Totaux</p>
-                <p className="text-2xl">156,420 €</p>
-                <div className="flex items-center gap-1 text-sm text-green-600">
-                  <TrendingUp className="h-3 w-3" />
-                  <span>+12.5%</span>
-                </div>
+                <p className="text-2xl">{kpis.total_revenue.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}</p>
               </div>
               <div className="bg-green-100 p-3 rounded-lg">
                 <DollarSign className="h-6 w-6 text-green-600" />
@@ -103,11 +154,7 @@ export function ReportsPage() {
             <div className="flex items-start justify-between">
               <div className="space-y-1">
                 <p className="text-sm text-gray-500">Total Commandes</p>
-                <p className="text-2xl">4,614</p>
-                <div className="flex items-center gap-1 text-sm text-green-600">
-                  <TrendingUp className="h-3 w-3" />
-                  <span>+8.3%</span>
-                </div>
+                <p className="text-2xl">{kpis.total_orders.toLocaleString('fr-FR')}</p>
               </div>
               <div className="bg-blue-100 p-3 rounded-lg">
                 <ShoppingBag className="h-6 w-6 text-blue-600" />
@@ -121,11 +168,7 @@ export function ReportsPage() {
             <div className="flex items-start justify-between">
               <div className="space-y-1">
                 <p className="text-sm text-gray-500">Panier Moyen</p>
-                <p className="text-2xl">33.90 €</p>
-                <div className="flex items-center gap-1 text-sm text-green-600">
-                  <TrendingUp className="h-3 w-3" />
-                  <span>+3.8%</span>
-                </div>
+                <p className="text-2xl">{kpis.avg_basket.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}</p>
               </div>
               <div className="bg-purple-100 p-3 rounded-lg">
                 <DollarSign className="h-6 w-6 text-purple-600" />
@@ -139,11 +182,7 @@ export function ReportsPage() {
             <div className="flex items-start justify-between">
               <div className="space-y-1">
                 <p className="text-sm text-gray-500">Clients Uniques</p>
-                <p className="text-2xl">2,847</p>
-                <div className="flex items-center gap-1 text-sm text-green-600">
-                  <TrendingUp className="h-3 w-3" />
-                  <span>+15.2%</span>
-                </div>
+                <p className="text-2xl">{kpis.unique_customers.toLocaleString('fr-FR')}</p>
               </div>
               <div className="bg-orange-100 p-3 rounded-lg">
                 <Users className="h-6 w-6 text-orange-600" />
@@ -158,7 +197,7 @@ export function ReportsPage() {
         <Card className="border-gray-200">
           <div className="p-6">
             <h3 className="text-lg mb-1">Évolution des Revenus</h3>
-            <p className="text-sm text-gray-500 mb-6">Revenus mensuels (10 derniers mois)</p>
+            <p className="text-sm text-gray-500 mb-6">Revenus par période</p>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={revenueData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -170,6 +209,7 @@ export function ReportsPage() {
                 <YAxis 
                   stroke="#6b7280"
                   style={{ fontSize: '12px' }}
+                  tickFormatter={(value) => value.toLocaleString('fr-FR')}
                 />
                 <Tooltip 
                   contentStyle={{ 
@@ -177,7 +217,7 @@ export function ReportsPage() {
                     border: '1px solid #e5e7eb',
                     borderRadius: '8px'
                   }}
-                  formatter={(value) => [`${value} €`, 'Revenus']}
+                  formatter={(value) => [value.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' }), 'Revenus']}
                 />
                 <Line 
                   type="monotone" 
@@ -261,6 +301,7 @@ export function ReportsPage() {
                     border: '1px solid #e5e7eb',
                     borderRadius: '8px'
                   }}
+                  formatter={(value) => [value, 'Commandes']}
                 />
                 <Bar dataKey="commandes" fill="#cfbd97" radius={[4, 4, 0, 0]} />
               </BarChart>
@@ -280,10 +321,10 @@ export function ReportsPage() {
                   </div>
                   <div className="flex-1">
                     <p className="text-sm">{product.name}</p>
-                    <p className="text-xs text-gray-500">{product.sales} ventes</p>
+                    <p className="text-xs text-gray-500">{product.sales.toLocaleString('fr-FR')} ventes</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm">{product.revenue.toFixed(2)} €</p>
+                    <p className="text-sm">{product.revenue.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}</p>
                   </div>
                 </div>
               ))}
@@ -299,18 +340,17 @@ export function ReportsPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="bg-gray-50 rounded-lg p-4">
               <p className="text-sm text-gray-500 mb-2">Meilleur jour</p>
-              <p className="text-xl">Samedi</p>
-              <p className="text-sm text-gray-600">Moyenne: 78 commandes</p>
+              <p className="text-xl">{summary.best_day}</p>
+              <p className="text-sm text-gray-600">Moyenne: {summary.avg_orders} commandes</p>
             </div>
             <div className="bg-gray-50 rounded-lg p-4">
               <p className="text-sm text-gray-500 mb-2">Heure de pointe</p>
-              <p className="text-xl">19h - 20h</p>
-              <p className="text-sm text-gray-600">52 commandes/heure</p>
+              <p className="text-xl">{summary.peak_hour}</p>
+              <p className="text-sm text-gray-600">{summary.peak_hour_orders} commandes/heure</p>
             </div>
             <div className="bg-gray-50 rounded-lg p-4">
               <p className="text-sm text-gray-500 mb-2">Taux de satisfaction</p>
-              <p className="text-xl">94.5%</p>
-              <p className="text-sm text-gray-600">+2.3% vs mois dernier</p>
+              <p className="text-xl">{summary.satisfaction_percent.toFixed(1)}%</p>
             </div>
           </div>
         </div>

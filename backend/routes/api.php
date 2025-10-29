@@ -115,5 +115,14 @@ Route::get('/dashboard/ventes-semaine', [statsDashboardAdminController::class, '
 
 Route::get('/orders', [statsDashboardAdminController::class, 'getOrders']);
 
+// ReportsPage endpoints
+Route::get('/dashboard/reports/monthly-revenue', [statsDashboardAdminController::class, 'getMonthlyRevenue']);
+Route::get('/dashboard/reports/category-distribution', [statsDashboardAdminController::class, 'getCategoryDistribution']);
+Route::get('/dashboard/reports/top-products', [statsDashboardAdminController::class, 'getTopProducts']);
+Route::get('/dashboard/reports/hourly-orders', [statsDashboardAdminController::class, 'getHourlyOrders']);
+Route::get('/dashboard/reports/kpis', [statsDashboardAdminController::class, 'getReportsKpis']);
+Route::get('/dashboard/reports/summary', [statsDashboardAdminController::class, 'getMonthlySummary']);
+Route::get('/dashboard/reports/all', [statsDashboardAdminController::class, 'getReportsAll']);
+
 Route::post('/promotions/ajouter-menus', [promotionController::class, 'ajouterPlusieursMenusPromotion']);
 Route::post('/promotions/supprimer-menus', [promotionController::class, 'supprimerMenusPromotion']);
