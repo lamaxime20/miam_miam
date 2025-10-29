@@ -10,7 +10,9 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./backend:/app
+      - ./backend:/var/www/html
+      - ./backend/storage/app/public:/var/www/html/storage/app/public
+      # ./backend/public/storage sera créé par le lien symbolique
     environment:
       - DB_HOST=${DB_HOST}
       - DB_PORT=${DB_PORT}

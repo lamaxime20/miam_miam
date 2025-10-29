@@ -135,7 +135,7 @@ class menuController extends Controller
                     'price' => (float) $item->price,
                     'category' => $item->category,
                     'status' => $item->status,
-                    'image' => 'storage/' . $item->image
+                    'image' => ('storage/' . $item->image)
                 ];
             }, $results);
             

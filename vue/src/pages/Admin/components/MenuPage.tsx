@@ -87,6 +87,7 @@ export function MenuPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   // Charger les plats depuis l'API (optionnel)
   useEffect(() => {
@@ -108,9 +109,11 @@ export function MenuPage() {
   };
 
   const filteredItems = menuItems.filter((item) => {
+    const name = (item.name ?? '').toString();
+    const desc = (item.description ?? '').toString();
     const matchesSearch = 
-      item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.description.toLowerCase().includes(searchTerm.toLowerCase());
+      name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      desc.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = categoryFilter === 'all' || item.category === categoryFilter;
     return matchesSearch && matchesCategory;
   });
@@ -166,15 +169,17 @@ export function MenuPage() {
 
   const handleAddItem = async () => {
     try {
+      setFormError(null);
+
       // Validation
       if (!formData.name || !formData.description || !formData.priceEUR || !formData.category) {
-        alert('Veuillez remplir tous les champs obligatoires');
+        setFormError('Veuillez remplir tous les champs obligatoires.');
         return;
       }
 
       const priceNum = parseFloat(formData.priceEUR);
       if (isNaN(priceNum) || priceNum <= 0) {
-        alert('Prix invalide');
+        setFormError('Le prix saisi est invalide.');
         return;
       }
 
@@ -193,14 +198,9 @@ export function MenuPage() {
         id_file: formData.id_file,
       };
 
-      // Appeler la nouvelle fonction de service
-      const createdItemFromApi = await createMenuItem(newItemData);
-
-      // Créer l'objet MenuItem complet pour l'affichage
-      const newItem: MenuItem = { ...createdItemFromApi, priceXAF: prix.xaf, priceFormatted: prix.xafFormate };
-
-      // Ajouter à la liste
-      setMenuItems([...menuItems, newItem]);
+      // Appeler le service puis recharger la liste depuis l'API pour garantir le bon mapping
+      await createMenuItem(newItemData);
+      await loadMenuItems();
 
       // Réinitialiser le formulaire
       setFormData({
@@ -216,8 +216,8 @@ export function MenuPage() {
       setShowAddDialog(false);
       alert('Plat ajouté avec succès !');
     } catch (error) {
-      console.error('Erreur lors de l\'ajout:', error);
-      alert('Erreur lors de l\'ajout du plat');
+      console.error("Erreur lors de l'ajout:", error);
+      setFormError(error.message || "Une erreur inconnue est survenue.");
     } finally {
       setIsLoading(false);
     }
@@ -548,6 +548,12 @@ export function MenuPage() {
               />
               <Label htmlFor="available-add">Article disponible</Label>
             </div>
+            {formError && (
+              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+                <strong className="font-bold">Erreur : </strong>
+                <span className="block sm:inline">{formError}</span>
+              </div>
+            )}
           </div>
 
           <DialogFooter>
@@ -564,6 +570,7 @@ export function MenuPage() {
                   id_file: undefined,
                   available: true,
                 });
+                setFormError(null);
               }}
               disabled={isLoading || isUploading}
             >

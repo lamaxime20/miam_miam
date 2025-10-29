@@ -267,7 +267,7 @@ BEGIN
         m.id_menu::TEXT as id,
         m.nom_menu::TEXT as name,
         m.description_menu::TEXT as description,
-        m.prix_menu as price,
+        m.prix_menu::DECIMAL(10,2) as price,  -- Conversion explicite
         CASE 
             WHEN m.libelle_menu = 'plat' THEN 'Plats'::TEXT
             WHEN m.libelle_menu = 'entree' THEN 'Entrées'::TEXT
@@ -281,7 +281,7 @@ BEGIN
             ELSE m.statut_menu::TEXT
         END as status,
         f.chemin::TEXT as image
-    FROM Menu m
+    FROM menu m
     LEFT JOIN file f ON m.image_menu = f.id_file
     WHERE m.restaurant_hote = restaurant_id
     ORDER BY 

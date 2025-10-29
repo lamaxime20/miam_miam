@@ -89,14 +89,40 @@ export async function getAllMenuItems() {
     }
 
     const data = await response.json();
-    
-    // Conversion des prix EUR -> XAF si nécessaire
-    return data.map(item => ({
-      ...item,
-      price: item.price, // ou convertirEURversXAF(item.price) si nécessaire
-      priceFormate: formaterMontantXAF(item.price), // Adapter selon votre devise
-      image: API_URL + item.image
-    }));
+
+    const backendToUiCategory = {
+      entree: 'Entrées',
+      plat: 'Plats',
+      dessert: 'Desserts',
+      boisson: 'Boissons',
+    };
+
+    console.log(data);
+
+    return data.map((item) => {
+      const id = (item.id ?? item.id_menu ?? item.menu_id);
+      const name = item.name ?? item.nom_menu ?? item.titre ?? '';
+      const description = item.description ?? item.description_menu ?? '';
+      const rawPrice = item.price ?? item.prix ?? item.prix_menu;
+      const price = typeof rawPrice === 'number' ? rawPrice : parseFloat(rawPrice ?? '0');
+      const rawCategory = item.category ?? item.libelle_menu ?? item.categorie;
+      const categoryLower = typeof rawCategory === 'string' ? rawCategory.toLowerCase() : rawCategory;
+      const category = backendToUiCategory[categoryLower] || rawCategory || '';
+      const rawStatus = item.status ?? item.statut_menu ?? '';
+      const status = rawStatus === 'disponible' ? 'available' : rawStatus === 'indisponible' ? 'unavailable' : (rawStatus || 'available');
+      const rawImage = item.image ?? item.image_path ?? item.image_menu_path ?? item.image_menu;
+      const image = API_URL + item.image
+
+      return {
+        id: id != null ? String(id) : crypto?.randomUUID?.() || Math.random().toString(36).slice(2),
+        name,
+        description,
+        price,
+        category,
+        status,
+        image,
+      };
+    });
     
   } catch (error) {
     console.error("Erreur lors de la récupération des plats du menu :", error);
@@ -203,6 +229,10 @@ export async function createMenuItem(menuItemData) {
     'Boissons': 'boisson',
   };
 
+  if(menuItemData.id_file == null){
+    menuItemData.id_file = 6;
+  }
+
   const payload = {
     nom_menu: menuItemData.name,
     description_menu: menuItemData.description,
@@ -235,12 +265,9 @@ export async function createMenuItem(menuItemData) {
 
   } catch (error) {
     console.error('Erreur lors de la création du menu:', error);
-    
-    // Relancer l'erreur avec un message plus clair si nécessaire
-    if (error.name === 'TypeError' && error.message.includes('fetch')) {
-      throw new Error('Erreur de connexion au serveur. Vérifiez votre connexion internet.');
+    if (error.message.includes('Failed to fetch')) {
+      throw new Error('Erreur de connexion au serveur. Vérifiez votre connexion internet et que le serveur est bien démarré.');
     }
-    
-    throw error; // Relancer l'erreur originale
+    throw error; // Relancer l'erreur pour la gestion dans le composant
   }
 }
