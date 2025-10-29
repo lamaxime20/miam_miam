@@ -742,7 +742,6 @@ INSERT INTO Restaurant (nom_restaurant, localisation, type_localisation, logo_re
 END;
 $$ LANGUAGE plpgsql;
 
-
 -- #############################################################
 -- Fonction 2 : Obtenir tous les restaurants
 -- #############################################################
@@ -1033,3 +1032,34 @@ BEGIN
     ORDER BY c.date_commande DESC, c.id_commande, ct.id_menu;
 END;
 $$ LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE FUNCTION insert_file(
+    p_nom_fichier NAME,
+    p_extension VARCHAR(10),
+    p_chemin TEXT
+)
+RETURNS TABLE(
+    id_file INTEGER,
+    nom_fichier NAME,
+    extension VARCHAR(10),
+    chemin TEXT
+) 
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    INSERT INTO file (nom_fichier, extension, chemin)
+    VALUES (p_nom_fichier, p_extension, p_chemin)
+    RETURNING file.id_file, file.nom_fichier, file.extension, file.chemin;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION get_file_by_id(p_id_file INTEGER)
+RETURNS TABLE(
+    id_file INTEGER,
+    nom_fichier NAME,
+    extension VARCHAR(10),
+    chemin TEXT
+) 
+LANGUAGE plpgsql

@@ -1,0 +1,8 @@
+[
+  {"id":1,"name":"Sielinou noelle","email":"sielinou.noelle@company.com","post":"Chef","dept":"CH","status":"Actif","hire":"2022-03-15"},
+  {"id":2,"name":"Mukam serge","email":"mukam.serge@company.com","post":"cuisinier","dept":"CU","status":"Actif","hire":"2021-01-08"},
+  {"id":3,"name":"Tim halan","email":"tim.halan@company.com","post":"serveur","dept":"SE","status":"En congé","hire":"2020-06-12"},
+  {"id":4,"name":"Akeri rosni","email":"Akeri.rosni@company.com","post":"serveur","dept":"SE","status":"Actif","hire":"2023-09-22"},
+  {"id":5,"name":"Lola joyce","email":"lola.joyce@company.com","post":"cuisinier","dept":"CU","status":"Actif","hire":"2024-08-05"},
+  {"id":6,"name":"Kamdem maxime","email":"Kamdem.maxime@company.com","post":"serveur","dept":"SE","status":"En congé","hire":"2022-11-11"}
+]

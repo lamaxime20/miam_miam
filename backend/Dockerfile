@@ -23,6 +23,9 @@ RUN composer install --no-interaction --prefer-dist --optimize-autoloader
 # Étape 7 : Donner les droits à Laravel sur les dossiers de cache
 RUN chown -R www-data:www-data storage bootstrap/cache
 
+# Créer le lien symbolique (cette commande peut échouer si storage n'existe pas encore)
+RUN php artisan storage:link || true
+
 # Étape 8 : Exposer le port du serveur
 EXPOSE 8000
 

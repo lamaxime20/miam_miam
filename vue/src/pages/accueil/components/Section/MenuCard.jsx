@@ -4,20 +4,12 @@ import "./MenuSection.css";
 
 function MenuSection({ item }) {
     const [imageSrc, setImageSrc] = useState("/placeholder.svg");
-    const [nomresto, setNomresto] = useState("Mon Miam Miam Space");
 
     useEffect(() => {
         if (item.image) {
             getImageBase64(item.image).then(setImageSrc);
         }
     }, [item.image]);
-
-    useEffect(() => {
-        if (item.nomresto) {
-            setNomresto(item.nomresto);
-        }
-    }, [item.nomresto]);
-
 
     return (
         <div key={item.id} className="col-12 col-md-6 col-lg-3">
@@ -27,7 +19,7 @@ function MenuSection({ item }) {
                     <div className="menu-icons"></div>
                 </div>
                 <h3 className="menu-item-name">{item.name}</h3>
-                <p className="menu-item-description">{nomresto}</p>
+                <p className="menu-item-description">{item.nomresto}</p>
                 <div className="menu-rating">
                     {[...Array(Math.floor(item.rating))].map((_, i) => (
                         <span key={i} className="star">★</span>

@@ -53,7 +53,7 @@ const RepasCardMenu = ({
         <div className="card-body d-flex flex-column justify-content-between">
           <div>
             <h5 className="card-title">{item.name}</h5>
-            <p className="card-text text-secondary">{restaurant ? restaurant.nom_restaurant : 'Chargement...'}</p>
+            <p className="card-text text-secondary">{item.nomresto}</p>
             <p className="card-text text-secondary">{item.description}</p>
           </div>
 
