@@ -29,6 +29,7 @@ import {
 import { Label } from './ui/label'; // Assurez-vous que Label est importé
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { getEmployees, createEmployee, DesactiverEmploye } from '../../../services/GestionEmploye.js';
+import { recupererAuth } from '../../../services/user.js';
 import { Search, Eye, Edit, Trash2, Plus, Users, CheckCircle, Calendar, UserPlus } from 'lucide-react';
 
 interface Employee {
@@ -63,7 +64,8 @@ export function EmployeesPage() {
     const fetchEmployees = async () => {
       try {
         setIsLoading(true);
-        const data = await getEmployees(1);
+        const restaurantId = (recupererAuth()?.restaurant) ?? 1;
+        const data = await getEmployees(restaurantId);
         setEmployees(data);
       } catch (error) {
         console.error("Erreur lors de la récupération des employés:", error);
@@ -80,7 +82,8 @@ export function EmployeesPage() {
   const fetchEmployees = async () => {
     try {
       setIsLoading(true);
-      const data = await getEmployees(1); // Supposons que l'ID du restaurant est 1
+      const restaurantId = (recupererAuth()?.restaurant) ?? 1;
+      const data = await getEmployees(restaurantId);
       setEmployees(data);
     } catch (error) {
       console.error("Erreur lors de la récupération des employés:", error);
@@ -96,7 +99,7 @@ export function EmployeesPage() {
       await createEmployee({
         email: newEmployeeEmail,
         role: newEmployeeRole,
-        restaurant: 1,
+        restaurant: (recupererAuth()?.restaurant) ?? 1,
       });
       await fetchEmployees(); // Recharger la liste des employés après la création
       setShowAddDialog(false);
@@ -140,7 +143,8 @@ export function EmployeesPage() {
     try {
       setIsLoading(true);
       // Appel au service pour désactiver l'employé
-      const result = await DesactiverEmploye(employee.email, employee.position.toLowerCase(), 1); // Supposons restaurantId = 1
+      const restaurantId = (recupererAuth()?.restaurant) ?? 1;
+      const result = await DesactiverEmploye(employee.email, employee.position.toLowerCase(), restaurantId);
 
       if (result === 'EMPLOYE_DESACTIVE') {
         await fetchEmployees(); // Recharger la liste des employés après la désactivation

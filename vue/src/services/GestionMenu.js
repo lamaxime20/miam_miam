@@ -1,4 +1,5 @@
 const API_URL = import.meta.env.VITE_API_URL;
+import { recupererAuth } from './user.js';
 
 const mockMenuItemsEUR = [
   {
@@ -80,7 +81,7 @@ const mockMenuItemsEUR = [
  * @returns {Promise<Array>} - La liste des plats du menu.
  */
 export async function getAllMenuItems() {
-    const restaurantId = 1;
+    const restaurantId = (recupererAuth()?.restaurant) ?? 1;
   try {
     const response = await fetch(API_URL + `api/menu/${restaurantId}/items`);
     
@@ -221,7 +222,7 @@ export async function uploadImage(file) {
  * @returns {Promise<object>} - L'article de menu créé.
  */
 export async function createMenuItem(menuItemData) {
-  const restaurant_id = 1;
+  const restaurant_id = (recupererAuth()?.restaurant) ?? 1;
 
   // Traduire les catégories et statuts pour le backend si nécessaire
   const categoryMap = {

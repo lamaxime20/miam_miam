@@ -16,6 +16,9 @@ import {
   PopoverTrigger,
 } from './ui/popover';
 import { ScrollArea } from './ui/scroll-area';
+import { recupererAuth, getUserByEmail } from '../../../services/user';
+import { logout } from '../../../services/login';
+import { useNavigate } from 'react-router-dom';
 
 interface Notification {
   id: string;
@@ -46,26 +49,52 @@ export function Header() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [adminProfile, setAdminProfile] = useState<AdminProfile>({
-    name: 'Admin',
+    name: '',
     role: 'Administrateur',
-    email: 'admin@miammiam.com',
+    email: '',
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [isProfileLoading, setIsProfileLoading] = useState(true);
+  const navigate = useNavigate();
 
-  // Charger les notifications
+  // Charger le profil administrateur
   useEffect(() => {
+    const loadAdminProfile = async () => {
+      try {
+        setIsProfileLoading(true);
+        const auth = recupererAuth();
+        
+        if (auth && auth.email) {
+          const user = await getUserByEmail(auth.email);
+          console.log('User data:', user);
+          
+          setAdminProfile({
+            name: user.nom_user || auth.display_name || 'Administrateur',
+            role: 'Administrateur',
+            email: auth.email,
+          });
+        }
+      } catch (error) {
+        console.error('Erreur lors du chargement du profil:', error);
+        // Fallback en cas d'erreur
+        const auth = recupererAuth();
+        setAdminProfile({
+          name: auth.display_name || 'Administrateur',
+          role: 'Administrateur',
+          email: auth.email || '',
+        });
+      } finally {
+        setIsProfileLoading(false);
+      }
+    };
+
+    loadAdminProfile();
     loadNotifications();
     loadMessages();
-    loadAdminProfile();
   }, []);
 
   const loadNotifications = async () => {
     try {
-      // TODO: Remplacer par un appel API réel
-      // const response = await fetch('/api/admin/notifications');
-      // const data = await response.json();
-      // setNotifications(data);
-
       // DONNÉES MOCKÉES (à remplacer)
       const mockNotifications: Notification[] = [
         {
@@ -101,11 +130,6 @@ export function Header() {
 
   const loadMessages = async () => {
     try {
-      // TODO: Remplacer par un appel API réel
-      // const response = await fetch('/api/admin/messages');
-      // const data = await response.json();
-      // setMessages(data);
-
       // DONNÉES MOCKÉES (à remplacer)
       const mockMessages: Message[] = [
         {
@@ -131,22 +155,8 @@ export function Header() {
     }
   };
 
-  const loadAdminProfile = async () => {
-    try {
-      // TODO: Remplacer par un appel API réel
-      // const response = await fetch('/api/admin/profile');
-      // const data = await response.json();
-      // setAdminProfile(data);
-    } catch (error) {
-      console.error('Erreur lors du chargement du profil:', error);
-    }
-  };
-
   const markNotificationAsRead = async (id: string) => {
     try {
-      // TODO: Remplacer par un appel API réel
-      // await fetch(`/api/admin/notifications/${id}/read`, { method: 'POST' });
-
       setNotifications(notifications.map(n => 
         n.id === id ? { ...n, read: true } : n
       ));
@@ -157,9 +167,6 @@ export function Header() {
 
   const markAllNotificationsAsRead = async () => {
     try {
-      // TODO: Remplacer par un appel API réel
-      // await fetch('/api/admin/notifications/read-all', { method: 'POST' });
-
       setNotifications(notifications.map(n => ({ ...n, read: true })));
     } catch (error) {
       console.error('Erreur:', error);
@@ -169,13 +176,14 @@ export function Header() {
   const handleLogout = async () => {
     try {
       setIsLoading(true);
-      // TODO: Remplacer par un appel API réel
-      // await fetch('/api/admin/logout', { method: 'POST' });
-      // window.location.href = '/login';
-
-      alert('Déconnexion réussie !');
+      const result = await logout();
+      if (!result?.success) {
+        console.warn('Déconnexion côté client effectuée, mais erreur serveur:', result?.message);
+      }
+      navigate('/login', { replace: true });
     } catch (error) {
       console.error('Erreur lors de la déconnexion:', error);
+      navigate('/', { replace: true });
     } finally {
       setIsLoading(false);
     }
@@ -183,6 +191,19 @@ export function Header() {
 
   const unreadNotifications = notifications.filter(n => !n.read).length;
   const unreadMessages = messages.filter(m => !m.read).length;
+
+  if (isProfileLoading) {
+    return (
+      <header className="bg-white border-b border-gray-200 px-4 md:px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl md:text-2xl">Dashboard Administrateur</h1>
+            <p className="text-sm text-gray-500">Chargement...</p>
+          </div>
+        </div>
+      </header>
+    );
+  }
 
   return (
     <header className="bg-white border-b border-gray-200 px-4 md:px-6 py-4">

@@ -10,6 +10,7 @@ import {
   SelectValue,
 } from './ui/select';
 import { fetchReportsPageData } from '../../../services/ReportAdmin';
+import { recupererAuth } from '../../../services/user.js';
 import { useEffect, useState } from 'react';
 
 export function ReportsPage() {
@@ -69,7 +70,7 @@ export function ReportsPage() {
     try {
       const dateRange = getDateRange(period);
       const data = await fetchReportsPageData({
-        restaurantId: 1, // TODO: get from context/props
+        restaurantId: (recupererAuth()?.restaurant) ?? 1,
         startDate: dateRange.start,
         endDate: dateRange.end,
         months: 10,
