@@ -14,6 +14,9 @@ use App\Http\Controllers\Api\restaurantController;
 use App\Http\Controllers\Api\reponseController;
 use App\Http\Controllers\Api\reclamationController;
 use App\Http\Controllers\employeController;
+use App\Http\Controllers\Api\statsDashboardAdminController;
+
+
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -22,6 +25,7 @@ Route::get('/utilisateurs/{id}', [UtilisateurController::class, 'show']);
 Route::post('/utilisateurs', [UtilisateurController::class, 'store']);
 Route::put('/utilisateurs/{id}', [UtilisateurController::class, 'update']);
 Route::delete('/utilisateurs/{id}', [UtilisateurController::class, 'destroy']);
+Route::get('/checkUserDejaEmploye', [UtilisateurController::class, 'checkUserDejaEmploye']);
 
 // Vérifications et authentification
 Route::post('/checkEmailExiste', [UtilisateurController::class, 'checkEmailExiste']);
@@ -39,11 +43,19 @@ Route::get('/administrateurs/{id}', [administrateurController::class, 'show']);
 Route::post('/administrateurs', [administrateurController::class, 'store']);
 Route::put('/administrateurs/{id}', [administrateurController::class, 'update']);
 Route::delete('/administrateurs/{id}', [administrateurController::class, 'destroy']);
-Route::get('/files', [fileController::class, 'index']);
-Route::get('/files/{id}', [fileController::class, 'show']);
-Route::post('/files', [fileController::class, 'store']);
-Route::put('/files/{id}', [fileController::class, 'update']);
-Route::delete('/files/{id}', [fileController::class, 'destroy']);
+Route::get('/getemployeesrestaurant/{id}', [administrateurController::class, 'getEmployees']);
+Route::post('/createemployee', [administrateurController::class, 'createEmployee']);
+Route::post('/desactiveremploye', [administrateurController::class, 'desactiverEmploye']);
+
+// Routes pour les fichiers
+
+Route::prefix('files')->group(function () {
+    Route::get('/', [FileController::class, 'index']);
+    Route::post('/upload', [FileController::class, 'upload']);
+    Route::get('/{id}', [FileController::class, 'show']);
+    Route::delete('/{id}', [FileController::class, 'destroy']);
+    Route::put('/{id}', [FileController::class, 'replaceSimple']);
+});
 
 Route::get('/choisir_menu_jour', [choisir_menu_jourController::class, 'index']);
 Route::get('/choisir_menu_jour/popularite', [choisir_menu_jourController::class, 'menusParPopularite']);
@@ -82,6 +94,10 @@ Route::prefix('client')->group(function () {
 
 // Routes pour les promotions
 Route::get('/promotions/actives', [promotionController::class, 'promotionsActives']);
+Route::get('/promotions', [promotionController::class, 'index']);
+Route::post('/promotions', [promotionController::class, 'store']);
+Route::put('/promotions/{id}', [promotionController::class, 'update']);
+Route::get('/promotions/{id}/menus', [promotionController::class, 'getMenusPromotion']);
 
 // Routes pour les notifications
 Route::prefix('notifications')->group(function () {
@@ -119,3 +135,29 @@ Route::get('/reclamations/{id}/reponses', [reponseController::class, 'index']);
 Route::post('/reclamations/{id}/reponses', [reponseController::class, 'store']);
 
 Route::get('/employe/dashboard/kpis', [UtilisateurController::class, 'dashboardKpis']);
+Route::get('/menu/{id_restaurant}/items', [menuController::class, 'getAllMenuItems']);
+Route::post('/menu', [menuController::class, 'index']);
+Route::put('/menu/{id_menu}', [menuController::class, 'update']);
+
+// Routes pour les statistiques admin
+
+Route::get('/dashboard/ventes-aujourdhui', [statsDashboardAdminController::class, 'getVentesAujourdhui']);
+Route::get('/dashboard/stats', [statsDashboardAdminController::class, 'getStatsDashboard']);
+Route::get('/dashboard/user-distribution', [statsDashboardAdminController::class, 'getUserDistribution']);
+Route::get('/dashboard/recent-orders', [statsDashboardAdminController::class, 'getRecentOrders']);
+Route::get('/dashboard/recent-complaints', [statsDashboardAdminController::class, 'getRecentComplaints']);
+Route::get('/dashboard/ventes-semaine', [statsDashboardAdminController::class, 'getVentesSemaine']);
+
+Route::get('/orders', [statsDashboardAdminController::class, 'getOrders']);
+
+// ReportsPage endpoints
+Route::get('/dashboard/reports/monthly-revenue', [statsDashboardAdminController::class, 'getMonthlyRevenue']);
+Route::get('/dashboard/reports/category-distribution', [statsDashboardAdminController::class, 'getCategoryDistribution']);
+Route::get('/dashboard/reports/top-products', [statsDashboardAdminController::class, 'getTopProducts']);
+Route::get('/dashboard/reports/hourly-orders', [statsDashboardAdminController::class, 'getHourlyOrders']);
+Route::get('/dashboard/reports/kpis', [statsDashboardAdminController::class, 'getReportsKpis']);
+Route::get('/dashboard/reports/summary', [statsDashboardAdminController::class, 'getMonthlySummary']);
+Route::get('/dashboard/reports/all', [statsDashboardAdminController::class, 'getReportsAll']);
+
+Route::post('/promotions/ajouter-menus', [promotionController::class, 'ajouterPlusieursMenusPromotion']);
+Route::post('/promotions/supprimer-menus', [promotionController::class, 'supprimerMenusPromotion']);

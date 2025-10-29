@@ -172,105 +172,117 @@ $$ LANGUAGE plpgsql;
 -- #############################################################
 -- Fonction 1 : Créer un fichier
 -- #############################################################
-CREATE OR REPLACE FUNCTION creer_file(
-    p_nom_fichier Name,
+CREATE OR REPLACE FUNCTION insert_file(
+    p_nom_fichier NAME,
     p_extension VARCHAR(10),
     p_chemin TEXT
 )
-RETURNS TABLE (id INT, message TEXT)
-AS $$
-DECLARE
-    new_id INT;
-BEGIN
-    INSERT INTO File (nom_fichier, extension, chemin)
-    VALUES (p_nom_fichier, p_extension, p_chemin)
-    RETURNING id_file INTO new_id;
-
-    RETURN QUERY SELECT new_id AS id, 'fichier created successfully' AS message;
-END;
-$$ LANGUAGE plpgsql;
-
--- #############################################################
--- Fonction 2 : Récupérer tous les fichiers
--- #############################################################
-CREATE OR REPLACE FUNCTION get_all_files()
-RETURNS TABLE (
-    id_file INT,
-    nom_fichier Name,
+RETURNS TABLE(
+    id_file INTEGER,
+    nom_fichier NAME,
     extension VARCHAR(10),
     chemin TEXT
-)
+) 
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    INSERT INTO file (nom_fichier, extension, chemin)
+    VALUES (p_nom_fichier, p_extension, p_chemin)
+    RETURNING file.id_file, file.nom_fichier, file.extension, file.chemin;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION get_file_by_id(p_id_file INTEGER)
+RETURNS TABLE(
+    id_file INTEGER,
+    nom_fichier NAME,
+    extension VARCHAR(10),
+    chemin TEXT
+) 
+LANGUAGE plpgsql
 AS $$
 BEGIN
     RETURN QUERY
     SELECT f.id_file, f.nom_fichier, f.extension, f.chemin
-    FROM File f
+    FROM file f
+    WHERE f.id_file = p_id_file;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION get_all_files()
+RETURNS TABLE(
+    id_file INTEGER,
+    nom_fichier NAME,
+    extension VARCHAR(10),
+    chemin TEXT
+) 
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT f.id_file, f.nom_fichier, f.extension, f.chemin
+    FROM file f
     ORDER BY f.id_file;
 END;
-$$ LANGUAGE plpgsql;
+$$;
 
--- #############################################################
--- Fonction 3 : Récupérer un fichier par son ID
--- #############################################################
-CREATE OR REPLACE FUNCTION get_one_file(p_id INT)
-RETURNS TABLE (
-    id_file INT,
-    nom_fichier Name,
+CREATE OR REPLACE FUNCTION delete_file(p_id_file INTEGER)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    rows_deleted INTEGER;
+BEGIN
+    DELETE FROM file 
+    WHERE id_file = p_id_file;
+    
+    GET DIAGNOSTICS rows_deleted = ROW_COUNT;
+    
+    RETURN rows_deleted > 0;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION file_exists(p_id_file INTEGER)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    file_count INTEGER;
+BEGIN
+    SELECT COUNT(*) INTO file_count
+    FROM file
+    WHERE id_file = p_id_file;
+    
+    RETURN file_count > 0;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION update_file(
+    p_id_file INTEGER,
+    p_nom_fichier NAME,
+    p_extension VARCHAR(10),
+    p_chemin TEXT
+)
+RETURNS TABLE(
+    id_file INTEGER,
+    nom_fichier NAME,
     extension VARCHAR(10),
     chemin TEXT
-)
+) 
+LANGUAGE plpgsql
 AS $$
 BEGIN
     RETURN QUERY
-    SELECT f.id_file, f.nom_fichier, f.extension, f.chemin
-    FROM File f
-    WHERE f.id_file = p_id;
+    UPDATE file 
+    SET 
+        nom_fichier = p_nom_fichier,
+        extension = p_extension,
+        chemin = p_chemin
+    WHERE id_file = p_id_file
+    RETURNING file.id_file, file.nom_fichier, file.extension, file.chemin;
 END;
-$$ LANGUAGE plpgsql;
-
--- #############################################################
--- Fonction 4 : Mettre à jour un fichier
--- #############################################################
-CREATE OR REPLACE FUNCTION update_file(
-    p_id INT,
-    p_nom_fichier Name DEFAULT NULL,
-    p_extension VARCHAR(10) DEFAULT NULL,
-    p_chemin TEXT DEFAULT NULL
-)
-RETURNS TEXT
-AS $$
-BEGIN
-    UPDATE File f
-    SET
-        nom_fichier = COALESCE(p_nom_fichier, nom_fichier),
-        extension = COALESCE(p_extension, extension),
-        chemin = COALESCE(p_chemin, chemin)
-    WHERE f.id_file = p_id;
-
-    IF NOT FOUND THEN
-        RETURN 'aucun fichier trouvé';
-    END IF;
-
-    RETURN 'fichier updated successfully';
-END;
-$$ LANGUAGE plpgsql;
-
--- #############################################################
--- Fonction 5 : Supprimer un fichier
--- #############################################################
-CREATE OR REPLACE FUNCTION delete_file(p_id INT)
-RETURNS TEXT
-AS $$
-BEGIN
-    DELETE FROM File f WHERE f.id_file = p_id;
-
-    IF NOT FOUND THEN
-        RETURN 'aucun fichier trouvé';
-    END IF;
-
-    RETURN 'fichier deleted successfully';
-END;
-$$ LANGUAGE plpgsql;
+$$;
 
 -- ==============================================
 -- FONCTION : lister_menu_du_jour()

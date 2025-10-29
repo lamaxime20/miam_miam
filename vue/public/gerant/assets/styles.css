@@ -1,0 +1,188 @@
+:root{
+  /* Brand tokens (dark theme) */
+  --brand: #cfbd97; /* primary accent */
+  --text: #f3f4f6; /* primary text on dark bg */
+  --bg: #000000; /* page background (black) */
+  --card: #0b0b0b; /* surfaces */
+  --muted: #9ca3af; /* muted text */
+  --danger: #ff6b6b;
+  --warning: #ffdf7e;
+  --success: #16a34a;
+  --surface-shadow: 0 6px 18px rgba(0,0,0,0.6);
+}
+*{box-sizing:border-box}
+html,body,#root{height:100%}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+body{
+  margin:0;
+  font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+}
+.app{display:flex;height:100vh}
+.sidebar{width:260px;background:linear-gradient(180deg,var(--brand),#b9a97f);color:var(--text);padding:22px;display:flex;flex-direction:column;gap:18px}
+.brand{display:flex;align-items:center;gap:12px}
+.brand .logo{width:48px;height:48px;background:rgba(255,255,255,0.06);color:var(--text);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px}
+.brand .title{font-weight:700;color:var(--text);font-size:18px}
+.nav{display:flex;flex-direction:column;gap:8px}
+.nav-item{padding:10px 12px;border-radius:8px;color:rgba(255,255,255,0.75);cursor:pointer;text-decoration:none;display:block}
+.nav-item.active{background:rgba(255,255,255,0.04);color:var(--text);font-weight:600}
+.main{flex:1;padding:28px 32px;overflow:auto}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.header h1{margin:0;font-size:20px}
+.header .subtitle{color:var(--muted);font-size:13px}
+.header-right{display:flex;align-items:center;gap:12px}
+.date{font-size:12px;color:var(--muted);text-align:right}
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:18px}
+.card{background:var(--card);padding:16px;border-radius:12px;box-shadow:var(--surface-shadow);color:var(--text)}
+.card.small{display:flex;flex-direction:column;gap:6px}
+.card-title{font-size:12px;color:var(--muted)}
+.card-value{font-size:20px;font-weight:700}
+.card-meta{font-size:12px;color:green}
+.panels{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:18px}
+.panel{background:var(--card);padding:18px;border-radius:12px}
+.panel-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.chart{height:200px;border-radius:10px;padding:12px;background:linear-gradient(180deg, rgba(255,255,255,0.5), rgba(255,255,255,0.3))}
+.realtime .orders{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:12px}
+.order{display:flex;justify-content:space-between;align-items:center;padding:10px;border-radius:8px;background:rgba(255,255,255,0.02)}
+.order .meta{font-size:12px;color:var(--muted)}
+.alerts{margin-top:8px}
+.alert{display:flex;justify-content:space-between;align-items:center;padding:18px;border-radius:8px;margin-bottom:12px}
+.alert .muted{font-size:13px;color:var(--muted)}
+.alert-danger{background:linear-gradient(90deg, rgba(255,107,107,0.12), rgba(255,107,107,0.06))}
+.alert-warning{background:linear-gradient(90deg, rgba(255,223,126,0.12), rgba(255,223,126,0.06))}
+.btn{border:0;padding:8px 12px;border-radius:8px;cursor:pointer;background:var(--brand);color:#000;border:1px solid rgba(255,255,255,0.04);font-weight:600}
+.btn-outline-secondary{background:transparent;color:var(--text);border:1px solid rgba(255,255,255,0.06)}
+.btn-sm{padding:6px 10px;border-radius:8px}
+.btn-danger{background:var(--danger);color:#fff;border:0}
+.footer{margin-top:18px;text-align:center;color:var(--muted);font-size:13px}
+
+/* responsive */
+@media(max-width:900px){
+  .sidebar{display:none}
+  .stats-grid{grid-template-columns:repeat(2,1fr)}
+  .panels{grid-template-columns:1fr}
+  .main{padding:16px}
+}
+
+/* Badge color utilities used by dashboard */
+.badge.bg-yellow{background:#fff3cd;color:#664d03}
+.badge.bg-green{background:#d1fae5;color:#065f46}
+.badge.bg-blue{background:#e0f2fe;color:#075985}
+
+/* Form controls */
+.form-control, .form-select{border-radius:8px;border:1px solid rgba(0,0,0,0.06);padding:10px}
+
+/* Utility helpers */
+.muted{color:var(--muted)}
+.text-brand{color:var(--brand)}
+
+/* Override some Bootstrap utility backgrounds for dark theme */
+.bg-light{background:var(--card) !important;color:var(--text) !important}
+.bg-white{background:var(--card) !important;color:var(--text) !important}
+.text-muted{color:var(--muted) !important}
+
+/* Strong dark overrides for common Bootstrap utilities and components */
+.bg-secondary{background:rgba(255,255,255,0.02) !important;color:var(--text) !important}
+.table{color:var(--text);background:transparent}
+.table thead th{color:var(--muted);border-bottom:1px solid rgba(255,255,255,0.04);background:transparent}
+.table tbody td{border-color:rgba(255,255,255,0.03)}
+.table tbody tr{background:transparent}
+.list-unstyled li{background:transparent}
+.card .table-responsive{background:transparent}
+.dropdown-menu{background:var(--card);color:var(--text);border:1px solid rgba(255,255,255,0.03)}
+.form-control, .form-select{background:transparent;color:var(--text);border:1px solid rgba(255,255,255,0.04)}
+
+/* Tag badges for order states */
+.tag-yellow{background:#fff3bf;color:#4b3b00;padding:6px 10px;border-radius:18px;font-weight:600}
+.tag-green{background:#d1fae5;color:#064e3b;padding:6px 10px;border-radius:18px;font-weight:600}
+.tag-blue{background:#e6f0ff;color:#0b4a6f;padding:6px 10px;border-radius:18px;font-weight:600}
+
+/* Alerts backgrounds respecting brand */
+.alert-danger-bg{background:linear-gradient(90deg, rgba(255,107,107,0.08), rgba(255,107,107,0.04));padding:16px;border-radius:10px}
+.alert-warning-bg{background:linear-gradient(90deg, rgba(255,223,126,0.08), rgba(255,223,126,0.04));padding:16px;border-radius:10px}
+
+/* Placeholder chart area */
+.placeholder-chart{height:200px;display:flex;align-items:center;justify-content:center;color:var(--muted);border-radius:10px;background:linear-gradient(180deg, rgba(0,0,0,0.02), rgba(0,0,0,0.01))}
+
+.placeholder-chart--large{height:260px}
+
+/* Content background utility */
+.content-bg{background:var(--bg);min-height:100vh}
+
+/* small avatar / brand icon */
+.brand-icon, .avatar-sm{width:44px;height:44px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px}
+.brand-icon{background:rgba(255,255,255,0.35);font-size:20px}
+
+/* explicit sidebar helper when an aside needs width set */
+.sidebar-aside{width:260px}
+.avatar-sm{width:36px;height:36px}
+
+/* Avatar initials: dark-safe surface and improved contrast */
+.avatar-initials, .avatar-sm.rounded-circle{
+  background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  color:var(--text) !important;
+  border:1px solid rgba(255,255,255,0.03);
+}
+
+/* Ensure bg-secondary used on avatars maps to the dark surface */
+.avatar-sm.bg-secondary{background:rgba(255,255,255,0.03) !important;color:var(--text) !important}
+
+/* rounded avatar images and generic rounded elements: remove white backgrounds and add subtle border */
+.rounded-circle{background:transparent !important;border:1px solid rgba(255,255,255,0.03);}
+.rounded-circle img{display:block;border-radius:50%}
+
+/* ====================================================================== */
+/* Strong dark reset for demo pages — forces dark surfaces and readable text */
+/* This catches local/demo CSS that may set white backgrounds */
+/* ====================================================================== */
+.hero-card, .cookie-card, .profile-card, .main-card, .payment-info, .payment-option.card, .card, .panel, .panel-header, .placeholder-chart, .hero-section, .recent-activity, .payment-summary, .avatar-placeholder {
+  background: var(--card) !important;
+  color: var(--text) !important;
+  border-color: rgba(255,255,255,0.04) !important;
+  box-shadow: var(--surface-shadow) !important;
+}
+
+/* Ensure any element using Bootstrap bg-* classes maps to dark surfaces */
+.bg-light, .bg-white, .bg-primary, .bg-secondary, .bg-info, .bg-warning, .bg-danger {
+  background: var(--card) !important;
+  color: var(--text) !important;
+}
+
+/* Inputs, selects, textareas */
+input, textarea, select, .form-control, .form-select {
+  background: transparent !important;
+  color: var(--text) !important;
+  border: 1px solid rgba(255,255,255,0.04) !important;
+}
+
+/* Buttons & outlines */
+.btn, .btn-outline-secondary, .btn-outline-primary, .btn-outline-info, .btn-outline-warning {
+  color: var(--text) !important;
+}
+
+/* Badges: keep status colors but ensure dark background where needed */
+.badge{background:rgba(255,255,255,0.03) !important;color:var(--text) !important;border:1px solid rgba(255,255,255,0.03) !important}
+.badge.bg-success{background:linear-gradient(90deg, rgba(22,163,74,0.12), rgba(22,163,74,0.06)) !important;color:var(--text) !important}
+.badge.bg-warning{background:linear-gradient(90deg, rgba(255,223,126,0.12), rgba(255,223,126,0.06)) !important;color:var(--text) !important}
+.badge.bg-danger{background:linear-gradient(90deg, rgba(255,107,107,0.12), rgba(255,107,107,0.06)) !important;color:var(--text) !important}
+
+/* images should not show white backgrounds */
+img{background:transparent !important}
+
+/* cookie backdrop (modal) should be a dark translucent overlay */
+.cookie-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:9999}
+
+/* fallback: force container backgrounds transparent so page background shows through */
+.container, .container-fluid{background:transparent !important}
+
+/* high-contrast focus states */
+*:focus{outline-color:var(--brand) !important}
+
+/* small helper: ensure text-muted uses our muted token */
+.text-muted, .small-muted{color:var(--muted) !important}
+
+/* end strong dark reset */
+

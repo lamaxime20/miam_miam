@@ -406,4 +406,36 @@ class UtilisateurController extends Controller
             ], 500);
         }
     }
+
+    public function checkUserDejaEmploye(Request $request)
+    {
+        try {
+            $request->validate([
+                'email' => 'required|email',
+                'role' => 'required|string|in:gérant,employé,livreur'
+            ]);
+
+            $email = $request->input('email');
+            $role = $request->input('role');
+
+            $result = DB::select('SELECT user_deja_employe(?, ?) as est_employe', [$email, $role]);
+            
+            if (empty($result)) {
+                return response()->json(['est_employe' => false]);
+            }
+            
+            return response()->json([
+                'est_employe' => (bool)$result[0]->est_employe
+            ]);
+            
+        } catch (\Exception $e) {
+            \Log::error('Erreur lors de la vérification employé:', [
+                'message' => $e->getMessage(),
+                'email' => $request->input('email'),
+                'role' => $request->input('role')
+            ]);
+            
+            return response()->json(['est_employe' => false], 500);
+        }
+    }
 }
