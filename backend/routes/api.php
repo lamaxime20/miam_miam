@@ -22,6 +22,7 @@ Route::get('/utilisateurs/{id}', [UtilisateurController::class, 'show']);
 Route::post('/utilisateurs', [UtilisateurController::class, 'store']);
 Route::put('/utilisateurs/{id}', [UtilisateurController::class, 'update']);
 Route::delete('/utilisateurs/{id}', [UtilisateurController::class, 'destroy']);
+Route::post('/getRestaurantsUtilisateur', [UtilisateurController::class, 'getRestaurantsUtilisateur']);
 
 // Vérifications et authentification
 Route::post('/checkEmailExiste', [UtilisateurController::class, 'checkEmailExiste']);

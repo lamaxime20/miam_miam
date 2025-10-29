@@ -406,4 +406,37 @@ class UtilisateurController extends Controller
             ], 500);
         }
     }
+
+    public function getRestaurantsUtilisateur(Request $request)
+    {
+        try {
+            $request->validate([
+                'email' => 'required|email'
+            ]);
+
+            $email = $request->input('email');
+
+            $results = DB::select('SELECT * FROM get_restaurants_utilisateur(?)', [$email]);
+            
+            $restaurants = array_map(function($item) {
+                return [
+                    'restaurant_id' => (int)$item->restaurant_id,
+                    'restaurant_nom' => $item->restaurant_nom,
+                    'restaurant_logo' => $item->restaurant_logo,
+                    'role_utilisateur' => $item->role_utilisateur,
+                    'date_debut' => $item->date_debut
+                ];
+            }, $results);
+            
+            return response()->json($restaurants);
+            
+        } catch (\Exception $e) {
+            \Log::error('Erreur lors de la récupération des restaurants utilisateur:', [
+                'message' => $e->getMessage(),
+                'email' => $request->input('email')
+            ]);
+            
+            return response()->json([], 500);
+        }
+    }
 }
