@@ -247,3 +247,52 @@ EXCEPTION
         RETURN 'ERREUR: ' || SQLERRM;
 END;
 $$;
+
+
+CREATE OR REPLACE FUNCTION get_all_menu_items(restaurant_id INT)
+RETURNS TABLE(
+    id TEXT,
+    name TEXT,
+    description TEXT,
+    price DECIMAL(10,2),
+    category TEXT,
+    status TEXT,
+    image TEXT
+) 
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY 
+    SELECT 
+        m.id_menu::TEXT as id,
+        m.nom_menu::TEXT as name,
+        m.description_menu::TEXT as description,
+        m.prix_menu as price,
+        CASE 
+            WHEN m.libelle_menu = 'plat' THEN 'Plats'::TEXT
+            WHEN m.libelle_menu = 'entree' THEN 'Entrées'::TEXT
+            WHEN m.libelle_menu = 'dessert' THEN 'Desserts'::TEXT
+            WHEN m.libelle_menu = 'boisson' THEN 'Boissons'::TEXT
+            ELSE m.libelle_menu::TEXT
+        END as category,
+        CASE 
+            WHEN m.statut_menu = 'disponible' THEN 'available'::TEXT
+            WHEN m.statut_menu = 'indisponible' THEN 'unavailable'::TEXT
+            ELSE m.statut_menu::TEXT
+        END as status,
+        f.chemin::TEXT as image
+    FROM Menu m
+    LEFT JOIN file f ON m.image_menu = f.id_file
+    WHERE m.restaurant_hote = restaurant_id
+    ORDER BY 
+        CASE 
+            WHEN m.libelle_menu = 'entree' THEN 1
+            WHEN m.libelle_menu = 'plat' THEN 2
+            WHEN m.libelle_menu = 'dessert' THEN 3
+            WHEN m.libelle_menu = 'boisson' THEN 4
+            ELSE 5
+        END,
+        m.nom_menu;
+
+END;
+$$;

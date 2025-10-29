@@ -22,7 +22,7 @@ import {
 } from './ui/select';
 import { Search, Plus, Edit, Trash2, UtensilsCrossed, ChefHat, Coffee, Cake, Image as ImageIcon } from 'lucide-react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
-import { getPlatsMenu, sauvegarderPlat, supprimerPlat, convertirPrix } from '../../../services/dashboard';
+import { getAllMenuItems, convertirPrix } from '../../../services/GestionMenu';
 
 interface MenuItem {
   id: string;
@@ -57,81 +57,6 @@ const convertMockItems = (items: any[]): MenuItem[] => {
   });
 };
 
-const mockMenuItemsEUR = [
-  {
-    id: '1',
-    name: 'Burger Premium',
-    description: 'Pain artisanal, steak 180g, cheddar affiné, sauce maison',
-    price: 15.90,
-    category: 'Plats',
-    status: 'available' as const,
-    image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400&h=300&fit=crop',
-  },
-  {
-    id: '2',
-    name: 'Pizza Margherita',
-    description: 'Sauce tomate, mozzarella di bufala, basilic frais',
-    price: 12.90,
-    category: 'Plats',
-    status: 'available' as const,
-    image: 'https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=400&h=300&fit=crop',
-  },
-  {
-    id: '3',
-    name: 'Salade César',
-    description: 'Poulet grillé, parmesan, croûtons, sauce césar',
-    price: 9.50,
-    category: 'Entrées',
-    status: 'available' as const,
-    image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=300&fit=crop',
-  },
-  {
-    id: '4',
-    name: 'Tiramisu Maison',
-    description: 'Mascarpone, café, cacao, biscuits imbibés',
-    price: 6.50,
-    category: 'Desserts',
-    status: 'available' as const,
-    image: 'https://images.unsplash.com/photo-1571877227200-a0d98ea607e9?w=400&h=300&fit=crop',
-  },
-  {
-    id: '5',
-    name: 'Cappuccino',
-    description: 'Espresso, lait vapeur, mousse de lait',
-    price: 4.50,
-    category: 'Boissons',
-    status: 'available' as const,
-    image: 'https://images.unsplash.com/photo-1572442388796-11668a67e53d?w=400&h=300&fit=crop',
-  },
-  {
-    id: '6',
-    name: 'Tartare de Saumon',
-    description: 'Saumon frais, avocat, citron vert, sésame',
-    price: 16.50,
-    category: 'Entrées',
-    status: 'unavailable' as const,
-    image: 'https://images.unsplash.com/photo-1580959375944-1ab5b8c78f75?w=400&h=300&fit=crop',
-  },
-  {
-    id: '7',
-    name: 'Pâtes Carbonara',
-    description: 'Crème, lardons, parmesan, jaune d\'œuf',
-    price: 13.90,
-    category: 'Plats',
-    status: 'available' as const,
-    image: 'https://images.unsplash.com/photo-1612874742237-6526221588e3?w=400&h=300&fit=crop',
-  },
-  {
-    id: '8',
-    name: 'Fondant au Chocolat',
-    description: 'Chocolat noir 70%, cœur coulant, glace vanille',
-    price: 7.50,
-    category: 'Desserts',
-    status: 'available' as const,
-    image: 'https://images.unsplash.com/photo-1624353365286-3f8d62daad51?w=400&h=300&fit=crop',
-  },
-];
-
 const categories = ['Entrées', 'Plats', 'Desserts', 'Boissons'];
 
 const categoryIcons = {
@@ -146,7 +71,7 @@ export function MenuPage() {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
-  const [menuItems, setMenuItems] = useState<MenuItem[]>(convertMockItems(mockMenuItemsEUR));
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [formData, setFormData] = useState<FormData>({
     name: '',
     description: '',
@@ -155,29 +80,19 @@ export function MenuPage() {
     imageUrl: '',
     available: true,
   });
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Charger les plats depuis l'API (optionnel)
   useEffect(() => {
-    // TODO: Décommenter quand l'API est prête
-    // loadMenuItems();
+    loadMenuItems();
   }, []);
 
   const loadMenuItems = async () => {
     try {
       setIsLoading(true);
-      const plats = await getPlatsMenu();
-      const converted = plats.map((plat: any) => ({
-        id: plat.id,
-        name: plat.nom,
-        description: plat.description,
-        price: plat.prixEUR,
-        priceXAF: plat.prixXAF,
-        priceFormatted: plat.prixFormate,
-        category: plat.categorie,
-        status: plat.statut,
-        image: plat.image,
-      }));
+      const plats = await getAllMenuItems();
+      console.log(plats);
+      const converted = convertMockItems(plats);
       setMenuItems(converted);
     } catch (error) {
       console.error('Erreur lors du chargement des plats:', error);

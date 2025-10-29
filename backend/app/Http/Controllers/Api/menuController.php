@@ -48,4 +48,40 @@ class menuController extends Controller
             ], 500);
         }
     }
+
+    public function getAllMenuItems($restaurantId)
+    {
+        try {
+            // Valider l'ID du restaurant
+            if (!is_numeric($restaurantId) || $restaurantId <= 0) {
+                return response()->json(['error' => 'ID de restaurant invalide'], 400);
+            }
+
+            $results = DB::select('SELECT * FROM get_all_menu_items(?)', [(int)$restaurantId]);
+            
+            $menuItems = array_map(function($item) {
+                return [
+                    'id' => $item->id,
+                    'name' => $item->name,
+                    'description' => $item->description,
+                    'price' => (float) $item->price,
+                    'category' => $item->category,
+                    'status' => $item->status,
+                    'image' => 'storage/' . $item->image
+                ];
+            }, $results);
+            
+            return response()->json($menuItems);
+            
+        } catch (\Exception $e) {
+            \Log::error('Erreur lors de la récupération des plats du menu:', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'restaurant_id' => $restaurantId
+            ]);
+            
+            return response()->json([], 500);
+        }
+    }
 }
