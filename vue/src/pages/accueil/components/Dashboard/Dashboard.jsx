@@ -415,7 +415,7 @@ export default function Dashboard({ user }) {
       case "menu":
         return <Menu />
       case "panier":
-        return <Panier onCheckout={() => setActivePage("viewCommande")} />
+        return <Panier onCheckout={() => setActivePage("viewCommande")} onShowMenu={() => setActivePage("menu")} />
       case "commandes":
         return <MesCommandes />
       case "fidelite":
