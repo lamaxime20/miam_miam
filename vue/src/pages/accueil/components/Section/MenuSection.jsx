@@ -3,8 +3,9 @@ import "./MenuSection.css"
 
 import MenuCard from "./MenuCard.jsx"
 import { AvoirMenusJourAcceul } from "../../../../services/Menu.js"
+import { useNavigate } from "react-router-dom";
 
-function MenuSection({ isAuthenticated, onRequestLogin, onShowMenu }) {
+function MenuSection({ isAuthenticated, onRequestLogin, onAddToCartAndShowPanier }) {
   const [menuItems, setMenuItems] = useState([]);
 
   useEffect(() => {
@@ -21,13 +22,15 @@ function MenuSection({ isAuthenticated, onRequestLogin, onShowMenu }) {
     fetchMenuItems();
   }, []); // Le tableau vide signifie que cet effet ne s'exécute qu'une fois, au montage.
 
+  const navigate = useNavigate();
+
   const handleMenuClick = () => {
     if (!isAuthenticated) {
       alert("Veuillez vous connecter pour accéder au menu complet");
-      onRequestLogin?.();
+      navigate('/login');
       return;
     }
-    onShowMenu?.();
+    onAddToCartAndShowPanier(null); // Pour afficher le dashboard sur la page menu par défaut
   };
 
   return (
@@ -45,7 +48,13 @@ function MenuSection({ isAuthenticated, onRequestLogin, onShowMenu }) {
 
         <div className="row menu-grid">
           {menuItems.map((item) => (
-            <MenuCard key={item.id} item={item} />
+            <MenuCard 
+              key={item.id} 
+              item={item} 
+              isAuthenticated={isAuthenticated}
+              onRequestLogin={onRequestLogin}
+              onAddToCartAndShowPanier={onAddToCartAndShowPanier}
+            />
           ))}
         </div>
         <div className="see-all-container">

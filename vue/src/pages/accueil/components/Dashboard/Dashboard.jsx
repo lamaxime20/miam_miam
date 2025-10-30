@@ -29,9 +29,9 @@ import {
   getTopClients
 } from "../../../../services/Menu.js"
 
-export default function Dashboard({ user }) {
+export default function Dashboard({ user, initialPage = 'dashboard' }) {
   const [isOpen, setIsOpen] = useState(true)
-  const [activePage, setActivePage] = useState("dashboard")
+  const [activePage, setActivePage] = useState(initialPage)
   const [cartCount] = useState(3)
   
   // États pour les données du backend
