@@ -1,12 +1,7 @@
-import { useState } from "react";
-import { FaClock, FaCheckCircle, FaTimesCircle, FaBoxOpen, FaRedoAlt, FaEye } from "react-icons/fa";
+import { useEffect, useMemo, useState } from "react";
+import { FaClock, FaCheckCircle, FaTimesCircle, FaBoxOpen, FaEye } from "react-icons/fa";
 import 'bootstrap/dist/css/bootstrap.min.css';
-
-const orders = [
-  { id: 1, orderNumber: "#1023", date: "21 Oct 2025, 14:30", status: "delivered", items: ["Pizza Margherita", "Coca Cola"], total: 1850, deliveryAddress: "12 Avenue des Champs, Dakar" },
-  { id: 2, orderNumber: "#1022", date: "21 Oct 2025, 12:15", status: "preparing", items: ["Burger Classique", "Frites", "Sprite"], total: 1500, deliveryAddress: "12 Avenue des Champs, Dakar" },
-  { id: 3, orderNumber: "#1021", date: "20 Oct 2025, 19:45", status: "delivered", items: ["Sushi Mix", "Salade César"], total: 2900, deliveryAddress: "12 Avenue des Champs, Dakar" },
-];
+import { fetchCurrentUserOrders } from "../../../../services/CommandesClient";
 
 const statusConfig = {
   pending: { label: "En attente", color: "text-dark", icon: FaClock, bg: "bg-light" },
@@ -19,12 +14,31 @@ const statusConfig = {
 function MesCommandes() {
   const [filter, setFilter] = useState("all");
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const filteredOrders = orders.filter((order) => {
-    if (filter === "active") return ["pending", "preparing", "delivering"].includes(order.status);
-    if (filter === "completed") return ["delivered", "cancelled"].includes(order.status);
-    return true;
-  });
+  useEffect(() => {
+    let mounted = true;
+    setLoading(true);
+    fetchCurrentUserOrders()
+      .then(data => { if (mounted) setOrders(data); })
+      .catch(err => { if (mounted) setError(err.message || 'Erreur lors du chargement des commandes'); })
+      .finally(() => { if (mounted) setLoading(false); });
+    return () => { mounted = false; };
+  }, []);
+
+  const counts = useMemo(() => {
+    const active = orders.filter(o => ["pending", "preparing", "delivering"].includes(o.status)).length;
+    const completed = orders.filter(o => ["delivered", "cancelled"].includes(o.status)).length;
+    return { all: orders.length, active, completed };
+  }, [orders]);
+
+  const filteredOrders = useMemo(() => {
+    if (filter === "active") return orders.filter(o => ["pending", "preparing", "delivering"].includes(o.status));
+    if (filter === "completed") return orders.filter(o => ["delivered", "cancelled"].includes(o.status));
+    return orders;
+  }, [orders, filter]);
 
   return (
     <div className="container py-5" style={{ backgroundColor: "#000000", minHeight: "100vh" }}>
@@ -33,17 +47,25 @@ function MesCommandes() {
 
       <div className="mb-4">
         <button className={`me-2 btn ${filter === "all" ? "btn-warning text-white" : "btn-outline-light"}`} onClick={() => setFilter("all")}>
-          Toutes ({orders.length})
+          Toutes ({counts.all})
         </button>
         <button className={`me-2 btn ${filter === "active" ? "btn-warning text-white" : "btn-outline-light"}`} onClick={() => setFilter("active")}>
-          En cours ({orders.filter(o => ["pending", "preparing", "delivering"].includes(o.status)).length})
+          En cours ({counts.active})
         </button>
         <button className={`btn ${filter === "completed" ? "btn-warning text-white" : "btn-outline-light"}`} onClick={() => setFilter("completed")}>
-          Terminées ({orders.filter(o => ["delivered", "cancelled"].includes(o.status)).length})
+          Terminées ({counts.completed})
         </button>
       </div>
 
-      {filteredOrders.length === 0 && (
+      {loading && (
+        <div className="text-center text-white mt-5">Chargement des commandes…</div>
+      )}
+
+      {error && !loading && (
+        <div className="alert alert-danger">{error}</div>
+      )}
+
+      {!loading && filteredOrders.length === 0 && (
         <div className="text-center text-white mt-5">
           <FaBoxOpen size={50} className="mb-3" />
           <h3>Aucune commande</h3>
@@ -52,7 +74,7 @@ function MesCommandes() {
       )}
 
       {filteredOrders.map(order => {
-        const statusInfo = statusConfig[order.status];
+        const statusInfo = statusConfig[order.status] || statusConfig.pending;
         const StatusIcon = statusInfo.icon;
         return (
           <div key={order.id} className="card mb-4">
@@ -76,13 +98,7 @@ function MesCommandes() {
 
               <p className="mb-1"><strong>Articles:</strong> {order.items.join(", ")}</p>
 
-              {order.status === "delivered" && (
-                <button className="btn btn-warning btn-sm mt-2">
-                  <FaRedoAlt className="me-1" /> Recommander
-                </button>
-              )}
-
-              {(["pending", "preparing", "delivering"]).includes(order.status) && (
+              {["pending", "preparing", "delivering"].includes(order.status) && (
                 <div className="progress mt-3" style={{ height: "8px" }}>
                   <div
                     className="progress-bar"
