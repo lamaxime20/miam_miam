@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Star, Gift, Users, Copy, Check } from "lucide-react";
 import "bootstrap/dist/css/bootstrap.min.css";
+const URL_React = "http://localhost:5173/"
 
 const rewards = [
   { points: 500, reward: "Boisson gratuite", description: "Une boisson de votre choix offerte", icon: "🥤" },
@@ -24,9 +25,14 @@ function Fidelite() {
   const [currentPoints, setCurrentPoints] = useState(1250);
   const [referralCode] = useState("MARIE2025");
   const [copied, setCopied] = useState(false);
+  const [linkParrainage, setLinkParrainage] = useState(URL_React + "signup/" + referralCode);
+
+  // ID du client (à adapter selon votre logique d'authentification)
+  const clientId = 1;
+
 
   const copyReferralCode = () => {
-    navigator.clipboard.writeText(referralCode);
+    navigator.clipboard.writeText(linkParrainage);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -62,64 +68,17 @@ function Fidelite() {
             <span className="badge bg-light text-dark">Gold</span>
           </div>
         </div>
-
-        {progressToNextReward && (
-          <>
-            <div className="d-flex justify-content-between text-black-50 mb-2">
-              <span>Prochaine récompense: {progressToNextReward.reward}</span>
-              <span>{progressToNextReward.points - currentPoints} points restants</span>
-            </div>
-            <div className="progress" style={{ height: "10px" }}>
-              <div className="progress-bar bg-yellow" role="progressbar" style={{ width: `${progress}%` }}></div>
-            </div>
-          </>
-        )}
       </div>
 
       <div className="row g-4 mb-4">
-        <div className="col-lg-8">
-          <div className="card p-3">
-            <h4 className="mb-3">Récompenses disponibles</h4>
-            {rewards.map((reward) => {
-              const isAvailable = currentPoints >= reward.points;
-              const isNextReward = reward === progressToNextReward;
-              return (
-                <div key={reward.points} className={`d-flex align-items-center justify-content-between p-3 mb-2 border rounded ${isAvailable ? "border-success bg-light" : isNextReward ? "border-warning bg-warning bg-opacity-10" : "border-secondary bg-white"}`}>
-                  <div className="d-flex align-items-center gap-3">
-                    <span className="fs-3">{reward.icon}</span>
-                    <div>
-                      <div className="d-flex align-items-center gap-2 mb-1">
-                        <h5 className="mb-0">{reward.reward}</h5>
-                        {isNextReward && <span className="badge bg-warning text-dark">Prochain objectif</span>}
-                      </div>
-                      <small className="text-muted">{reward.description}</small>
-                    </div>
-                  </div>
-                  <div className="text-end">
-                    <div className="d-flex align-items-center gap-1 mb-2">
-                      <Star className="text-warning" size={16} />
-                      <small className="text-warning">{reward.points} pts</small>
-                    </div>
-                    {isAvailable ? (
-                      <button className="btn btn-success btn-sm">Utiliser</button>
-                    ) : (
-                      <small className="text-muted">{reward.points - currentPoints} pts restants</small>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
         <div className="col-lg-4">
           <div className="card p-3 mb-3">
             <h5>Comment gagner des points ?</h5>
             <ul className="list-group list-group-flush">
-              <li className="list-group-item d-flex align-items-center gap-2"><span>🛒</span><div><div>Commandes</div><small className="text-muted">1 point par 10 FCFA dépensés</small></div></li>
-              <li className="list-group-item d-flex align-items-center gap-2"><Users size={18} /><div><div>Parrainage</div><small className="text-muted">200 points par filleul</small></div></li>
-              <li className="list-group-item d-flex align-items-center gap-2"><Star size={18} /><div><div>Avis</div><small className="text-muted">50 points par avis laissé</small></div></li>
-              <li className="list-group-item d-flex align-items-center gap-2"><Gift size={18} /><div><div>Bonus quotidien</div><small className="text-muted">10 points par jour de connexion</small></div></li>
+              <li className="list-group-item d-flex align-items-center gap-2"><span>🛒</span><div><div>Commandes</div><small className="text-muted">1 point par 1000 FCFA dépensés</small></div></li>
+              <li className="list-group-item d-flex align-items-center gap-2"><Users size={18} /><div><div>Parrainage</div><small className="text-muted">5 points par filleul</small></div></li>
+              <li className="list-group-item d-flex align-items-center gap-2"><Star size={18} /><div><div>Avis</div><small className="text-muted">1 point par avis laissé</small></div></li>
+              <li className="list-group-item d-flex align-items-center gap-2"><Gift size={18} /><div><div>Bonus quotidien</div><small className="text-muted">1 point par jour de connexion</small></div></li>
             </ul>
           </div>
 
@@ -127,7 +86,7 @@ function Fidelite() {
             <Gift size={32} className="mb-2" />
             <h6>Bonus du jour</h6>
             <p className="small">Connectez-vous chaque jour pour gagner des points</p>
-            <button className="btn btn-light btn-sm text-orange-600 w-100">Récupérer 10 points</button>
+            <button className="btn btn-light btn-sm text-orange-600 w-100">Récupérer 1 point</button>
           </div>
         </div>
       </div>
@@ -136,23 +95,23 @@ function Fidelite() {
         <div className="d-flex justify-content-between align-items-center mb-3">
           <div>
             <h5>Programme de Parrainage</h5>
-            <small className="text-muted">Invitez vos amis et gagnez 200 points par filleul</small>
+            <small className="text-muted">Invitez vos amis et gagnez 5 points par filleul</small>
           </div>
           <div className="text-end">
             <small className="text-muted">Total gagné</small>
-            <div className="text-warning">1,000 points</div>
+            <div className="text-warning">100 points</div>
           </div>
         </div>
 
         <div className="card p-3 mb-3 bg-light text-center">
-          <div className="mb-2">Votre code de parrainage</div>
+          <div className="mb-2">Votre lien de parrainage</div>
           <div className="d-flex justify-content-center gap-2 mb-2">
-            <div className="bg-white px-3 py-2 rounded fw-bold">{referralCode}</div>
+            <div className="bg-white px-3 py-2 rounded fw-bold">{linkParrainage}</div>
             <button onClick={copyReferralCode} className="btn btn-warning btn-sm d-flex align-items-center gap-1">
               {copied ? <Check size={16} /> : <Copy size={16} />} {copied ? "Copié !" : "Copier"}
             </button>
           </div>
-          <small className="text-muted">Partagez ce code avec vos amis pour gagner des points</small>
+          <small className="text-muted">Partagez ce lien avec vos amis pour gagner des points</small>
         </div>
 
         <h6>Vos filleuls ({referralHistory.length})</h6>
