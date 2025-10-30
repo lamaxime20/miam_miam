@@ -144,6 +144,8 @@ Route::put('/menu/{id_menu}', [menuController::class, 'update']);
 
 // Aliases for menus to match frontend service
 Route::get('/menus', [menuController::class, 'listForRestaurant']);
+Route::get('/menus/all', [menuController::class, 'listAllWithPromotions']);
+Route::get('/menus/daily', [menuController::class, 'listDailyWithPromotions']);
 Route::post('/menus', [menuController::class, 'index']);
 Route::put('/menus/{id_menu}', [menuController::class, 'update']);
 

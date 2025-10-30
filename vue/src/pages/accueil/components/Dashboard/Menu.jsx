@@ -7,7 +7,7 @@ import Ndole from "../../assets/images/utilsImages/Ndole.png"
 import PouletDG from "../../assets/images/utilsImages/PouletDG.png"
 import RepasCardMenu from './RepasCardMenu';
 import { 
-  getMenusParPopularite, 
+  getAllMenusWithPromotions,
   addToCart, 
   incrementCartQuantity, 
   decrementCartQuantity, 
@@ -44,11 +44,11 @@ export default function Menu() {
     const loadMenus = async () => {
       try {
         setLoading(true);
-        const menus = await getMenusParPopularite();
+        const menus = await getAllMenusWithPromotions();
+        console.log(menus);
         setMenuItems(menus);
       } catch (error) {
         console.error('Erreur lors du chargement des menus:', error);
-        // En cas d'erreur, on garde les données statiques comme fallback
         setMenuItems([
           {
             id: 1,
@@ -60,59 +60,7 @@ export default function Menu() {
             rating: 5,
             popular: true,
             nomResto: "Le Resto de Mama"
-          },
-          {
-            id: 2,
-            name: "Okok salé",
-            category:'plat',
-            image: Okok,
-            description: "Du okok sale savoureux accompagné de baton de manioc",
-            price: 1000,
-            rating: 4.6,
-            popular: true,
-            nomResto: "Le Resto de Mama"
-          },
-          {
-            id: 3,
-            name: "Ndolé",
-            category:'plat',
-            image: Ndole,
-            description: "Ndole avec au choix du riz, plantain ou baton de manioc pour accompagnement",
-            price: 1500,
-            rating: 4.7,
-            nomResto: "Le Resto de Mama"
-          },
-          {
-            id: 4,
-            name: "Poulet DG",
-            category:'plat',
-            image: PouletDG,
-            description: "Poulet DG accompagné de plantains frits et d'une sauce épicée",
-            price: 2000 ,
-            rating: 4.9,
-            popular: true,
-            nomResto: "Le Resto de Mama"
-          },
-          {
-            id: 5,
-            name: 'Salade César',
-            category: 'entree',
-            description: 'Poulet grillé, parmesan, croûtons, sauce César',
-            price: 900,
-            image: 'https://images.unsplash.com/photo-1708184528305-33ce7daced65',
-            rating: 4.5,
-            nomResto: "Le Resto de Mama"
-          },
-          {
-            id: 6,
-            name: 'Tiramisu',
-            category: 'dessert',
-            description: 'Mascarpone, café, cacao, biscuits',
-            price: 600,
-            image: 'https://images.unsplash.com/photo-1705933774160-24298027a349',
-            rating: 4.8,
-            nomResto: "Le Resto de Mama"
-          },
+          }
         ]);
       } finally {
         setLoading(false);

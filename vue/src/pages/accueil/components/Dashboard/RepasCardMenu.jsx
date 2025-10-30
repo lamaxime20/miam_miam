@@ -1,6 +1,4 @@
 import { Star, ShoppingCart, Plus, Minus } from 'lucide-react';
-import { useState, useEffect } from 'react';
-import { AvoirRestaurantById } from '../../../../services/restaurant';
 
 const RepasCardMenu = ({ 
   item, 
@@ -9,24 +7,7 @@ const RepasCardMenu = ({
   onDecrementQuantity, 
   quantityInCart = 0 
 }) => {
-  const [restaurant, setRestaurant] = useState(null);
-
-  useEffect(() => {
-    const fetchRestaurant = async () => {
-      if (item.idresto) {
-        try {
-          console.log(item.idresto);
-          const restaurantData = await AvoirRestaurantById(item.idresto);
-          console.log(restaurantData);
-          setRestaurant(restaurantData);
-        } catch (error) {
-          console.error(`Erreur lors de la récupération du restaurant ${item.idresto}:`, error);
-        }
-      }
-      console.log(restaurant);
-    };
-    fetchRestaurant();
-  }, [item.idresto]);
+  const hasDiscount = !!item.priceOriginal && item.priceOriginal > item.price;
 
   return (
     <div className="col" key={item.id}>
@@ -53,13 +34,17 @@ const RepasCardMenu = ({
         <div className="card-body d-flex flex-column justify-content-between">
           <div>
             <h5 className="card-title">{item.name}</h5>
-            <p className="card-text text-secondary">{item.nomresto}</p>
+            <p className="card-text text-secondary">{item.nomResto}</p>
             <p className="card-text text-secondary">{item.description}</p>
           </div>
 
           <div className="d-flex justify-content-between align-items-center mt-3">
-            <span className="fw-bold text-warning">{item.price} FCFA</span>
-            
+            <div className="d-flex align-items-center gap-2">
+              {hasDiscount && (
+                <span className="text-secondary text-decoration-line-through">{item.priceOriginal} FCFA</span>
+              )}
+              <span className="fw-bold text-warning">{item.price} FCFA</span>
+            </div>
             {quantityInCart === 0 ? (
               <button
                 onClick={() => onAddToCart(item)}
@@ -77,11 +62,9 @@ const RepasCardMenu = ({
                 >
                   <Minus size={16} />
                 </button>
-                
                 <span className="fw-bold text-dark" style={{ minWidth: '24px', textAlign: 'center' }}>
                   {quantityInCart}
                 </span>
-                
                 <button
                   onClick={() => onIncrementQuantity(item.id)}
                   className="btn btn-warning text-white d-flex align-items-center justify-content-center"
