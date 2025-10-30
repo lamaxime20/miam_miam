@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\reponseController;
 use App\Http\Controllers\Api\reclamationController;
 use App\Http\Controllers\employeController;
 use App\Http\Controllers\Api\statsDashboardAdminController;
+use App\Http\Controllers\Api\statsEmployerController;
 use App\Http\Controllers\Api\commandeController;
 use App\Http\Controllers\Api\livraisonController;
 use App\Http\Controllers\Api\etre_livreurController;
@@ -90,6 +91,9 @@ Route::get('/livreurs/disponibles', [etre_livreurController::class, 'disponibles
 
 // Livraison status update (optional for future steps)
 Route::put('/livraisons/{id}/status', [livraisonController::class, 'updateStatus']);
+
+// Employer stats (DB-driven; complaints remain static on frontend)
+Route::get('/employe/stats', [statsEmployerController::class, 'stats']);
 
 // Routes pour les promotions
 Route::get('/promotions/actives', [promotionController::class, 'promotionsActives']);

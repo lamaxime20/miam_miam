@@ -385,6 +385,25 @@ export function getAuthInfo() {
     }
 }
 
+export async function logout() {
+    try {
+        const token = recupererToken();
+        if (token) {
+            await fetch(`${API_URL}api/deconnexion`, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                }
+            }).catch(() => {});
+        }
+    } catch (e) {
+        // noop
+    } finally {
+        localStorage.removeItem('auth_token');
+    }
+}
+
 export async function getUserByEmail(email){
     try {
         const response = await fetch(`${API_URL}api/getUserbyEmail`, {

@@ -1,4 +1,5 @@
 import React from 'react';
+import { logout } from '../../../services/user';
 
 const IconDashboard = (props) => (
   <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
@@ -130,9 +131,9 @@ const UnifiedSidebar = ({ isOpen, toggleSidebar, onNavigate, activeItem }) => {
       </aside>
 
       <div style={{ position: 'fixed', left: 0, bottom: 16, width: isOpen ? 260 : 70, padding: isOpen ? '0 16px' : '0', display: 'flex', justifyContent: 'center', zIndex: 1002 }}>
-        <button onClick={() => onNavigate && onNavigate('/')} style={{ display: 'flex', alignItems: 'center', gap: 8, border: '1px solid #e5e7eb', background: '#fff', color: '#111', padding: '8px 12px', borderRadius: 8, width: isOpen ? '100%' : 44, justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }} aria-label="Revenir à l'accueil">
+        <button onClick={async () => { await logout(); onNavigate && onNavigate('/'); }} style={{ display: 'flex', alignItems: 'center', gap: 8, border: '1px solid #e5e7eb', background: '#fff', color: '#111', padding: '8px 12px', borderRadius: 8, width: isOpen ? '100%' : 44, justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }} aria-label="Déconnexion">
           <IconHome />
-          {isOpen && <span>Revenir à l'accueil</span>}
+          {isOpen && <span>Déconnexion</span>}
         </button>
       </div>
     </>
