@@ -157,3 +157,42 @@ export async function updateMenu(menuId, menuData, restaurantId = 1) {
     }
     return await response.json();
 }
+
+export async function fetchMenusDuJourIds() {
+    const res = await fetch(`${API_URL}api/choisir_menu_jour`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return (Array.isArray(data) ? data : []).map(x => x.id_menu ?? x.id).filter(Boolean);
+}
+
+export async function addMenusDuJour(id_employe, menus_plus) {
+    const res = await fetch(`${API_URL}api/menu-jour/ajouter`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+        },
+        body: JSON.stringify({ id_employe, menus_plus }),
+    });
+    if (!res.ok) {
+        const err = await safeJson(res);
+        throw new Error(err?.message || `Erreur API: ${res.status}`);
+    }
+    return await res.json();
+}
+
+export async function removeMenusDuJour(menus_moins) {
+    const res = await fetch(`${API_URL}api/menu-jour/retirer`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+        },
+        body: JSON.stringify({ menus_moins }),
+    });
+    if (!res.ok) {
+        const err = await safeJson(res);
+        throw new Error(err?.message || `Erreur API: ${res.status}`);
+    }
+    return await res.json();
+}

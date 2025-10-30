@@ -66,6 +66,8 @@ Route::prefix('files')->group(function () {
 
 Route::get('/choisir_menu_jour', [choisir_menu_jourController::class, 'index']);
 Route::get('/choisir_menu_jour/popularite', [choisir_menu_jourController::class, 'menusParPopularite']);
+Route::post('/menu-jour/ajouter', [choisir_menu_jourController::class, 'ajouterMenusAujourdhui']);
+Route::post('/menu-jour/retirer', [choisir_menu_jourController::class, 'retirerMenusAujourdhui']);
 Route::get('/clients', [ClientController::class, 'index']);
 Route::get('/clients/{id}', [ClientController::class, 'show']);
 Route::put('/clients/{id}', [ClientController::class, 'update']);

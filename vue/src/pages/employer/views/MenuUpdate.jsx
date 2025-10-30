@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import CountUp from '../components/common/CountUp';
 import { getMenuEditable, saveMenuEditable } from '../services/mockApi';
-import { fetchMenuData, updateFile, createFile, createMenu, updateMenu } from '../../../services/MenusEmploye';
+import { fetchMenuData, updateFile, createFile, createMenu, updateMenu, fetchMenusDuJourIds, addMenusDuJour, removeMenusDuJour } from '../../../services/MenusEmploye';
 
 const IconForkSpoon = (props) => (
   <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
@@ -56,6 +56,12 @@ export default function MenuUpdate() {
   ];
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [todayIds, setTodayIds] = useState([]);
+  const [showManageToday, setShowManageToday] = useState(false);
+  const [initialTodayIds, setInitialTodayIds] = useState([]);
+  const [topList, setTopList] = useState([]);
+  const [bottomList, setBottomList] = useState([]);
+  const [bottomSearch, setBottomSearch] = useState('');
 
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
@@ -68,13 +74,14 @@ export default function MenuUpdate() {
       setLoading(true);
       try {
         const menuData = await fetchMenuData(restaurantId);
-        // Ajout d'une date de mise à jour par défaut si elle n'existe pas
         const dataWithDate = menuData.map(item => ({
           ...item,
-          image: item.image || null, // Assurer que image est null et non undefined
+          image: item.image || null,
           updatedAt: item.updatedAt || new Date().toISOString().slice(0, 10)
         }));
         setRows(dataWithDate);
+        const ids = await fetchMenusDuJourIds();
+        setTodayIds(ids);
       } catch (error) {
         console.error("Erreur lors du chargement du menu:", error);
         setFlashMessage("Erreur lors du chargement du menu.");
@@ -160,6 +167,44 @@ export default function MenuUpdate() {
       } finally {
         setIsSubmitting(false);
       }
+    }
+  }
+
+  function openManageToday() {
+    const currentToday = todayIds;
+    setInitialTodayIds(currentToday);
+    const top = rows.filter(r => currentToday.includes(r.id));
+    const bottom = rows.filter(r => !currentToday.includes(r.id));
+    setTopList(top);
+    setBottomList(bottom);
+    setBottomSearch('');
+    setShowManageToday(true);
+  }
+
+  function moveToTop(item) {
+    setBottomList(prev => prev.filter(x => x.id !== item.id));
+    setTopList(prev => [...prev, item]);
+  }
+
+  function moveToBottom(item) {
+    setTopList(prev => prev.filter(x => x.id !== item.id));
+    setBottomList(prev => [...prev, item]);
+  }
+
+  async function confirmManageToday() {
+    const currentTopIds = topList.map(x => x.id);
+    const plus = currentTopIds.filter(id => !initialTodayIds.includes(id));
+    const moins = initialTodayIds.filter(id => !currentTopIds.includes(id));
+    try {
+      const employeId = 1;
+      if (plus.length) await addMenusDuJour(employeId, plus);
+      if (moins.length) await removeMenusDuJour(moins);
+      const ids = await fetchMenusDuJourIds();
+      setTodayIds(ids);
+      setShowManageToday(false);
+      setFlashMessage('Menus du jour mis à jour.');
+    } catch (e) {
+      setFlashMessage("Erreur lors de la mise à jour des menus du jour.");
     }
   }
 
@@ -284,6 +329,26 @@ export default function MenuUpdate() {
         </div>
       </div>
 
+      <div style={{ marginTop: '1.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ fontWeight: 700, fontSize: 16 }}>Menus du jour</div>
+          <button onClick={openManageToday} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            Gérer les menus du jour
+          </button>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: windowWidth > 992 ? 'repeat(4, 1fr)' : windowWidth > 576 ? 'repeat(2, 1fr)' : '1fr', gap: '1rem', marginTop: '1rem' }}>
+          {rows.filter(r => todayIds.includes(r.id)).map(r => (
+            <div key={r.id} style={{ background: '#fff', borderRadius: 12, padding: 12, boxShadow: '0 2px 6px rgba(0,0,0,0.05)' }}>
+              <img src={r.image || 'https://images.unsplash.com/photo-1550317138-10000687a72b?w=400&q=70&auto=format&fit=crop'} alt="mini" style={{ width: '100%', height: 120, objectFit: 'cover', borderRadius: 8 }} onError={(e)=>{ e.currentTarget.src = 'https://images.unsplash.com/photo-1550317138-10000687a72b?w=400&q=70&auto=format&fit=crop'; }} />
+              <div style={{ marginTop: 8, fontWeight: 600 }}>{r.name}</div>
+              <div style={{ color: '#6b7280', fontSize: 12 }}>{r.category} • {money(r.price)}</div>
+            </div>
+          ))}
+          <button onClick={openManageToday} style={{ border: '2px dashed #e5e7eb', background: '#fff', borderRadius: 12, padding: 12, minHeight: 120, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+
+          </button>
+        </div>
+      </div>
+
       {showModal && (
         <div style={{ position: 'fixed', inset: 0, background: isSubmitting ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, pointerEvents: isSubmitting ? 'auto' : 'all' }}>
           <div style={{ width: 'min(520px, 92vw)', background: '#fff', borderRadius: 12, boxShadow: '0 10px 30px rgba(0,0,0,0.15)' }}>
@@ -366,6 +431,67 @@ export default function MenuUpdate() {
                 <button type="submit" style={{ border: '1px solid #2563eb', background: '#2563eb', color: '#fff', padding: '8px 12px', borderRadius: 8 }} disabled={isSubmitting}>{isSubmitting ? 'Sauvegarde...' : (editing ? 'Enregistrer' : 'Créer')}</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {showManageToday && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }}>
+          <div style={{ width: 'min(680px, 96vw)', background: '#fff', borderRadius: 12, boxShadow: '0 10px 30px rgba(0,0,0,0.15)' }}>
+            <div style={{ padding: 16, borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ fontWeight: 700 }}>Gérer les menus du jour</div>
+              <button onClick={()=>setShowManageToday(false)} style={{ border: 'none', background: 'transparent', cursor: 'pointer' }} aria-label="Fermer">
+                ✕
+              </button>
+            </div>
+            <div style={{ padding: 16, display: 'grid', gap: 16 }}>
+              <div>
+                <div style={{ fontWeight: 600, marginBottom: 8 }}>Sélectionnés pour aujourd'hui</div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0,1fr))', gap: 10 }}>
+                  {topList.map(item => (
+                    <div key={item.id} style={{ border: '1px solid #e5e7eb', borderRadius: 10, padding: 10 }}>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <img src={item.image || 'https://images.unsplash.com/photo-1550317138-10000687a72b?w=200&q=70&auto=format&fit=crop'} alt="" style={{ width: 56, height: 40, objectFit: 'cover', borderRadius: 6 }} onError={(e)=>{ e.currentTarget.src = 'https://images.unsplash.com/photo-1550317138-10000687a72b?w=200&q=70&auto=format&fit=crop'; }} />
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: 600, fontSize: 14 }}>{item.name}</div>
+                          <div style={{ color: '#6b7280', fontSize: 12 }}>{money(item.price)}</div>
+                        </div>
+                        <button onClick={()=>moveToBottom(item)} style={{ border: '1px solid #e5e7eb', background: '#fff', padding: '6px 10px', borderRadius: 8 }}>−</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <div style={{ fontWeight: 600, marginBottom: 8 }}>Autres menus</div>
+                <div style={{ marginBottom: 10 }}>
+                  <input
+                    value={bottomSearch}
+                    onChange={(e)=>setBottomSearch(e.target.value)}
+                    placeholder="Rechercher dans les autres menus..."
+                    style={{ width: '100%', border: '1px solid #e5e7eb', padding: '8px 12px', borderRadius: 8 }}
+                  />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0,1fr))', gap: 10 }}>
+                  {bottomList.filter(item => item.name.toLowerCase().includes(bottomSearch.toLowerCase())).map(item => (
+                    <div key={item.id} style={{ border: '1px solid #e5e7eb', borderRadius: 10, padding: 10 }}>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <img src={item.image || 'https://images.unsplash.com/photo-1550317138-10000687a72b?w=200&q=70&auto=format&fit=crop'} alt="" style={{ width: 56, height: 40, objectFit: 'cover', borderRadius: 6 }} onError={(e)=>{ e.currentTarget.src = 'https://images.unsplash.com/photo-1550317138-10000687a72b?w=200&q=70&auto=format&fit=crop'; }} />
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: 600, fontSize: 14 }}>{item.name}</div>
+                          <div style={{ color: '#6b7280', fontSize: 12 }}>{money(item.price)}</div>
+                        </div>
+                        <button onClick={()=>moveToTop(item)} style={{ border: '1px solid #e5e7eb', background: '#fff', padding: '6px 10px', borderRadius: 8 }}>+</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div style={{ padding: 12, display: 'flex', justifyContent: 'flex-end', gap: 10, borderTop: '1px solid #f1f5f9' }}>
+              <button onClick={()=>setShowManageToday(false)} style={{ border: '1px solid #e5e7eb', background: '#fff', padding: '8px 12px', borderRadius: 8 }}>Annuler</button>
+              <button onClick={confirmManageToday} style={{ border: '1px solid #2563eb', background: '#2563eb', color: '#fff', padding: '8px 12px', borderRadius: 8 }}>Confirmer</button>
+            </div>
           </div>
         </div>
       )}
