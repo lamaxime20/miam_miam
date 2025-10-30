@@ -153,6 +153,51 @@ class menuController extends Controller
         }
     }
 
+    public function listForRestaurant(Request $request)
+    {
+        try {
+            $restaurantId = (int) $request->query('restaurant_id', 0);
+            if ($restaurantId <= 0) {
+                return response()->json(['error' => 'restaurant_id requis'], 400);
+            }
+
+            $rows = DB::select(
+                'SELECT m.id_menu, m.nom_menu, m.description_menu, m.prix_menu, m.libelle_menu, m.statut_menu, m.updated_at, m.image_menu,
+                        f.id_file, f.chemin
+                 FROM menu m
+                 LEFT JOIN file f ON m.image_menu = f.id_file
+                 WHERE m.restaurant_hote = ?
+                 ORDER BY m.updated_at DESC',
+                [$restaurantId]
+            );
+
+            $data = array_map(function ($r) {
+                $categoryMap = [
+                    'plat' => 'Plat',
+                    'entree' => 'Entrée',
+                    'dessert' => 'Dessert',
+                    'boisson' => 'Boisson',
+                ];
+                return [
+                    'id' => (int)$r->id_menu,
+                    'name' => $r->nom_menu,
+                    'description' => $r->description_menu,
+                    'price' => (float)$r->prix_menu,
+                    'category' => $categoryMap[strtolower($r->libelle_menu)] ?? ucfirst(strtolower($r->libelle_menu)),
+                    'available' => strtolower($r->statut_menu) === 'disponible',
+                    'image' => $r->chemin ? asset('storage/' . $r->chemin) : null,
+                    'image_id' => $r->id_file ? (int)$r->id_file : null,
+                    'updatedAt' => $r->updated_at ? substr($r->updated_at, 0, 10) : null,
+                ];
+            }, $rows);
+
+            return response()->json($data);
+        } catch (\Exception $e) {
+            \Log::error('Erreur listForRestaurant', ['message' => $e->getMessage()]);
+            return response()->json([], 500);
+        }
+    }
+
     /**
     * Met à jour un article de menu existant
     */
@@ -169,50 +214,55 @@ class menuController extends Controller
                 'image_menu' => 'nullable|integer'
             ]);
 
-            $result = DB::select('SELECT update_menu_item(?, ?, ?, ?, ?, ?, ?, ?) as resultat', [
-                (int)$menuId,
-                $request->input('nom_menu'),
-                $request->input('description_menu'),
-                $request->input('prix_menu'),
-                $request->input('libelle_menu'),
-                $request->input('statut_menu'),
-                $request->input('restaurant_hote'),
-                $request->input('image_menu')
-            ]);
-            
-            if (empty($result)) {
-                return response()->json(['error' => 'Erreur lors de la mise à jour'], 500);
+            $menuId = (int)$menuId;
+            $restaurantId = $request->input('restaurant_hote');
+            $nomMenu = $request->input('nom_menu');
+            $imageId = $request->input('image_menu');
+
+            // 1. Vérifier si le menu existe dans le restaurant
+            $menu = DB::selectOne('SELECT * FROM menu WHERE id_menu = ? AND restaurant_hote = ?', [$menuId, $restaurantId]);
+            if (!$menu) {
+                return response()->json(['error' => 'Menu non trouvé dans ce restaurant'], 404);
             }
+
+            // 2. Vérifier si le nouveau nom existe déjà pour un autre menu du même restaurant
+            $existingName = DB::selectOne(
+                'SELECT id_menu FROM menu WHERE nom_menu = ? AND restaurant_hote = ? AND id_menu != ?',
+                [$nomMenu, $restaurantId, $menuId]
+            );
+            if ($existingName) {
+                return response()->json(['error' => 'Un autre menu avec ce nom existe déjà dans ce restaurant'], 409);
+            }
+
+            // 3. Vérifier si l'image existe (si fournie)
+            if ($imageId) {
+                $image = DB::selectOne('SELECT id_file FROM file WHERE id_file = ?', [$imageId]);
+                if (!$image) {
+                    return response()->json(['error' => 'Image non trouvée'], 404);
+                }
+            }
+
+            // 4. Exécuter la mise à jour
+            $affected = DB::update(
+                'UPDATE menu SET nom_menu = ?, description_menu = ?, prix_menu = ?, libelle_menu = ?, statut_menu = ?, image_menu = ?, updated_at = CURRENT_TIMESTAMP WHERE id_menu = ?',
+                [
+                    $nomMenu,
+                    $request->input('description_menu'),
+                    $request->input('prix_menu'),
+                    $request->input('libelle_menu'),
+                    $request->input('statut_menu'),
+                    $imageId,
+                    $menuId
+                ]
+            );
             
-            $resultat = $result[0]->resultat;
-            
-            // Gérer les différents retours
-            if (str_starts_with($resultat, 'MENU_MODIFIE:')) {
+            if ($affected > 0) {
                 return response()->json([
                     'success' => 'Menu modifié avec succès',
                     'menu_id' => $menuId
                 ]);
-            }
-            
-            switch ($resultat) {
-                case 'MENU_NON_TROUVE':
-                    return response()->json(['error' => 'Menu non trouvé dans ce restaurant'], 404);
-                    
-                case 'NOM_EXISTE_DEJA':
-                    return response()->json(['error' => 'Un autre menu avec ce nom existe déjà dans ce restaurant'], 409);
-                    
-                case 'IMAGE_NON_TROUVEE':
-                    return response()->json(['error' => 'Image non trouvée'], 404);
-                    
-                case 'AUCUNE_MODIFICATION':
-                    return response()->json(['error' => 'Aucune modification effectuée'], 400);
-                    
-                default:
-                    if (str_starts_with($resultat, 'ERREUR:')) {
-                        \Log::error('Erreur PostgreSQL update_menu_item: ' . $resultat);
-                        return response()->json(['error' => 'Erreur lors de la mise à jour'], 500);
-                    }
-                    return response()->json(['error' => 'Erreur inconnue'], 500);
+            } else {
+                return response()->json(['error' => 'Aucune modification effectuée'], 400);
             }
             
         } catch (\Exception $e) {

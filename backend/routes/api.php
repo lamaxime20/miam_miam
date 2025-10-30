@@ -136,6 +136,11 @@ Route::get('/menu/{id_restaurant}/items', [menuController::class, 'getAllMenuIte
 Route::post('/menu', [menuController::class, 'index']);
 Route::put('/menu/{id_menu}', [menuController::class, 'update']);
 
+// Aliases for menus to match frontend service
+Route::get('/menus', [menuController::class, 'listForRestaurant']);
+Route::post('/menus', [menuController::class, 'index']);
+Route::put('/menus/{id_menu}', [menuController::class, 'update']);
+
 // Routes pour les statistiques admin
 
 Route::get('/dashboard/ventes-aujourdhui', [statsDashboardAdminController::class, 'getVentesAujourdhui']);

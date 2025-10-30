@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import CountUp from '../components/common/CountUp';
 import { getMenuEditable, saveMenuEditable } from '../services/mockApi';
-import { fetchMenuData, updateFile, createFile, createMenu } from '../../../services/MenusEmploye';
+import { fetchMenuData, updateFile, createFile, createMenu, updateMenu } from '../../../services/MenusEmploye';
 
 const IconForkSpoon = (props) => (
   <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
@@ -44,8 +44,10 @@ export default function MenuUpdate() {
 
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState({ name: '', description: '', category: 'Plat', price: 0, available: true, image: '' });
+  const [form, setForm] = useState({ name: '', description: '', category: 'Plat', price: 0, available: true, image: '', image_id: null });
   const [isSubmitting, setIsSubmitting] = useState(false); // Pour figer l'interface
+  const [dragActive, setDragActive] = useState(false);
+  const restaurantId = 1; // TODO: remplacer par l'ID du restaurant de l'employé connecté
 
   const defaultRows = [
     { id: 1, name: 'Burger Maison', category: 'Plat', price: 2500, available: true, updatedAt: '2025-10-10' },
@@ -65,7 +67,7 @@ export default function MenuUpdate() {
     async function loadMenu() {
       setLoading(true);
       try {
-        const menuData = await fetchMenuData();
+        const menuData = await fetchMenuData(restaurantId);
         // Ajout d'une date de mise à jour par défaut si elle n'existe pas
         const dataWithDate = menuData.map(item => ({
           ...item,
@@ -105,38 +107,26 @@ export default function MenuUpdate() {
   function updateAndSave(next){ setRows(next); saveMenuEditable(next); }
   function toggleAvailable(id){ const next = rows.map(r=>r.id===id?{...r, available: !r.available, updatedAt: new Date().toISOString().slice(0,10)}:r); updateAndSave(next); setFlashMessage('Disponibilité mise à jour.'); }
 
-  function openNew(){ setEditing(null); setForm({ name: '', description: '', category: 'Plat', price: 0, available: true, image: '' }); setShowModal(true); }
+  function openNew(){ setEditing(null); setForm({ name: '', description: '', category: 'Plat', price: 0, available: true, image: '', image_id: null }); setShowModal(true); }
   function openEdit(r){ setEditing(r); setForm({ name: r.name, description: r.description || '', category: r.category, price: r.price, available: r.available, image: r.image || '', image_id: r.image_id || null }); setShowModal(true); }
   
-  async function handleImageChange(e) {
-    const file = e.target.files?.[0];
+  async function handleImageChange(eOrFile) {
+    const file = eOrFile?.target ? eOrFile.target.files?.[0] : eOrFile;
     if (!file) return;
 
-    setIsSubmitting(true); // Figer l'interface
+    setIsSubmitting(true);
     setFlashMessage("Téléversement de l'image...");
-
-    const reader = new FileReader();
-    reader.onload = async () => {
-      try {
-        const imageBase64 = String(reader.result || '');
-        const oldImageId = editing ? editing.image_id : null;
-        let newFile;
-        if (editing) {
-          newFile = await updateFile(imageBase64, oldImageId);
-        } else {
-          newFile = await createFile(imageBase64);
-        }
-
-        setForm(prevForm => ({ ...prevForm, image: imageBase64, image_id: newFile.id_file }));
-        setFlashMessage("Image téléversée avec succès !");
-      } catch (error) {
-        console.error("Erreur lors du téléversement de l'image:", error);
-        setFlashMessage("Erreur lors du téléversement.");
-      } finally {
-        setIsSubmitting(false); // Dégeler l'interface
-      }
-    };
-    reader.readAsDataURL(file);
+    try {
+      const oldImageId = form.image_id || (editing ? editing.image_id : null);
+      const newFile = await (oldImageId ? updateFile(file, oldImageId) : createFile(file));
+      setForm(prev => ({ ...prev, image_id: newFile.id_file, image: newFile.url || prev.image }));
+      setFlashMessage("Image téléversée avec succès !");
+    } catch (error) {
+      console.error("Erreur lors du téléversement de l'image:", error);
+      setFlashMessage("Erreur lors du téléversement.");
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   async function saveForm(e) {
@@ -145,19 +135,24 @@ export default function MenuUpdate() {
     setIsSubmitting(true);
 
     if (editing) {
-      // TODO: Implémenter la logique de mise à jour via l'API
-      setFlashMessage('Plat mis à jour (simulation).');
-      const next = rows.map(r => r.id === editing.id ? { ...r, ...form, updatedAt: new Date().toISOString().slice(0, 10) } : r);
-      updateAndSave(next);
-      setIsSubmitting(false);
-      setShowModal(false);
+      try {
+        await updateMenu(editing.id, form, restaurantId);
+        const refreshed = await fetchMenuData(restaurantId);
+        setRows(refreshed);
+        setFlashMessage('Plat mis à jour avec succès !');
+        setShowModal(false);
+      } catch (error) {
+        console.error(error);
+        setFlashMessage("Erreur lors de la mise à jour du plat.");
+      } finally {
+        setIsSubmitting(false);
+      }
     } else {
       try {
         // Appel de l'API pour créer le menu
-        const newMenu = await createMenu(form);
-        // Mise à jour de l'état local avec la réponse de l'API
-        const next = [{ ...newMenu, id: newMenu.id_menu, name: newMenu.nom_menu, category: newMenu.libelle_menu, price: newMenu.prix_menu, available: newMenu.statut_menu === 'disponible', description: newMenu.description_menu, updatedAt: new Date().toISOString().slice(0,10) }, ...rows];
-        setRows(next); // Pas besoin de saveMenuEditable si on utilise l'API
+        await createMenu(form, restaurantId);
+        const refreshed = await fetchMenuData(restaurantId);
+        setRows(refreshed);
         setFlashMessage('Plat ajouté avec succès !');
         setShowModal(false);
       } catch (error) {
@@ -330,17 +325,33 @@ export default function MenuUpdate() {
                 <div>
                   <label style={{ display: 'block', fontSize: 12, color: '#6b7280', marginBottom: 6 }}>Image du plat</label>
                   {form.image && (
-                    <div style={{ marginBottom: 8 }}>
+                    <div style={{ marginBottom: 8, display: 'flex', alignItems: 'center' }}>
                       <img src={form.image} alt="aperçu" style={{ width: 120, height: 80, objectFit: 'cover', borderRadius: 8, border: '1px solid #e5e7eb' }} />
                       <button type="button" onClick={()=>setForm({ ...form, image: '', image_id: null })} style={{ marginLeft: 8, border: '1px solid #e5e7eb', background: '#fff', padding: '6px 10px', borderRadius: 8 }} disabled={isSubmitting}>Retirer</button>
                     </div>
                   )}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    disabled={isSubmitting}
-                  />
+                  <div
+                    onDragOver={(e)=>{e.preventDefault(); setDragActive(true);}}
+                    onDragLeave={()=>setDragActive(false)}
+                    onDrop={(e)=>{e.preventDefault(); setDragActive(false); const f = e.dataTransfer.files?.[0]; if (f) handleImageChange(f);}}
+                    style={{
+                      border: `2px dashed ${dragActive ? '#2563eb' : '#e5e7eb'}`,
+                      padding: 16,
+                      borderRadius: 8,
+                      textAlign: 'center',
+                      color: '#6b7280',
+                      background: dragActive ? '#eff6ff' : '#fff'
+                    }}
+                  >
+                    Déposez l'image ici ou cliquez pour sélectionner
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      disabled={isSubmitting}
+                      style={{ display: 'block', margin: '8px auto' }}
+                    />
+                  </div>
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: 12, color: '#6b7280', marginBottom: 6 }}>Disponibilité</label>
