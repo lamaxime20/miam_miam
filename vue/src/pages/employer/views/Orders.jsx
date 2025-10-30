@@ -11,6 +11,7 @@ import {
   updateCommandeStatus,
   fetchCommandes as fetchCommandesService
 } from './commande';
+import { getEmployerDashboardKpis } from '../../../services/employe';
 import ChoixLivreurCommande from '../../../components/choixLivreurCommande';
 import CommandeFlottant from '../../../components/commandeFlottant';
 import DetailsCommandeEmploye from '../../../components/detailsCommandeEmploye';
@@ -61,6 +62,7 @@ export default function Orders() {
   const [rows, setRows] = useState([]);
   const [commandes, setCommandes] = useState([]); // État pour les nouvelles commandes
   const [loading, setLoading] = useState(true); // État de chargement
+  const [employerKpis, setEmployerKpis] = useState({ daily_orders_count: 0, daily_revenue: 0, open_complaints_count: 0, active_employees_count: 0 });
   const defaultRows = [];
 
   useEffect(() => {
@@ -88,6 +90,20 @@ export default function Orders() {
     fetchCommandes();
   }, [status]);
 
+  // Charger les KPIs du backend
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const kpis = await getEmployerDashboardKpis();
+        if (mounted && kpis) setEmployerKpis(kpis);
+      } catch (e) {
+        // getEmployerDashboardKpis gère déjà les erreurs et renvoie des valeurs par défaut
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
+
   useEffect(() => {
     let mounted = true;
     getOrders(defaultRows).then(data => {
@@ -108,12 +124,14 @@ export default function Orders() {
   const money = (n)=> new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XAF', maximumFractionDigits: 0 }).format(Math.round(Number(n||0)));
 
   const kpis = useMemo(() => {
-    const total = rows.length;
-    const pending = rows.filter(r=>r.status==='in waiting').length;
-    const delivered = rows.filter(r=>r.status==='delivered').length;
-    const revenue = rows.filter(r=>r.status==='delivered').reduce((s,r)=>s+r.total,0);
+    // total et revenue depuis l'API backend
+    const total = Number(employerKpis?.daily_orders_count || 0);
+    const revenue = Number(employerKpis?.daily_revenue || 0);
+    // pending et delivered dérivés de la liste réelle des commandes (front)
+    const pending = (commandes || []).filter(c => ['non lu','en préparation','en livraison'].includes((c.statut||'').toLowerCase())).length;
+    const delivered = (commandes || []).filter(c => (c.statut||'').toLowerCase() === 'validé').length;
     return { total, pending, delivered, revenue };
-  }, [rows]);
+  }, [employerKpis, commandes]);
 
   const filtered = useMemo(() => rows.filter(r => {
     if (search && !r.customer?.toLowerCase().includes(search.toLowerCase())) return false;
@@ -234,7 +252,7 @@ export default function Orders() {
           <div style={{ fontWeight: 700, fontSize: 22 }}><CountUp end={kpis.delivered} /></div>
         </div>
         <div className="card" style={{ background: '#fff', borderRadius: 12, padding: 16, boxShadow: '0 2px 6px rgba(0,0,0,0.05)', position: 'relative' }}>
-          <div style={{ color: '#6b7280', fontSize: 12, marginBottom: 8 }}>Revenu livré</div>
+          <div style={{ color: '#6b7280', fontSize: 12, marginBottom: 8 }}>Revenu (jour)</div>
           <div style={{ fontWeight: 700, fontSize: 22 }}><CountUp end={kpis.revenue} format suffix=" FCFA" /></div>
         </div>
       </div>

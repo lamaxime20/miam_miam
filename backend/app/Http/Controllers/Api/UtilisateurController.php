@@ -383,27 +383,48 @@ class UtilisateurController extends Controller
     public function dashboardKpis()
     {
         try {
-            $kpis = DB::select('SELECT * FROM get_dashboard_kpis()');
-
-            // La fonction retourne un tableau avec un seul objet
-            if (empty($kpis)) {
-                // Si la fonction ne retourne rien, on envoie des valeurs par défaut
-                return response()->json([
-                    'daily_orders_count' => 0,
-                    'daily_revenue' => 0,
-                    'open_complaints_count' => 0,
-                    'active_employees_count' => 0,
-                ]);
+            // D'abord tenter la fonction SQL si elle existe
+            try {
+                $kpis = DB::select('SELECT * FROM get_dashboard_kpis()');
+                if (!empty($kpis)) {
+                    return response()->json($kpis[0]);
+                }
+            } catch (\Throwable $ignored) {
+                // On tombera sur le calcul direct ci-dessous
             }
 
-            // Retourne le premier (et unique) résultat
-            return response()->json($kpis[0]);
+            // Calcul direct des KPIs (aujourd'hui)
+            $dailyOrders = DB::selectOne('SELECT COUNT(*)::int AS c FROM Commande WHERE DATE(date_commande) = CURRENT_DATE');
 
-        } catch (\Exception $e) {
+            // Revenu du jour: somme des (quantite*prix_unitaire) des commandes dont la livraison est validée aujourd'hui
+            $dailyRevenue = DB::selectOne(<<<SQL
+                SELECT COALESCE(SUM(ct.quantite * ct.prix_unitaire), 0)::numeric AS s
+                FROM Commande c
+                JOIN Bon_commande b ON b.commande_associe = c.id_commande
+                JOIN Livraison l ON l.bon_associe = b.id_bon
+                JOIN Contenir ct ON ct.id_commande = c.id_commande
+                WHERE l.statut_livraison = 'validée'
+                  AND DATE(l.date_livraison) = CURRENT_DATE
+            SQL);
+
+            $openComplaints = DB::selectOne("SELECT COUNT(*)::int AS c FROM Reclamation WHERE statut_reclamation = 'ouverte'");
+
+            $activeEmployees = DB::selectOne('SELECT COUNT(*)::int AS c FROM Travailler_pour WHERE service_employe = TRUE');
+
             return response()->json([
-                'message' => 'Erreur serveur lors de la récupération des KPIs du tableau de bord.',
-                'error' => $e->getMessage()
-            ], 500);
+                'daily_orders_count' => (int)($dailyOrders->c ?? 0),
+                'daily_revenue' => (float)($dailyRevenue->s ?? 0),
+                'open_complaints_count' => (int)($openComplaints->c ?? 0),
+                'active_employees_count' => (int)($activeEmployees->c ?? 0),
+            ]);
+        } catch (\Exception $e) {
+            // Valeurs par défaut en cas d'erreur
+            return response()->json([
+                'daily_orders_count' => 0,
+                'daily_revenue' => 0,
+                'open_complaints_count' => 0,
+                'active_employees_count' => 0,
+            ]);
         }
     }
 
