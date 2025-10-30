@@ -4,6 +4,9 @@ import "./MenuSection.css";
 
 function MenuSection({ item }) {
     const [imageSrc, setImageSrc] = useState("/placeholder.svg");
+    console.log(imageSrc);
+    console.log(item.image);
+    console.log(item);
 
     useEffect(() => {
         if (item.image) {

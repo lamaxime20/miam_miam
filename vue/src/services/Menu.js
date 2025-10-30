@@ -73,11 +73,11 @@ export async function getImageBase64(id) {
         if (!response.ok) throw new Error(`Fichier introuvable : ${response.status}`);
 
         const data = await response.json();
+        console.log("data:", data);
 
-        // Vérifier que contenu_base64 existe
-        if (!data.contenu_base64) return "/placeholder.svg";
+        if(!data.url) return "/placeholder.svg";
 
-        return `data:image/${data.extension || "jpg"};base64,${data.contenu_base64}`;
+        return data.url;
     } catch (error) {
         console.error("Erreur récupération image :", error);
         return "/placeholder.svg"; // fallback
