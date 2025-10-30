@@ -158,7 +158,7 @@ class clientController extends Controller
     public function claimDailyBonus(int $id_client, Request $request)
     {
         $restaurantId = (int) $request->input('restaurant_id', 1);
-        $ok = DB::select('SELECT claim_daily_bonus(?, ?) AS ok', [$id_client, $restaurantId]);
+        $ok = DB::select('SELECT claim_daily_bonus(?, ?, ?) AS ok', [$id_client, $restaurantId, 1]);
         $okVal = isset($ok[0]) ? (bool) $ok[0]->ok : false;
 
         if (!$okVal) {

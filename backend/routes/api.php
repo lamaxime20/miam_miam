@@ -80,6 +80,8 @@ Route::prefix('client')->group(function () {
     Route::get('{id}/dashboard-stats', [ClientController::class, 'dashboardStats']);
     Route::get('{id}/commandes-recentes', [ClientController::class, 'commandesRecentes']);
     Route::get('{id}/details-fidelite', [ClientController::class, 'detailsFidelite']);
+    Route::get('{id}/referral-details', [ClientController::class, 'referralDetails']);
+    Route::post('{id}/claim-daily-bonus', [ClientController::class, 'claimDailyBonus']);
     Route::get('top-clients', [ClientController::class, 'topClients']);
 });
 
