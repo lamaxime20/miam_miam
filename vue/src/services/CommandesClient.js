@@ -1,6 +1,4 @@
 const API_URL = import.meta.env.VITE_API_URL;
-import { useNavigate } from 'react-router-dom';
-const navigate = useNavigate();
 
 // Mappe les statuts métier (DB/Backend) vers les statuts utilisés dans l'UI
 // Règles fournies:
@@ -43,6 +41,7 @@ function transformCommandeToUI(cmd) {
     items,
     total,
     deliveryAddress: cmd.localisation_client || '',
+    createdAtMs: Date.parse(cmd.date_commande || cmd.date_heure_livraison || new Date().toISOString()) || Date.now(),
   };
 }
 
@@ -83,9 +82,8 @@ import { getAuthInfo, getUserByEmail } from './user';
 export async function getCurrentUserId() {
   const auth = getAuthInfo();
   if (!auth || !auth.display_name) {
-    navigate('/login');
-    return null
-  };
+    return null;
+  }
   const user = await getUserByEmail(auth.display_name);
   return user?.id_user || user?.id || null;
 }
@@ -96,4 +94,19 @@ export async function fetchCurrentUserOrders() {
   console.log(userId);
   if (!userId) return [];
   return fetchClientOrdersByUserId(userId);
+}
+
+// Annule une commande côté client (met le statut à 'annulé')
+export async function cancelCommande(id_commande) {
+  if (!id_commande) throw new Error('id_commande manquant');
+  const resp = await fetch(`${API_URL}api/commandes/${id_commande}/status`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+    body: JSON.stringify({ statut: 'annulé' }),
+  });
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok) {
+    throw new Error(data.message || `Erreur serveur : ${resp.status}`);
+  }
+  return data; // { id_commande, statut }
 }

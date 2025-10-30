@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { FaClock, FaCheckCircle, FaTimesCircle, FaBoxOpen, FaEye } from "react-icons/fa";
 import 'bootstrap/dist/css/bootstrap.min.css';
-import { fetchCurrentUserOrders } from "../../../../services/CommandesClient";
+import { useNavigate } from 'react-router-dom';
+import { getAuthInfo } from "../../../../services/user";
+import { fetchCurrentUserOrders, cancelCommande } from "../../../../services/CommandesClient";
 
 const statusConfig = {
   pending: { label: "En attente", color: "text-dark", icon: FaClock, bg: "bg-light" },
@@ -12,21 +14,28 @@ const statusConfig = {
 };
 
 function MesCommandes() {
+  const navigate = useNavigate();
   const [filter, setFilter] = useState("all");
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [cancelingId, setCancelingId] = useState(null);
 
   useEffect(() => {
     let mounted = true;
+    const auth = getAuthInfo();
+    if (!auth) {
+      navigate('/login');
+      return () => { mounted = false; };
+    }
     setLoading(true);
     fetchCurrentUserOrders()
       .then(data => { if (mounted) setOrders(data); })
       .catch(err => { if (mounted) setError(err.message || 'Erreur lors du chargement des commandes'); })
       .finally(() => { if (mounted) setLoading(false); });
     return () => { mounted = false; };
-  }, []);
+  }, [navigate]);
 
   const counts = useMemo(() => {
     const active = orders.filter(o => ["pending", "preparing", "delivering"].includes(o.status)).length;
@@ -76,6 +85,25 @@ function MesCommandes() {
       {filteredOrders.map(order => {
         const statusInfo = statusConfig[order.status] || statusConfig.pending;
         const StatusIcon = statusInfo.icon;
+        const canCancel = (() => {
+          const created = Number(order.createdAtMs || 0);
+          if (!created) return false;
+          const withinHour = Date.now() - created <= 3600000;
+          const active = !["delivered", "cancelled"].includes(order.status);
+          return withinHour && active;
+        })();
+        const onCancel = async () => {
+          try {
+            setCancelingId(order.id);
+            await cancelCommande(order.id);
+            setOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: "cancelled" } : o));
+            if (selectedOrder && selectedOrder.id === order.id) setSelectedOrder({ ...selectedOrder, status: "cancelled" });
+          } catch (e) {
+            setError(e.message || "Annulation impossible");
+          } finally {
+            setCancelingId(null);
+          }
+        };
         return (
           <div key={order.id} className="card mb-4">
             <div className="card-body">
@@ -90,9 +118,16 @@ function MesCommandes() {
                 </div>
                 <div className="text-end">
                   <div className="fw-bold mb-2">{order.total} FCFA</div>
-                  <button className="btn btn-sm btn-outline-dark" onClick={() => setSelectedOrder(order)}>
-                    <FaEye className="me-1" /> Détails
-                  </button>
+                  <div className="d-flex gap-2 justify-content-end">
+                    {canCancel && (
+                      <button className="btn btn-sm btn-outline-danger" disabled={cancelingId === order.id} onClick={onCancel}>
+                        {cancelingId === order.id ? "Annulation..." : "Annuler commande"}
+                      </button>
+                    )}
+                    <button className="btn btn-sm btn-outline-dark" onClick={() => setSelectedOrder(order)}>
+                      <FaEye className="me-1" /> Détails
+                    </button>
+                  </div>
                 </div>
               </div>
 
