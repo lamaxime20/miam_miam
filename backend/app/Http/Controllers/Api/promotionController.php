@@ -74,7 +74,7 @@ class promotionController extends Controller
                 $request->input('discount'),
                 $startDate,
                 $endDate,
-                $request->input('restaurant_id'),
+                (int)$request->input('restaurant_id'),
                 $request->input('id_file')
             ]);
             
@@ -168,7 +168,7 @@ class promotionController extends Controller
                 $request->input('discount'),
                 $startDate,
                 $endDate,
-                $request->input('restaurant_id'),
+                (int)$request->input('restaurant_id'),
                 $request->input('id_file')
             ]);
             

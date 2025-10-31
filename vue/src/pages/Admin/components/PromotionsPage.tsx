@@ -290,6 +290,11 @@ export function PromotionsPage() {
       setIsLoading(true);
 
       const authInfo = getAuthInfo();
+      if (!authInfo?.restaurant) {
+        alert("Impossible de récupérer l'identifiant du restaurant. Veuillez vous reconnecter.");
+        setIsLoading(false);
+        return;
+      }
 
       const newPromoData = {
         name: formData.name,
@@ -358,6 +363,11 @@ export function PromotionsPage() {
       setIsLoading(true);
 
       const authInfo = getAuthInfo();
+      if (!authInfo?.restaurant) {
+        alert("Impossible de récupérer l'identifiant du restaurant. Veuillez vous reconnecter.");
+        setIsLoading(false);
+        return;
+      }
 
       const updatedPromoData = {
         name: editFormData.name,
