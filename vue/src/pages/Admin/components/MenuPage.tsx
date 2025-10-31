@@ -29,7 +29,7 @@ interface MenuItem {
   name: string;
   description: string;
   price: number;
-  priceXAF: number;
+  priceXAF?: number;
   priceFormatted: string;
   category: string;
   status: 'available' | 'unavailable';
@@ -40,7 +40,7 @@ interface MenuItem {
 interface FormData {
   name: string;
   description: string;
-  priceEUR: string;
+  priceFCFA: string;
   category: string;
   imageUrl: string;
   id_file?: number; // ID du fichier téléversé
@@ -50,11 +50,11 @@ interface FormData {
 // Fonction pour convertir les plats mockés en format avec XAF
 const convertMockItems = (items: any[]): MenuItem[] => {
   return items.map(item => {
-    const prix = convertirPrix(item.price) as { eur: number; xaf: number; xafFormate: string; eurFormate: string };
+    const prix = convertirPrix(item.price);
     return {
       ...item,
       priceXAF: prix.xaf,
-      priceFormatted: prix.xafFormate,
+      priceFormatted: prix.xafFormate, // prix.xafFormate est déjà en FCFA
     };
   });
 };
@@ -79,7 +79,7 @@ export function MenuPage() {
   const [formData, setFormData] = useState<FormData>({
     name: '',
     description: '',
-    priceEUR: '',
+    priceFCFA: '',
     category: '',
     imageUrl: '',
     id_file: undefined,
@@ -89,7 +89,7 @@ export function MenuPage() {
   const [editFormData, setEditFormData] = useState<FormData>({
     name: '',
     description: '',
-    priceEUR: '',
+    priceFCFA: '',
     category: '',
     imageUrl: '',
     id_file: undefined,
@@ -211,27 +211,27 @@ export function MenuPage() {
       setFormError(null);
 
       // Validation
-      if (!formData.name || !formData.description || !formData.priceEUR || !formData.category) {
+      if (!formData.name || !formData.description || !formData.priceFCFA || !formData.category) {
         setFormError('Veuillez remplir tous les champs obligatoires.');
         return;
       }
 
-      const priceNum = parseFloat(formData.priceEUR);
+      const priceNum = parseFloat(formData.priceFCFA);
       if (isNaN(priceNum) || priceNum <= 0) {
-        setFormError('Le prix saisi est invalide.');
+        setFormError('Le prix saisi est invalide. Il doit être un nombre positif.');
         return;
       }
 
       setIsLoading(true);
 
       // Convertir le prix en XAF
-      const prix = convertirPrix(priceNum) as { eur: number; xaf: number; xafFormate: string; eurFormate: string };
+      const prix = convertirPrix(priceNum);
 
       // Préparer les données pour l'API
       const newItemData = {
         name: formData.name,
         description: formData.description,
-        price: priceNum, // prix en EUR
+        price: priceNum, // prix en FCFA
         category: formData.category,
         status: formData.available ? 'available' : 'unavailable',
         id_file: formData.id_file,
@@ -245,7 +245,7 @@ export function MenuPage() {
       setFormData({
         name: '',
         description: '',
-        priceEUR: '',
+        priceFCFA: '',
         category: '',
         imageUrl: '',
         id_file: undefined,
@@ -268,14 +268,14 @@ export function MenuPage() {
     try {
       setFormError(null);
   
-      if (!editFormData.name || !editFormData.description || !editFormData.priceEUR || !editFormData.category) {
+      if (!editFormData.name || !editFormData.description || !editFormData.priceFCFA || !editFormData.category) {
         setFormError('Veuillez remplir tous les champs obligatoires.');
         return;
       }
   
-      const priceNum = parseFloat(editFormData.priceEUR);
+      const priceNum = parseFloat(editFormData.priceFCFA);
       if (isNaN(priceNum) || priceNum <= 0) {
-        setFormError('Le prix saisi est invalide.');
+        setFormError('Le prix saisi est invalide. Il doit être un nombre positif.');
         return;
       }
   
@@ -316,7 +316,7 @@ export function MenuPage() {
     setEditFormData({
       name: item.name,
       description: item.description,
-      priceEUR: item.price.toString(),
+      priceFCFA: item.price.toString(),
       category: item.category,
       imageUrl: item.image || '',
       id_file: item.imageId,
@@ -493,18 +493,13 @@ export function MenuPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Prix en EUR *</Label>
+                  <Label>Prix en FCFA *</Label>
                   <Input 
                     type="number" 
                     step="0.01" 
-                    value={editFormData.priceEUR}
-                    onChange={(e) => setEditFormData({ ...editFormData, priceEUR: e.target.value })}
+                    value={editFormData.priceFCFA}
+                    onChange={(e) => setEditFormData({ ...editFormData, priceFCFA: e.target.value })}
                   />
-                   {editFormData.priceEUR && !isNaN(parseFloat(editFormData.priceEUR)) && (
-                    <p className="text-sm text-gray-500">
-                      Prix en XAF : <span className="font-bold text-[#cfbd97]">{(convertirPrix(parseFloat(editFormData.priceEUR)) as { xafFormate: string }).xafFormate}</span>
-                    </p>
-                  )}
                 </div>
                 <div className="space-y-2">
                   <Label>Image du plat</Label>
@@ -613,21 +608,16 @@ export function MenuPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Prix en EUR *</Label>
+              <Label>Prix en FCFA *</Label>
               <Input 
                 type="number" 
                 step="0.01" 
-                placeholder="15.90"
-                value={formData.priceEUR}
-                onChange={(e) => setFormData({ ...formData, priceEUR: e.target.value })}
+                placeholder="9500"
+                value={formData.priceFCFA}
+                onChange={(e) => setFormData({ ...formData, priceFCFA: e.target.value })}
               />
-              {formData.priceEUR && !isNaN(parseFloat(formData.priceEUR)) && (
-                <p className="text-sm text-gray-500">
-                  Prix en XAF : <span className="font-bold text-[#cfbd97]">{(convertirPrix(parseFloat(formData.priceEUR)) as { xafFormate: string }).xafFormate}</span>
-                </p>
-              )}
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2"> 
               <Label>Image du plat</Label>
               <div
                 className={`relative border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors
@@ -713,7 +703,7 @@ export function MenuPage() {
                 setFormData({
                   name: '',
                   description: '',
-                  priceEUR: '',
+                  priceFCFA: '',
                   category: '',
                   imageUrl: '',
                   id_file: undefined,

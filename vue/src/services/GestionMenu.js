@@ -1,4 +1,5 @@
 const API_URL = import.meta.env.VITE_API_URL;
+import { getAuthInfo } from './user';
 
 const mockMenuItemsEUR = [
   {
@@ -80,7 +81,13 @@ const mockMenuItemsEUR = [
  * @returns {Promise<Array>} - La liste des plats du menu.
  */
 export async function getAllMenuItems() {
-    const restaurantId = 1;
+  const auth = getAuthInfo();
+  const restaurantId = auth?.restaurant;
+
+  if (!restaurantId) {
+    console.error("Impossible de récupérer l'ID du restaurant pour l'utilisateur connecté.");
+    return [];
+  }
   try {
     const response = await fetch(API_URL + `api/menu/${restaurantId}/items`);
     
@@ -135,15 +142,9 @@ export async function getAllMenuItems() {
 }
 
 /**
- * Taux de conversion EUR -> XAF
- * 1 EUR = 655.957 XAF (taux fixe Franc CFA)
- */
-const TAUX_EUR_TO_XAF = 655.957;
-
-/**
  * Formater un montant en XAF avec séparateurs de milliers
  * @param {number} montant - Montant à formater
- * @returns {string} - Montant formaté (ex: "1 865 432 XAF")
+ * @returns {string} - Montant formaté (ex: "1 865 432 FCFA")
  */
 export function formaterMontantXAF(montant) {
   return new Intl.NumberFormat('fr-FR', {
@@ -151,24 +152,21 @@ export function formaterMontantXAF(montant) {
     currency: 'XAF',
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
-  }).format(montant).replace('FCFA', 'XAF');
+  }).format(montant);
 }
 
 /**
- * Convertir un prix EUR en XAF et le formater
- * @param {number} prixEUR - Prix en euros
+ * Formater un prix (déjà en XAF/FCFA)
+ * @param {number} prixFCFA - Prix en FCFA
  * @returns {Object} - { eur, xaf, xafFormate, eurFormate }
  */
-export function convertirPrix(prixEUR) {
-  if (typeof prixEUR !== 'number' || isNaN(prixEUR)) {
-    prixEUR = 0;
+export function convertirPrix(prixFCFA) {
+  if (typeof prixFCFA !== 'number' || isNaN(prixFCFA)) {
+    prixFCFA = 0;
   }
-  const prixXAF = Math.round(prixEUR * TAUX_EUR_TO_XAF);
   return {
-    eur: prixEUR,
-    xaf: prixXAF,
-    xafFormate: formaterMontantXAF(prixXAF),
-    eurFormate: `${prixEUR.toFixed(2)} €`
+    xaf: prixFCFA,
+    xafFormate: formaterMontantXAF(prixFCFA),
   };
 }
 
@@ -221,7 +219,7 @@ export async function uploadImage(file) {
  * @returns {Promise<object>} - L'article de menu créé.
  */
 export async function createMenuItem(menuItemData) {
-  const restaurant_id = 1;
+  const restaurant_id = getAuthInfo().restaurant;
 
   // Traduire les catégories et statuts pour le backend si nécessaire
   const categoryMap = {

@@ -28,8 +28,8 @@ function getRestaurantId() {
 
 /**
  * Formater un montant en XAF avec séparateurs de milliers
- * @param {number} montant - Montant à formater
- * @returns {string} - Montant formaté (ex: "1000 XAF")
+ * @param {number} montant - Montant en FCFA à formater
+ * @returns {string} - Montant formaté (ex: "1000 FCFA")
  */
 export function formaterMontantXAF(montant) {
   return new Intl.NumberFormat('fr-FR', {
@@ -37,7 +37,7 @@ export function formaterMontantXAF(montant) {
     currency: 'XAF',
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
-  }).format(montant).replace('FCFA', 'XAF');
+  }).format(montant);
 }
 
 
@@ -62,8 +62,8 @@ export function formaterMontantXAF(montant) {
  * 
  * Format de réponse API attendu :
  * {
- *   "total": 2847.50,  // Montant en EUR depuis la BDD
- *   "pourcentage_vs_hier": 12.3  // Optionnel : comparaison avec hier
+ *   "total_xaf": 1867432,
+ *   "pourcentage_vs_hier": 12.3
  * }
  * 
  * @returns {Promise<Object>} - { total: number, pourcentage_vs_hier: number }
@@ -76,12 +76,11 @@ export async function getVentesAujourdhui() {
     const response = await fetch(url.toString());
     const data = await response.json();
 
-    // Backend renvoie déjà les montants en XAF
-    const totalXAF = Number(data.total_xaf ?? data.total ?? 0) || 0;
+    const totalFCFA = Number(data.total_xaf ?? data.total ?? 0) || 0;
 
     return {
-      total: totalXAF,
-      totalFormate: formaterMontantXAF(totalXAF),
+      total: totalFCFA,
+      totalFormate: formaterMontantXAF(totalFCFA),
       pourcentage_vs_hier: Number(data.pourcentage_vs_hier ?? 0) || 0,
     };
   } catch (error) {
@@ -112,8 +111,8 @@ export async function getVentesAujourdhui() {
  * 
  * Format de réponse API attendu :
  * [
- *   { "jour": "Lun", "ventes": 2800.00 },
- *   { "jour": "Mar", "ventes": 3200.00 },
+ *   { "jour": "Lun", "ventes_xaf": 1836680 },
+ *   { "jour": "Mar", "ventes_xaf": 2099062 },
  *   ...
  * ]
  * 
@@ -128,11 +127,11 @@ export async function getVentesSemaine() {
     const data = await response.json();
 
     return data.map(jour => {
-      const v = Number(jour.ventes_xaf ?? jour.ventes ?? 0) || 0;
+      const v = Number(jour.ventes_xaf ?? jour.ventes ?? 0) || 0; // Le backend renvoie déjà des XAF
       return {
         jour: jour.jour,
         ventes: v,
-        ventesFormatees: formaterMontantXAF(v)
+        ventesFormatees: formaterMontantXAF(v),
       };
     });
   } catch (error) {
@@ -1707,28 +1706,17 @@ function formaterDate(date) {
 // ============================================================================
 
 /**
- * Convertir un prix EUR en XAF et le formater
- * @param {number} prixEUR - Prix en euros
- * @returns {Object} - { eur, xaf, xafFormate, eurFormate }
+ * Formate un prix (déjà en FCFA) et retourne un objet structuré.
+ * @param {number} prixFCFA - Prix en FCFA.
+ * @returns {Object} - { xaf, xafFormate }
  */
-export function convertirPrix(prixEUR) {
-  const prixXAF = convertirEURversXAF(prixEUR);
+export function convertirPrix(prixFCFA) {
+  const prix = typeof prixFCFA === 'number' && !isNaN(prixFCFA) ? prixFCFA : 0;
   
   return {
-    eur: prixEUR,
-    xaf: prixXAF,
-    xafFormate: formaterMontantXAF(prixXAF),
-    eurFormate: `${prixEUR.toFixed(2)} €`
+    xaf: prix,
+    xafFormate: formaterMontantXAF(prix),
   };
-}
-
-/**
- * Convertir un prix XAF en EUR
- * @param {number} prixXAF - Prix en XAF
- * @returns {number} - Prix en EUR
- */
-export function convertirXAFversEUR(prixXAF) {
-  return prixXAF / TAUX_EUR_TO_XAF;
 }
 
 /**
@@ -1746,17 +1734,13 @@ export function validerPrix(prix) {
  * @returns {Object} - { totalEUR, totalXAF, totalXAFFormate }
  */
 export function calculerPrixTotal(articles) {
-  const totalEUR = articles.reduce((sum, article) => {
+  const totalFCFA = articles.reduce((sum, article) => {
     return sum + (article.prix * article.quantite);
   }, 0);
   
-  const totalXAF = convertirEURversXAF(totalEUR);
-  
   return {
-    totalEUR: totalEUR,
-    totalXAF: totalXAF,
-    totalXAFFormate: formaterMontantXAF(totalXAF),
-    totalEURFormate: `${totalEUR.toFixed(2)} €`
+    totalXAF: totalFCFA,
+    totalXAFFormate: formaterMontantXAF(totalFCFA),
   };
 }
 
@@ -1888,17 +1872,15 @@ export async function getPlatsMenu(options = {}) {
     
     // Formater les plats avec conversion XAF
     const platsFormates = platsFiltres.map(plat => {
-      const prix = convertirPrix(plat.prix_plat);
+      const prix = convertirPrix(plat.prix_plat); // Le prix est déjà en FCFA
       
       return {
         id: plat.id_plat.toString(),
         idPlat: plat.id_plat,
         nom: plat.nom_plat,
         description: plat.description_plat,
-        prixEUR: prix.eur,
         prixXAF: prix.xaf,
         prixFormate: prix.xafFormate,
-        prixEURFormate: prix.eurFormate,
         categorie: plat.categorie_plat,
         disponible: plat.disponible,
         statut: plat.disponible ? 'available' : 'unavailable',
@@ -1919,16 +1901,15 @@ export async function getPlatsMenu(options = {}) {
  * 
  * @param {Object} plat - Données du plat
  * @param {string} plat.nom - Nom du plat
- * @param {string} plat.description - Description
- * @param {number} plat.prixEUR - Prix en EUR
+ * @param {string} plat.description - Description du plat
+ * @param {number} plat.prixFCFA - Prix en FCFA
  * @param {string} plat.categorie - Catégorie
  * @param {boolean} plat.disponible - Disponibilité
  * @returns {Promise<Object>} - Plat créé/mis à jour
  */
 export async function sauvegarderPlat(plat) {
   try {
-    // Valider le prix
-    if (!validerPrix(plat.prixEUR)) {
+    if (!validerPrix(plat.prixFCFA)) {
       throw new Error('Prix invalide');
     }
     
@@ -1940,7 +1921,8 @@ export async function sauvegarderPlat(plat) {
     //     id_plat: plat.id,
     //     nom_plat: plat.nom,
     //     description_plat: plat.description,
-    //     prix_plat: plat.prixEUR,
+    //     prix_plat: plat.prixFCFA,
+        
     //     categorie_plat: plat.categorie,
     //     disponible: plat.disponible
     //   })
@@ -2032,12 +2014,12 @@ export async function getStatsDashboard() {
     const response = await fetch(url.toString());
     const data = await response.json();
 
-    const totalXAF = Number(data.ventes_aujourdhui_xaf ?? data.ventes_aujourdhui ?? 0) || 0;
+    const totalFCFA = Number(data.ventes_aujourdhui_xaf ?? data.ventes_aujourdhui ?? 0) || 0;
 
     return {
       ventesAujourdhui: {
-        total: totalXAF,
-        totalFormate: formaterMontantXAF(totalXAF)
+        total: totalFCFA,
+        totalFormate: formaterMontantXAF(totalFCFA)
       },
       utilisateursActifs: data.utilisateurs_actifs ?? 0,
       reclamations: data.reclamations ?? 0,
