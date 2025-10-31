@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { checkPassword } from '../services/user';
+import { Link } from 'react-router-dom';
 import '../assets/styles/login.css';
 
 const LoginFormName = ({ onPasswordCorrect }) => {
@@ -76,6 +77,13 @@ const LoginFormName = ({ onPasswordCorrect }) => {
                 <button type="submit" className="btn btn-primary w-100" disabled={loading}>
                     {loading ? 'Vérification...' : 'Suivant'}
                 </button>
+                <div className="form-group text-end">
+                    <Link to="/forgot-password" style={{ fontSize: '0.9em' }}>Mot de passe oublié ?</Link>
+                </div>
+                <div className="text-center mt-3">
+                    <span className="text-muted">Pas de compte ? </span>
+                    <Link to="/signup">S'inscrire</Link>
+                </div>
             </form>
         </div>
     );

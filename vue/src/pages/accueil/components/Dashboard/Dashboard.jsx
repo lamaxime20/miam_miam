@@ -103,8 +103,8 @@ export default function Dashboard({ user, initialPage = 'dashboard' }) {
   }, [clientId])
 
   const handleLogout = async () => {
-    await logout()
-    navigate('/')
+    await logout();
+    navigate('/');
   }
 
   const menuItems = [
