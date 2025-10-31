@@ -400,6 +400,7 @@ export function recupererToken() {
 // Récupère toutes les infos du token (y compris display_name)
 export function getAuthInfo() {
     const stored = localStorage.getItem('auth_token');
+    console.log("stored", stored)
     if (!stored) return null;
     try {
         const info = JSON.parse(stored);
@@ -440,12 +441,42 @@ export const recupererUser = async () => {
     }
 };
 
+const VerifAdminExiste = async (id) => {
+    try {
+        const response = await fetch(`${API_URL}api/administrateurs/${id}`);
+        console.log(response);
+        if (!response.ok) {
+            console.log("erreur serveur : ", response.status);
+            throw new Error(`Erreur serveur : ${response.status}`);
+        }
+        const data = await response.json();
+        console.log(data);
+        if(data.id_user){
+            return true;
+        } else {
+            return false;
+        }
+    } catch (error) {
+        console.error("Erreur lors de la récupération de l'administrateur :", error);
+        return false;
+    }
+}
+
 export const creerAdmin = async () => {
+    const utilisateur = getAuthInfo();
+    console.log('utilisateur', utilisateur);
+    if (!utilisateur) return null;
+    const user = await getUserByEmail(utilisateur.display_name);
+    console.log('user', user);
+    if(await VerifAdminExiste(user.id_user)) {
+        console.log("admin déjà existant");
+        return user.id_user;
+    }
+
     console.log("creer admin");    
     try{
-        const user = await recupererUser();
         if (!user) return null;
-        const id_user = user.user_id;
+        const id_user = user.id_user;
         const token = recupererToken();
 
         if (!token) return null;
@@ -489,6 +520,8 @@ export async function logout() {
     } finally {
         localStorage.removeItem('auth_token');
     }
+    // Always resolve truthy so callers awaiting logout can proceed
+    return true;
 }
 
 export async function getUserByEmail(email){

@@ -14,11 +14,21 @@ function CreateRestaurant() {
     const navigate = useNavigate();
 
     const goNext = () => {
-        setStep(step + 1);
+        setStep((prev) => {
+            const target = Math.min(4, prev + 1);
+            const allowed = getRestaurantStep();
+            const finalStep = Math.min(4, Math.max(target, allowed));
+            setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0);
+            return finalStep;
+        });
     }
 
     const goPrevious = () => {
-        setStep(step - 1);
+        setStep((prev) => {
+            const next = Math.max(1, prev - 1);
+            setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0);
+            return next;
+        });
     }
 
     return (

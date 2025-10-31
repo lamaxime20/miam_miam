@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/login.jsx'
+import CreateRestaurant from './pages/createRestaurant.jsx';
 import AcceuilStudent from './pages/accueil/AcceuilStudent.jsx'
 import Signup from './pages/signup.jsx'
 import Employer from './pages/employer/Employer.jsx'
@@ -33,6 +34,7 @@ function App() {
             <Route path="/mentions-legales" element={<MentionsLegales />} />
             <Route path="/politique-utilisation" element={<PolitiqueUtilisation />} />
             <Route path="/politique-cookies" element={<PolitiqueCookies />} />
+            <Route path="/create-restaurant" element={<CreateRestaurant />} />
             <Route path='/admin' element={
                 <Guard allowed={token && token.role === roleAdmin && token.restaurant != null}>
                     <Admin />
@@ -54,6 +56,12 @@ function App() {
             <Route path='/employer' element={
                 <Guard allowed={token && token.role === roleEmploye && token.restaurant != null}>
                     <Employer />
+                </Guard>
+            } />
+
+            <Route path='/create-restaurant' element={
+                <Guard allowed={token && token.role }>
+                    <CreateRestaurant />
                 </Guard>
             } />
             <Route path="*" element={<Navigate to="/" replace />} />

@@ -517,3 +517,65 @@
     from { opacity: 0; transform: scale(0.95); }
     to { opacity: 1; transform: scale(1); }
 }
+
+/* === Progression Stepper (minimal) === */
+.progressionRestaurant {
+    width: 100%;
+    max-width: 640px;
+    margin: 0 auto 1.5rem auto;
+}
+
+.progressionRestaurant-track {
+    position: relative;
+    height: 6px;
+    background: #eee;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.progressionRestaurant-bar {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    background: var(--primary-color);
+    width: 0%;
+    transition: width 0.3s ease;
+}
+
+.progressionRestaurant-steps {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 0.5rem;
+}
+
+.progressionRestaurant-step {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.9rem;
+    border: 2px solid #ddd;
+    background: #fff;
+    color: #999;
+}
+
+.progressionRestaurant-step.completed {
+    border-color: var(--primary-color);
+    color: var(--secondary-color);
+    background: #f7f4eb;
+}
+
+.progressionRestaurant-step.active {
+    border-color: var(--primary-color);
+    color: var(--secondary-color);
+    background: #fff;
+    box-shadow: 0 0 0 4px rgba(207, 189, 151, 0.15);
+}
+
+.progressionRestaurant-index {
+    line-height: 1;
+}

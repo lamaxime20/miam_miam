@@ -1,16 +1,19 @@
 import React, { useRef, useState } from "react";
 import '../assets/styles/createRestaurant.css';
-import { useRestaurantFormLogo, restaurant } from "../services/restaurant";
+import { restaurant } from "../services/restaurant";
 import LoaderOverlay from "./loaderOverlay"; // 🔹 import du loader
+import { uploadImage, updateImage } from "../services/GestionMenu";
+const API_URL = import.meta.env.VITE_API_URL;
 
 const CreateRestaurantFormLogo = ({ onNext, handlePrevious }) => {
-    const {
-        image,
-        error,
-        message,
-        handleImageUpload,
-        handleRemoveImage,
-    } = useRestaurantFormLogo();
+    // On utilise maintenant l'état local pour gérer l'image et les messages
+    const [image, setImage] = useState(
+        restaurant.restoLogo instanceof File
+            ? URL.createObjectURL(restaurant.restoLogo)
+            : restaurant.restoLogo || null
+    );
+    const [error, setError] = useState(null);
+    const [message, setMessage] = useState(null);
 
     const fileInputRef = useRef();
     const [isLoading, setIsLoading] = useState(false); // 🔹 état du loader
@@ -20,30 +23,96 @@ const CreateRestaurantFormLogo = ({ onNext, handlePrevious }) => {
         e.stopPropagation();
     };
 
+    const handleImageUpload = async (file) => {
+        if (!file) return;
+
+        // Vérification du type de fichier
+        if (!file.type.startsWith("image/")) {
+            setError("Le fichier doit être une image (jpeg, png, etc.).");
+            return;
+        }
+
+        setIsLoading(true);
+        setError(null);
+        setMessage(null);
+
+        try {
+            // Aperçu immédiat en local
+            const localPreviewUrl = URL.createObjectURL(file);
+            setImage(localPreviewUrl);
+
+            const hasExisting = !!restaurant.restoIdFileLogo;
+            const response = hasExisting
+                ? await updateImage(restaurant.restoIdFileLogo, file)
+                : await uploadImage(file);
+
+            const returnedId = response?.id ?? response?.id_file ?? response?.data?.id ?? response?.data?.id_file;
+            const url = response?.url ?? response?.path ?? response?.data?.url ?? response?.data?.path ?? null;
+
+            const finalId = returnedId || restaurant.restoIdFileLogo || null;
+            if (!finalId) {
+                throw new Error("Réponse de l'API invalide: identifiant de fichier manquant.");
+            }
+
+            restaurant.restoIdFileLogo = finalId;
+
+            if (url) {
+                const imageUrl = url.startsWith('http') ? url : `${API_URL}${url.startsWith('/') ? '' : '/'}${url}`;
+                restaurant.restoLogo = imageUrl;
+                setImage(imageUrl);
+            }
+
+            setMessage(hasExisting ? "Image mise à jour avec succès !" : "Image téléversée avec succès !");
+        } catch (err) {
+            setError(err.message || "Une erreur est survenue lors du téléversement.");
+            console.error(err);
+        } finally {
+            setIsLoading(false);
+            // Réinitialiser l'input pour permettre de re-sélectionner le même fichier
+            if (fileInputRef.current) {
+                fileInputRef.current.value = "";
+            }
+        }
+    };
+
     const onDrop = async (e) => {
         e.preventDefault();
         e.stopPropagation();
-
         const file = e.dataTransfer.files[0];
-        if (!file) return;
-
-        setIsLoading(true);
         await handleImageUpload(file);
-        setIsLoading(false);
     };
 
     const onFileChange = async (e) => {
-        if (!e.target.files[0]) return;
-
-        setIsLoading(true);
         await handleImageUpload(e.target.files[0]);
-        setIsLoading(false);
     };
 
     const onRemoveImage = async () => {
+        if (isLoading) return;
         setIsLoading(true);
-        await handleRemoveImage();
-        setIsLoading(false);
+        setError(null);
+        setMessage(null);
+        try {
+            const fileId = restaurant.restoIdFileLogo;
+            if (fileId) {
+                const res = await fetch(`${API_URL}api/files/${fileId}`, { method: 'DELETE' });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) {
+                    throw new Error(data.message || 'Erreur lors de la suppression du fichier.');
+                }
+            }
+            restaurant.restoIdFileLogo = null;
+            restaurant.restoLogo = null;
+            setImage(null);
+            setMessage('Image retirée.');
+        } catch (err) {
+            setError(err.message || 'Impossible de supprimer l\'image.');
+        } finally {
+            setIsLoading(false);
+            // Réinitialiser l'input ici aussi
+            if (fileInputRef.current) {
+                fileInputRef.current.value = "";
+            }
+        }
     };
 
     const handleNext = () => {

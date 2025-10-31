@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { creerAdmin, recupererUser, genererTokenConnexion } from "./user";
+import { creerAdmin, recupererUser, genererTokenConnexion, getAuthInfo } from "./user";
 
 export async function  AvoirRestaurantById(id) {
     try {
@@ -41,7 +41,9 @@ export const supprimerDonneesResto = () => {
     restaurant.restoIdFileLogo = null;
     restaurant.restoLogo = null;
     restaurant.restoPolicy = "";
+    restaurant.restoCree = false;
     localStorage.removeItem("restaurant");
+    localStorage.removeItem("id_restaurant");
 }
 
 export const resetRestaurant = () => {
@@ -393,12 +395,15 @@ export const createRestaurant = async (administrateur) => {
 export const connecterAdmin = async () => {
     console.log("connecter admin")
     const id_admin = await creerAdmin();
+    console.log(id_admin);
     if (!id_admin) return false;
 
     const createRes = await createRestaurant(id_admin);
+    console.log(createRes);
     if (!createRes.success) return false;
 
-    const user = await recupererUser();
+    console.log("Avoir info user");
+    const user = await getAuthInfo();
     if (!user) return false;
 
     console.log("Génération du token de connexion pour l’administrateur...");
@@ -410,7 +415,7 @@ export const connecterAdmin = async () => {
     const restaurantId = restaurant.id_restaurant;
 
     const tokenGenerated = await genererTokenConnexion({
-        email: user.email,
+        email: user.display_name,
         role: 'administrateur',
         restaurant: restaurantId.toString(),
     });

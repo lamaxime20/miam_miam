@@ -9,7 +9,7 @@ const CreateRestaurantFormSuccess = () => {
     const navigateToDashboard = () => {
         supprimerDonneesResto();
         resetRestaurant();
-        navigate('/login');
+        navigate('/admin');
     }
     return (
         <div className="createRestaurantFormSuccess-container">

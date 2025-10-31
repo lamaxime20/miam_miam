@@ -40,7 +40,17 @@ class administrateurController extends Controller
      */
     public function show(string $id)
     {
-        //
+        $admin = DB::select('
+            SELECT u.* 
+            FROM "Utilisateur" u
+            JOIN Administrateur a ON u.id_user = a.id_user
+            WHERE a.id_user = ?
+        ', [$id]);
+        if (empty($admin)) {
+            return response()->json(['message' => 'Administrateur non trouvé'], 404);
+        }
+
+        return response()->json($admin[0]);
     }
 
     /**

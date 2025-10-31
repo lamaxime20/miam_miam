@@ -286,7 +286,7 @@ export async function updateImage(oldImageId, file) {
 
   try {
     const response = await fetch(`${API_URL}api/files/${oldImageId}`, {
-      method: 'PUT', // La méthode est POST même pour une mise à jour de fichier
+      method: 'PUT',
       body: formData,
     });
 
