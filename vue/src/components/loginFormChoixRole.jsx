@@ -96,14 +96,12 @@ const LoginFormChoixRole = ({ onBack }) => {
     const handleSelect = async (roleKey, restaurantId) => {
         if (!credentials) return;
         const { email, password } = credentials;
-        const res = await loginUser({ email, password, role: roleKey, restaurant: String(restaurantId) });
-        console.log(recupererToken());
-        console.log(roleKey);
-        console.log(restaurantId);
-        const roleAuth = await getAuthInfo();
-        console.log(roleAuth);
-        if (res.success) {
-            switch (roleAuth.role) {
+        const loginResult = await loginUser({ email, password, role: roleKey, restaurant: String(restaurantId) });
+
+        if (loginResult.success && loginResult.data) {
+            const { role } = loginResult.data;
+            console.log(role);
+            switch (role) {
                 case roleAdmin:
                     navigate('/admin');
                     break;
@@ -124,7 +122,7 @@ const LoginFormChoixRole = ({ onBack }) => {
                     break;
             }
             localStorage.removeItem('loginCredentials');
-        } else {
+        } else { // En cas d'échec de la connexion
             onBack();
         }
     };

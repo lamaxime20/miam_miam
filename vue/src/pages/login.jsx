@@ -19,8 +19,9 @@ const Login = () => {
 
     // S'assurer de commencer à l'étape 1 à chaque chargement de la page
     useEffect(() => {
-        handleBack();
-    }, []);
+        // On nettoie les identifiants de connexion temporaires uniquement au premier chargement.
+        localStorage.removeItem('loginCredentials');
+    }, []); // Le tableau vide [] assure que cela ne s'exécute qu'une seule fois.
 
     return (
         <div className="login-page-background">
