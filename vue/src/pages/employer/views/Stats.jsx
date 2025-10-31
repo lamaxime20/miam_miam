@@ -3,7 +3,7 @@ import CountUp from '../components/common/CountUp';
 import SimpleLineChart from '../components/common/SimpleLineChart';
 import SimplePieChart from '../components/common/SimplePieChart';
 import SimpleBarChart from '../components/common/SimpleBarChart';
-import { getOrders } from '../services/mockApi';
+import { getEmployerStats } from '../../../services/EmployerStats';
 
 const IconBars = (props) => (
   <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
@@ -29,29 +29,24 @@ export default function Stats() {
 
   useEffect(() => {
     let mounted = true;
-    getOrders([]).then(rows => {
-      if (!mounted) return;
-      const days = Number(period)||30;
-      const now = new Date();
-      const start = new Date(now.getTime() - days*24*60*60*1000);
-      const inRange = (rows||[]).filter(o => {
-        const d = new Date(o.createdAt || 0);
-        return d >= start && d <= now;
-      });
-      const orders = inRange.length;
-      const delivered = inRange.filter(o=>o.status==='delivered').length;
-      const revenue = inRange.reduce((s,o)=> s + (Number(o.total)||0), 0);
-      const avgTicket = orders ? revenue / orders : 0;
-      setData(d => ({ ...d, orders, delivered, revenue, avgTicket }));
-    });
-    const onStorage = (e) => { if (e.key === 'app.orders') { getOrders([]).then(rows => {
-      const days = Number(period)||30; const now = new Date(); const start = new Date(now.getTime() - days*24*60*60*1000);
-      const inRange = (rows||[]).filter(o => { const d = new Date(o.createdAt || 0); return d >= start && d <= now; });
-      const orders = inRange.length; const delivered = inRange.filter(o=>o.status==='delivered').length; const revenue = inRange.reduce((s,o)=> s + (Number(o.total)||0), 0);
-      const avgTicket = orders ? revenue / orders : 0; setData(d => ({ ...d, orders, delivered, revenue, avgTicket }));
-    }); } };
-    window.addEventListener('storage', onStorage);
-    return () => { mounted = false; window.removeEventListener('storage', onStorage); };
+    (async () => {
+      try {
+        const days = Number(period) || 30;
+        const stats = await getEmployerStats({ restaurantId: 1, days });
+        if (!mounted) return;
+        setData(d => ({
+          ...d,
+          orders: stats?.orders ?? 0,
+          delivered: stats?.delivered ?? 0,
+          revenue: stats?.revenue ?? 0,
+          avgTicket: stats?.avgTicket ?? 0,
+          newDishes: stats?.newDishes ?? 0,
+        }));
+      } catch (e) {
+        console.error('Erreur récupération stats employeur:', e);
+      }
+    })();
+    return () => { mounted = false; };
   }, [period]);
 
   const trends = useMemo(() => {

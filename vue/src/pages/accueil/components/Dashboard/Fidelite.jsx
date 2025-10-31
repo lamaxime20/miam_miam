@@ -1,9 +1,12 @@
 "use client"
 
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Star, Gift, Users, Copy, Check } from "lucide-react";
 import "bootstrap/dist/css/bootstrap.min.css";
-import { loadFideliteData, claimDailyBonusAndRefresh } from "../../../../services/Fidelite.js";
+import { getAuthInfo, recupererToken } from "../../../../services/user";
+
+const API_URL = import.meta.env.VITE_API_URL;
+const URL_React = "http://localhost:5173/";
 
 const rewards = [
   { points: 500, reward: "Boisson gratuite", description: "Une boisson de votre choix offerte", icon: "🥤" },
@@ -13,44 +16,95 @@ const rewards = [
   { points: 5000, reward: "VIP Gold", description: "Statut VIP pendant 1 mois", icon: "👑" },
 ];
 
-
 function Fidelite() {
-  const Vue_lien = "http://localhost:5173/";
   const [currentPoints, setCurrentPoints] = useState(0);
   const [referralCode, setReferralCode] = useState("");
-  const [totalReferralPoints, setTotalReferralPoints] = useState(0);
-  const [referralHistory, setReferralHistory] = useState([]);
   const [copied, setCopied] = useState(false);
+  const [linkParrainage, setLinkParrainage] = useState("");
+  const [referrals, setReferrals] = useState([]);
+  const [totalReferralPoints, setTotalReferralPoints] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [bonusClaimedToday, setBonusClaimedToday] = useState(false);
 
+  const auth = useMemo(() => getAuthInfo(), []);
+  const restaurantId = auth?.restaurant ? parseInt(auth.restaurant, 10) : undefined; // ne pas mettre 1 par défaut
+  const token = useMemo(() => recupererToken(), []);
+
+  // ID du client (à adapter selon votre logique d'authentification)
   const clientId = 1;
+
   useEffect(() => {
-    let mounted = true;
-    (async () => {
-      const data = await loadFideliteData(clientId);
-      if (!mounted) return;
-      setCurrentPoints(data.currentPoints);
-      setReferralCode(Vue_lien + data.referralCode);
-      setTotalReferralPoints(data.totalReferralPoints);
-      setReferralHistory(data.referralHistory);
-    })();
-    return () => { mounted = false; };
-  }, [clientId]);
+    async function bootstrap() {
+      try {
+        setLoading(true);
+        await Promise.all([
+          fetchPoints(clientId).then((p) => setCurrentPoints(p)),
+          fetchReferralDetails(clientId).then((d) => {
+            if (d?.referral?.code) setReferralCode(d.referral.code);
+            if (Array.isArray(d?.referrals)) setReferrals(d.referrals);
+            if (typeof d?.referral?.total_points === 'number') setTotalReferralPoints(d.referral.total_points);
+          })
+        ]);
+      } catch (e) {
+        setError("Impossible de charger les données de fidélité");
+      } finally {
+        setLoading(false);
+      }
+    }
+    bootstrap();
+  }, []);
+
+  useEffect(() => {
+    if (referralCode) {
+      setLinkParrainage(URL_React + "signup/" + referralCode);
+    }
+  }, [referralCode]);
+
+  useEffect(() => {
+    const key = makeDailyBonusKey(clientId, restaurantId);
+    if (key && localStorage.getItem(key) === '1') {
+      setBonusClaimedToday(true);
+    }
+  }, [clientId, restaurantId]);
 
   const copyReferralCode = () => {
-    navigator.clipboard.writeText(referralCode);
+    if (!linkParrainage) return;
+    navigator.clipboard.writeText(linkParrainage);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
   const onClaimBonus = async () => {
-    const res = await claimDailyBonusAndRefresh(clientId, 1);
-    if (res.success) {
-      setCurrentPoints(res.currentPoints);
+    try {
+      const res = await claimDailyBonusAndRefresh(clientId, restaurantId, token);
+      if (res.success) {
+        setCurrentPoints(res.new_points);
+        const key = makeDailyBonusKey(clientId, restaurantId);
+        if (key) localStorage.setItem(key, '1');
+        setBonusClaimedToday(true);
+      } else if (res.message) {
+        if (res.message.toLowerCase().includes('déjà')) {
+          const key = makeDailyBonusKey(clientId, restaurantId);
+          if (key) localStorage.setItem(key, '1');
+          setBonusClaimedToday(true);
+        }
+        setError(res.message);
+      }
+    } catch (e) {
+      setError("Échec de la récupération du bonus");
     }
   };
 
   const progressToNextReward = rewards.find((r) => r.points > currentPoints);
   const progress = progressToNextReward ? (currentPoints / progressToNextReward.points) * 100 : 100;
+
+  if (loading) {
+    return <div className="container py-4">Chargement...</div>;
+  }
+  if (error) {
+    return <div className="container py-4 text-danger">{error}</div>;
+  }
 
   return (
     <div className="container py-4">
@@ -73,17 +127,10 @@ function Fidelite() {
             <span className="badge bg-light text-dark">Gold</span>
           </div>
         </div>
-
         {progressToNextReward && (
-          <>
-            <div className="d-flex justify-content-between text-black-50 mb-2">
-              <span>Prochaine récompense: {progressToNextReward.reward}</span>
-              <span>{progressToNextReward.points - currentPoints} points restants</span>
-            </div>
-            <div className="progress" style={{ height: "10px" }}>
-              <div className="progress-bar bg-yellow" role="progressbar" style={{ width: `${progress}%` }}></div>
-            </div>
-          </>
+          <div className="progress" role="progressbar" aria-valuenow={progress} aria-valuemin="0" aria-valuemax="100">
+            <div className="progress-bar bg-warning" style={{ width: `${progress}%` }} />
+          </div>
         )}
       </div>
 
@@ -92,10 +139,10 @@ function Fidelite() {
           <div className="card p-3 mb-3">
             <h5>Comment gagner des points ?</h5>
             <ul className="list-group list-group-flush">
-              <li className="list-group-item d-flex align-items-center gap-2"><span>🛒</span><div><div>Commandes</div><small className="text-muted">1 point par 10 FCFA dépensés</small></div></li>
-              <li className="list-group-item d-flex align-items-center gap-2"><Users size={18} /><div><div>Parrainage</div><small className="text-muted">200 points par filleul</small></div></li>
-              <li className="list-group-item d-flex align-items-center gap-2"><Star size={18} /><div><div>Avis</div><small className="text-muted">50 points par avis laissé</small></div></li>
-              <li className="list-group-item d-flex align-items-center gap-2"><Gift size={18} /><div><div>Bonus quotidien</div><small className="text-muted">10 points par jour de connexion</small></div></li>
+              <li className="list-group-item d-flex align-items-center gap-2"><span>🛒</span><div><div>Commandes</div><small className="text-muted">1 point par 1000 FCFA dépensés</small></div></li>
+              <li className="list-group-item d-flex align-items-center gap-2"><Users size={18} /><div><div>Parrainage</div><small className="text-muted">5 points par filleul</small></div></li>
+              <li className="list-group-item d-flex align-items-center gap-2"><Star size={18} /><div><div>Avis</div><small className="text-muted">1 point par avis laissé</small></div></li>
+              <li className="list-group-item d-flex align-items-center gap-2"><Gift size={18} /><div><div>Bonus quotidien</div><small className="text-muted">1 point par jour de connexion</small></div></li>
             </ul>
           </div>
 
@@ -103,7 +150,7 @@ function Fidelite() {
             <Gift size={32} className="mb-2" />
             <h6>Bonus du jour</h6>
             <p className="small">Connectez-vous chaque jour pour gagner des points</p>
-            <button className="btn btn-light btn-sm text-orange-600 w-100" onClick={onClaimBonus}>Récupérer 10 points</button>
+            <button onClick={onClaimBonus} disabled={bonusClaimedToday || !restaurantId} className="btn btn-light btn-sm text-orange-600 w-100">{bonusClaimedToday ? "Déjà récupéré aujourd'hui" : "Récupérer 1 point"}</button>
           </div>
         </div>
       </div>
@@ -112,43 +159,43 @@ function Fidelite() {
         <div className="d-flex justify-content-between align-items-center mb-3">
           <div>
             <h5>Programme de Parrainage</h5>
-            <small className="text-muted">Invitez vos amis et gagnez 200 points par filleul</small>
+            <small className="text-muted">Invitez vos amis et gagnez 5 points par filleul</small>
           </div>
           <div className="text-end">
             <small className="text-muted">Total gagné</small>
-            <div className="text-warning">{totalReferralPoints.toLocaleString()} points</div>
+            <div className="text-warning">{totalReferralPoints} points</div>
           </div>
         </div>
 
         <div className="card p-3 mb-3 bg-light text-center">
-          <div className="mb-2">Votre lien de Parrainage</div>
+          <div className="mb-2">Votre lien de parrainage</div>
           <div className="d-flex justify-content-center gap-2 mb-2">
-            <div className="bg-white px-3 py-2 rounded fw-bold">{referralCode}</div>
-            <button onClick={copyReferralCode} className="btn btn-warning btn-sm d-flex align-items-center gap-1">
+            <div className="bg-white px-3 py-2 rounded fw-bold">{linkParrainage || "Chargement..."}</div>
+            <button onClick={copyReferralCode} disabled={!linkParrainage} className="btn btn-warning btn-sm d-flex align-items-center gap-1">
               {copied ? <Check size={16} /> : <Copy size={16} />} {copied ? "Copié !" : "Copier"}
             </button>
           </div>
           <small className="text-muted">Partagez ce lien avec vos amis pour gagner des points</small>
         </div>
 
-        <h6>Vos filleuls ({referralHistory.length})</h6>
+        <h6>Vos filleuls ({referrals.length})</h6>
         <div className="list-group">
-          {referralHistory.map((referral, idx) => (
+          {referrals.map((r, idx) => (
             <div key={idx} className="list-group-item d-flex justify-content-between align-items-center">
               <div className="d-flex align-items-center gap-3">
                 <div className="bg-warning text-white rounded-circle d-flex align-items-center justify-content-center" style={{ width: 40, height: 40 }}>
-                  {referral.name.split(" ").map(n => n[0]).join("")}
+                  {(r.nom || r.name || "?").toString().split(" ").map(n => n[0]).join("")}
                 </div>
                 <div>
-                  <div>{referral.name}</div>
-                  <small className="text-muted">Inscrit le {referral.date}</small>
+                  <div>{r.nom || r.name || "Client"}</div>
+                  {r.date && <small className="text-muted">Inscrit le {r.date}</small>}
                 </div>
               </div>
               <div className="text-end">
-                {referral.status === "active" ? (
+                {r.status === "active" || r.actif ? (
                   <>
                     <div className="text-success mb-1">✓ Actif</div>
-                    <div className="text-warning">+{referral.points} points</div>
+                    {typeof r.points === 'number' && <div className="text-warning">+{r.points} points</div>}
                   </>
                 ) : (
                   <div className="text-warning">En attente</div>
@@ -163,3 +210,47 @@ function Fidelite() {
 }
 
 export default Fidelite;
+
+function makeDailyBonusKey(clientId, restaurantId) {
+  if (!clientId || !restaurantId) return null;
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  const dateStr = `${y}-${m}-${day}`;
+  return `daily_bonus_claimed:${clientId}:${restaurantId}:${dateStr}`;
+}
+
+// ===== Helpers API
+async function fetchPoints(clientId) {
+  const res = await fetch(`${API_URL}api/client/${clientId}/points`);
+  if (!res.ok) return 0;
+  const data = await res.json();
+  return typeof data?.points_fidelite === 'number' ? data.points_fidelite : 0;
+}
+
+async function fetchReferralDetails(clientId) {
+  const res = await fetch(`${API_URL}api/client/${clientId}/referral-details`);
+  if (!res.ok) return { referral: null, referrals: [] };
+  return res.json();
+}
+
+async function claimDailyBonusAndRefresh(clientId, restaurantId, token) {
+  try {
+    const res = await fetch(`${API_URL}api/client/${clientId}/claim-daily-bonus`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify({ restaurant_id: restaurantId })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      return { success: false, message: data?.message || 'Erreur' };
+    }
+    return { success: !!data.success, new_points: data.new_points };
+  } catch (e) {
+    return { success: false, message: 'Erreur réseau' };
+  }
+}

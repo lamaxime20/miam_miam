@@ -1,201 +1,154 @@
-import { useState, useEffect } from "react";
-import { FaClock, FaCheckCircle, FaTimesCircle, FaBoxOpen } from "react-icons/fa";
+import { useEffect, useMemo, useState } from "react";
+import { FaClock, FaCheckCircle, FaTimesCircle, FaBoxOpen, FaEye } from "react-icons/fa";
 import 'bootstrap/dist/css/bootstrap.min.css';
-import CommandeCard from "./CommandeCard";
-import { getCommandesUtilisateur, getAuthInfo, getUserByEmail } from "../../../../services/user";
-import { Spinner } from "react-bootstrap";
-const API_URL = import.meta.env.VITE_API_URL;
+import { useNavigate } from 'react-router-dom';
+import { getAuthInfo } from "../../../../services/user";
+import { fetchCurrentUserOrders, cancelCommande } from "../../../../services/CommandesClient";
 
 const statusConfig = {
-  // Les clés correspondent aux statuts retournés par la fonction SQL get_commandes_by_user
-  'initial': { label: "Non lue", color: "text-secondary", icon: FaClock, bg: "bg-light" },
-  'en cours': { label: "En cours", color: "text-warning", icon: FaClock, bg: "bg-light" },
-  'en cours de livraison': { label: "Livraison en cours", color: "text-primary", icon: FaBoxOpen, bg: "bg-light" },
-  'livré': { label: "Livré", color: "text-success", icon: FaCheckCircle, bg: "bg-light" },
-  'annulé': { label: "Annulé", color: "text-danger", icon: FaTimesCircle, bg: "bg-light" },
+  pending: { label: "En attente", color: "text-dark", icon: FaClock, bg: "bg-light" },
+  preparing: { label: "En préparation", color: "text-warning", icon: FaClock, bg: "bg-light" },
+  delivering: { label: "En livraison", color: "text-primary", icon: FaBoxOpen, bg: "bg-light" },
+  delivered: { label: "Livrée", color: "text-success", icon: FaCheckCircle, bg: "bg-light" },
+  cancelled: { label: "Annulée", color: "text-danger", icon: FaTimesCircle, bg: "bg-light" },
 };
 
 function MesCommandes() {
-  let idKey = 0;
-  const [orders, setOrders] = useState([]);
-  const [cancellingIds, setCancellingIds] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const navigate = useNavigate();
   const [filter, setFilter] = useState("all");
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [cancelingId, setCancelingId] = useState(null);
 
   useEffect(() => {
-    const fetchUserAndCommands = async () => {
-      try {
-        setLoading(true);
-        const authInfo = getAuthInfo();
-        if (!authInfo || !authInfo.display_name) {
-          throw new Error("Utilisateur non authentifié. Veuillez vous reconnecter.");
-        }
+    let mounted = true;
+    const auth = getAuthInfo();
+    if (!auth) {
+      navigate('/login');
+      return () => { mounted = false; };
+    }
+    setLoading(true);
+    fetchCurrentUserOrders()
+      .then(data => { if (mounted) setOrders(data); })
+      .catch(err => { if (mounted) setError(err.message || 'Erreur lors du chargement des commandes'); })
+      .finally(() => { if (mounted) setLoading(false); });
+    return () => { mounted = false; };
+  }, [navigate]);
 
-        const userData = await getUserByEmail(authInfo.display_name);
-        if (!userData || !userData.id_user) {
-          throw new Error("Impossible de récupérer les informations de l'utilisateur.");
-        }
+  const counts = useMemo(() => {
+    const active = orders.filter(o => ["pending", "preparing", "delivering"].includes(o.status)).length;
+    const completed = orders.filter(o => ["delivered", "cancelled"].includes(o.status)).length;
+    return { all: orders.length, active, completed };
+  }, [orders]);
 
-        const commandesData = await getCommandesUtilisateur(userData.id_user);
-        console.log("Commandes fetch :", commandesData);
-
-        // Transformation des données de l'API pour correspondre au format attendu par le frontend
-        const formattedOrders = commandesData.map(cmd => {
-          // liste_menus peut être un tableau d'objets (backend) ou une chaîne
-          let items = [];
-          let total = 0;
-
-          if (Array.isArray(cmd.liste_menus)) {
-            items = cmd.liste_menus.map(m => `${m.nom_menu} x${m.quantite}`);
-            total = cmd.liste_menus.reduce((sum, m) => sum + (parseFloat(m.prix_total) || 0), 0);
-          } else if (typeof cmd.liste_menus === 'string') {
-            items = cmd.liste_menus.split(', ').map(s => s.trim()).filter(Boolean);
-            total = cmd.montant_total || 0;
-          } else {
-            items = [];
-            total = cmd.montant_total || 0;
-          }
-
-          // Normaliser le statut (ex: en_cours -> en cours)
-          const rawStatus = (cmd.statut || '').toString().trim();
-          // Conserver 'initial' tel quel pour matcher statusConfig['initial']
-          let normalizedStatus = rawStatus === 'initial' ? 'initial' 
-            : rawStatus.replace(/_/g, ' ').toLowerCase();
-          // Corrections rapides (mais pas sur 'initial')
-          if (normalizedStatus === 'livre') normalizedStatus = 'livré';
-          if (normalizedStatus === 'annule') normalizedStatus = 'annulé';
-
-          return {
-            id: cmd.id_commande,
-            orderNumber: `#${cmd.id_commande}`,
-            // date de commande affichée
-            date: new Date(cmd.date_commande || cmd.date_heure_livraison).toLocaleString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
-            dateISO: cmd.date_commande || cmd.date_heure_livraison,
-            date_heure_livraison: cmd.date_heure_livraison || cmd.date_commande,
-            status: normalizedStatus,
-            items,
-            total,
-            deliveryAddress: cmd.localisation_client || 'Non spécifiée',
-            localisation_client: cmd.localisation_client || '',
-            type_localisation: cmd.type_localisation || 'inconnue'
-          };
-        });
-
-        setOrders(formattedOrders);
-        setError(null);
-      } catch (err) {
-        setError(err.message);
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchUserAndCommands();
-  }, []);
-
-      console.log("Order fetch :", orders);
-  
-
-  // La logique de filtrage est mise à jour pour correspondre aux nouveaux boutons
-  const filteredOrders = orders.filter((order) => {
-    if (filter === "all") return true;
-    return order.status === filter;
-  });
-
-  if (loading) {
-    return (
-      <div className="container py-5 text-center text-white" style={{ backgroundColor: "#000000", minHeight: "100vh" }}>
-        <Spinner animation="border" variant="warning" />
-        <p className="mt-2">Chargement de vos commandes...</p>
-      </div>
-    );
-  }
+  const filteredOrders = useMemo(() => {
+    if (filter === "active") return orders.filter(o => ["pending", "preparing", "delivering"].includes(o.status));
+    if (filter === "completed") return orders.filter(o => ["delivered", "cancelled"].includes(o.status));
+    return orders;
+  }, [orders, filter]);
 
   return (
     <div className="container py-5" style={{ backgroundColor: "#000000", minHeight: "100vh" }}>
       <h1 className="text-white mb-3">Mes Commandes</h1>
-      <p className="text-white-50 mb-4">Suivez l'historique de vos commandes</p>
+      <p className="text-white-50">Suivez l'historique de vos commandes</p>
 
-      {/* Les boutons de filtre ont été remplacés */}
-      <div className="mb-4 d-flex flex-wrap gap-2">
-        <button className={`btn ${filter === 'all' ? 'btn-warning text-white' : 'btn-outline-light'}`} onClick={() => setFilter('all')}>Toutes</button>
-        {Object.entries(statusConfig).map(([statusKey, { label }]) => (
-          <button 
-            key={statusKey} 
-            className={`btn ${filter === statusKey ? 'btn-warning text-white' : 'btn-outline-light'}`} 
-            onClick={() => setFilter(statusKey)}
-          >
-            {label}
-          </button>
-        ))}
+      <div className="mb-4">
+        <button className={`me-2 btn ${filter === "all" ? "btn-warning text-white" : "btn-outline-light"}`} onClick={() => setFilter("all")}>
+          Toutes ({counts.all})
+        </button>
+        <button className={`me-2 btn ${filter === "active" ? "btn-warning text-white" : "btn-outline-light"}`} onClick={() => setFilter("active")}>
+          En cours ({counts.active})
+        </button>
+        <button className={`btn ${filter === "completed" ? "btn-warning text-white" : "btn-outline-light"}`} onClick={() => setFilter("completed")}>
+          Terminées ({counts.completed})
+        </button>
       </div>
 
-      {error && (
-        <div className="alert alert-danger">
-          <p className="fw-bold">Erreur de chargement</p>
-          {error}
-        </div>
+      {loading && (
+        <div className="text-center text-white mt-5">Chargement des commandes…</div>
       )}
 
-      {!loading && !error && filteredOrders.length === 0 && (
+      {error && !loading && (
+        <div className="alert alert-danger">{error}</div>
+      )}
+
+      {!loading && filteredOrders.length === 0 && (
         <div className="text-center text-white mt-5">
           <FaBoxOpen size={50} className="mb-3" />
-          <h3>Aucune commande trouvée</h3>
-          <p>Il semble que vous n'ayez pas encore de commandes correspondant à ce filtre.</p>
+          <h3>Aucune commande</h3>
+          <p>Vous n'avez pas encore passé de commande</p>
         </div>
       )}
 
-      {!error && filteredOrders.map(order => {
-        const isCancelling = cancellingIds.includes(order.id);
-        return <CommandeCard 
-          key={idKey++} 
-          order={order} 
-          statusConfig={statusConfig} 
-          onSelectOrder={setSelectedOrder}
-          isCancelling={isCancelling}
-          onCancelOrder={async (o) => {
-            // Optimistic update: sauvegarde l'état courant, applique annulation UI, désactive bouton
-            const prevOrders = orders;
-            setOrders(prev => prev.map(item => item.id === o.id ? { ...item, status: 'annulé' } : item));
-            setCancellingIds(prev => Array.from(new Set([...prev, o.id])));
+      {filteredOrders.map(order => {
+        const statusInfo = statusConfig[order.status] || statusConfig.pending;
+        const StatusIcon = statusInfo.icon;
+        const canCancel = (() => {
+          const created = Number(order.createdAtMs || 0);
+          if (!created) return false;
+          const withinHour = Date.now() - created <= 3600000;
+          const active = !["delivered", "cancelled"].includes(order.status);
+          return withinHour && active;
+        })();
+        const onCancel = async () => {
+          try {
+            setCancelingId(order.id);
+            await cancelCommande(order.id);
+            setOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: "cancelled" } : o));
+            if (selectedOrder && selectedOrder.id === order.id) setSelectedOrder({ ...selectedOrder, status: "cancelled" });
+          } catch (e) {
+            setError(e.message || "Annulation impossible");
+          } finally {
+            setCancelingId(null);
+          }
+        };
+        return (
+          <div key={order.id} className="card mb-4">
+            <div className="card-body">
+              <div className="d-flex justify-content-between align-items-start mb-2">
+                <div>
+                  <h5>Commande {order.orderNumber}</h5>
+                  <small className="text-muted">{order.date}</small>
+                  <div className={`badge ${statusInfo.color} mt-2`} style={{ backgroundColor: "#cfbd97", color: "#000" }}>
+                    <StatusIcon className="me-1" />
+                    {statusInfo.label}
+                  </div>
+                </div>
+                <div className="text-end">
+                  <div className="fw-bold mb-2">{order.total} FCFA</div>
+                  <div className="d-flex gap-2 justify-content-end">
+                    {canCancel && (
+                      <button className="btn btn-sm btn-outline-danger" disabled={cancelingId === order.id} onClick={onCancel}>
+                        {cancelingId === order.id ? "Annulation..." : "Annuler commande"}
+                      </button>
+                    )}
+                    <button className="btn btn-sm btn-outline-dark" onClick={() => setSelectedOrder(order)}>
+                      <FaEye className="me-1" /> Détails
+                    </button>
+                  </div>
+                </div>
+              </div>
 
-            try {
-              const dateSource = o.date_heure_livraison || o.dateISO || new Date().toISOString();
-              const dateObj = new Date(dateSource);
-              const date_heure_livraison = dateObj.toISOString().slice(0,19).replace('T',' ');
+              <p className="mb-1"><strong>Articles:</strong> {order.items.join(", ")}</p>
 
-              const body = {
-                date_heure_livraison,
-                localisation_client: o.localisation_client || o.deliveryAddress || '',
-                type_localisation: o.type_localisation || 'inconnue',
-                statut_commande: 'annulé'
-              };
-
-              const res = await fetch(`${API_URL}api/updateCommande/${o.id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-                body: JSON.stringify(body)
-              });
-
-              if (!res.ok) {
-                const err = await res.json().catch(() => ({ message: `HTTP ${res.status}` }));
-                throw new Error(err.message || `Erreur HTTP ${res.status}`);
-              }
-
-              // Succès : retirer de la liste des en-cours
-              setCancellingIds(prev => prev.filter(id => id !== o.id));
-            } catch (err) {
-              console.error('Erreur annulation commande :', err);
-              // Rollback UI
-              setOrders(prevOrders);
-              setCancellingIds(prev => prev.filter(id => id !== o.id));
-              alert('Impossible d\'annuler la commande : ' + (err.message || 'erreur serveur'));
-            }
-          }}
-        />
+              {["pending", "preparing", "delivering"].includes(order.status) && (
+                <div className="progress mt-3" style={{ height: "8px" }}>
+                  <div
+                    className="progress-bar"
+                    role="progressbar"
+                    style={{
+                      width: order.status === "pending" ? "33%" :
+                             order.status === "preparing" ? "66%" : "100%",
+                      backgroundColor: "#cfbd97",
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+        );
       })}
 
       {selectedOrder && (

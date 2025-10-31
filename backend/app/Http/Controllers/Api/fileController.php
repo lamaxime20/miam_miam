@@ -6,115 +6,12 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use App\Http\Controllers\Api\file;
 
 class fileController extends Controller
 {
-    /**
-     * Afficher tous les fichiers
-     */
-    public function index(): JsonResponse
-    {
-        $files = DB::select('SELECT * FROM get_all_files()');
-        return response()->json($files, 200);
-    }
-
-    /**
-     * Créer un nouveau fichier
-     */
-    public function store(Request $request): JsonResponse
-    {
-        $validated = $request->validate([
-            'nom_fichier' => 'required|string|max:255',
-            'extension' => 'required|string|max:10',
-            'chemin' => 'required|string|max:255',
-        ]);
-
-        $result = DB::select(
-            'SELECT * FROM creer_file(?, ?, ?)',
-            [$validated['nom_fichier'], $validated['extension'], $validated['chemin']]
-        );
-
-        return response()->json([
-            'message' => 'fichier created successfully',
-            'id' => $result[0]->id,
-        ], 201);
-    }
-
-    /**
-     * Afficher un fichier par ID
-     */
-    public function show(string $id): JsonResponse
-    {
-        $file = DB::select('SELECT * FROM get_one_file(?)', [$id]);
-
-        if (empty($file)) {
-            return response()->json(['message' => 'fichier introuvable'], 404);
-        }
-
-        $fileData = (array) $file[0];
-
-        // Chemin complet vers le fichier sur le serveur
-        $fullPath = public_path($fileData['chemin']);
-
-        if (!file_exists($fullPath)) {
-            return response()->json([
-                'message' => 'Fichier introuvable sur le disque',
-                'info' => $fileData
-            ], 404);
-        }
-
-        // Lire le contenu du fichier et l’encoder en base64 pour transmission JSON
-        $content = base64_encode(file_get_contents($fullPath));
-
-        // Retourner les métadonnées + le contenu encodé
-        return response()->json([
-            'id_File' => $fileData['id_file'],
-            'nom_fichier' => $fileData['nom_fichier'],
-            'extension' => $fileData['extension'],
-            'chemin' => $fileData['chemin'],
-            'contenu_base64' => $content,
-        ], 200);
-    }
-
-    /**
-     * Mettre à jour un fichier
-     */
-    public function update(Request $request, string $id): JsonResponse
-    {
-        $validated = $request->validate([
-            'nom_fichier' => 'sometimes|string|max:255|nullable',
-            'extension' => 'sometimes|string|max:10|nullable',
-            'chemin' => 'sometimes|string|max:255|nullable',
-        ]);
-
-        $result = DB::select(
-            'SELECT update_file(?, ?, ?, ?)',
-            [
-                $id,
-                $validated['nom_fichier'] ?? null,
-                $validated['extension'] ?? null,
-                $validated['chemin'] ?? null,
-            ]
-        );
-
-        return response()->json([
-            'message' => $result[0]->update_file,
-        ], 200);
-    }
-
-    /**
-     * Supprimer un fichier
-     */
-    public function destroy(string $id): JsonResponse
-    {
-        $result = DB::select('SELECT delete_file(?)', [$id]);
-        $message = $result[0]->delete_file;
-
-        return response()->json([
-            'message' => $message,
-        ], 204);
-    }
-
     public function commander(Request $request)
     {
         // 🔹 Validation des champs reçus
@@ -158,5 +55,164 @@ class fileController extends Controller
                 'message' => 'Erreur serveur : ' . $e->getMessage()
             ], 500);
         }
+    }
+    // Upload d'image
+    public function upload(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|image|mimes:jpeg,png,jpg,gif,svg,webp|max:2048'
+        ]);
+
+        if ($request->hasFile('file')) {
+            $file = $request->file('file');
+            
+            // Générer un nom unique
+            $fileName = Str::uuid() . '.' . $file->getClientOriginalExtension();
+            $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+            
+            // Stocker le fichier
+            $path = $file->storeAs('images', $fileName, 'public');
+            
+            // Enregistrer dans la base de données avec la fonction PostgreSQL
+            $fileRecord = DB::selectOne(
+                "SELECT * FROM insert_file(?, ?, ?)",
+                [$originalName, $file->getClientOriginalExtension(), $path]
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Fichier uploadé avec succès',
+                'data' => $fileRecord,
+                // Retourner seulement le chemin relatif
+                'relative_path' => $path,
+                // Ou construire l'URL sans domaine fixe
+                'url' => 'storage/' . $path
+            ], 201);
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Aucun fichier trouvé'
+        ], 400);
+    }
+
+    public function show($id)
+    {
+        $file = DB::selectOne("SELECT * FROM get_file_by_id(?)", [$id]);
+
+        if (!$file) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Fichier non trouvé'
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $file,
+            'url' => asset('storage/' . $file->chemin)
+        ]);
+    }
+
+    public function index()
+    {
+        $files = DB::select("SELECT * FROM get_all_files()");
+
+        $filesWithUrl = array_map(function($file) {
+            return [
+                'id_file' => $file->id_file,
+                'nom_fichier' => $file->nom_fichier,
+                'extension' => $file->extension,
+                'chemin' => $file->chemin,
+                'url' => asset('storage/' . $file->chemin)
+            ];
+        }, $files);
+
+        return response()->json([
+            'success' => true,
+            'data' => $filesWithUrl
+        ]);
+    }
+
+    public function destroy($id)
+    {
+        // Vérifier si le fichier existe en base
+        $fileExists = DB::selectOne("SELECT file_exists(?) as exists", [$id]);
+        
+        if (!$fileExists->exists) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Fichier non trouvé en base de données'
+            ], 404);
+        }
+
+        // Récupérer le chemin avant suppression
+        $file = DB::selectOne("SELECT * FROM get_file_by_id(?)", [$id]);
+
+        // Supprimer le fichier physique SUR LA MACHINE HOST
+        if ($file) {
+            $filePath = storage_path('app/public/' . $file->chemin);
+            
+            // Vérifier si le fichier existe physiquement
+            if (file_exists($filePath)) {
+                unlink($filePath); // Supprimer le fichier
+            } else {
+                // Le fichier n'existe pas physiquement, mais on continue quand même
+                \Log::warning("Fichier physique non trouvé: " . $filePath);
+            }
+        }
+
+        // Supprimer l'enregistrement en base avec la fonction PostgreSQL
+        $deleted = DB::selectOne("SELECT delete_file(?) as success", [$id]);
+
+        return response()->json([
+            'success' => (bool)$deleted->success,
+            'message' => $deleted->success ? 'Fichier supprimé avec succès' : 'Erreur lors de la suppression en base'
+        ]);
+    }
+
+    /**
+     * Remplacer un fichier existant par un nouveau (version simplifiée)
+     */
+    public function replaceSimple(Request $request, $id): JsonResponse
+    {
+        $request->validate([
+            'file' => 'required|image|mimes:jpeg,png,jpg,gif,svg,webp|max:2048'
+        ]);
+
+        // Vérifier si l'ancien fichier existe
+        $oldFile = DB::selectOne("SELECT * FROM get_file_by_id(?)", [$id]);
+        
+        if (!$oldFile) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Ancien fichier non trouvé'
+            ], 404);
+        }
+
+        // Supprimer l'ancien fichier physique
+        $oldFilePath = storage_path('app/public/' . $oldFile->chemin);
+        if (file_exists($oldFilePath)) {
+            unlink($oldFilePath);
+        }
+
+        // Upload du nouveau fichier
+        $file = $request->file('file');
+        $fileName = Str::uuid() . '.' . $file->getClientOriginalExtension();
+        $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+        $path = $file->storeAs('images', $fileName, 'public');
+
+        // Mettre à jour l'enregistrement en base
+        $updatedFile = DB::selectOne(
+            "SELECT * FROM update_file(?, ?, ?, ?)",
+            [$id, $originalName, $file->getClientOriginalExtension(), $path]
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Fichier remplacé avec succès',
+            'data' => $updatedFile,
+            'url' => 'storage/' . $path
+        ], 200);
     }
 }

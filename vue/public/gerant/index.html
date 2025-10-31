@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Gérant</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
+  <link rel="stylesheet" href="/gerant/assets/styles.css" />
+  <script>
+    window.process = window.process || { env: { NODE_ENV: 'production' } };
+    if (!window.process.env) window.process.env = { NODE_ENV: 'production' };
+    (async function(){
+      const jsonHeaders = { 'Content-Type': 'application/json' };
+      const originalFetch = window.fetch.bind(window);
+      const [dashboardText, reclamationsText, employeesText] = await Promise.all([
+        originalFetch('/gerant/api/dashboard.json').then(r=>r.text()).catch(()=> 'null'),
+        originalFetch('/gerant/api/reclamations.json').then(r=>r.text()).catch(()=> '[]'),
+        originalFetch('/gerant/api/employees.json').then(r=>r.text()).catch(()=> '[]'),
+      ]);
+      window.fetch = (input, init) => {
+        try {
+          const raw = typeof input === 'string' ? input : (input && input.url) ? input.url : String(input);
+          const normalized = raw.replace('http://localhost:8000','').replace('http://127.0.0.1:8000','');
+          const path = new URL(normalized, location.origin).pathname;
+          if (path === '/api/dashboard-data') return Promise.resolve(new Response(dashboardText, { headers: jsonHeaders }));
+          if (path === '/api/reclamations-data') return Promise.resolve(new Response(reclamationsText, { headers: jsonHeaders }));
+          if (path === '/api/employees-data') return Promise.resolve(new Response(employeesText, { headers: jsonHeaders }));
+          if (path === '/api/analytics-data' || path.startsWith('/api/')) return Promise.resolve(new Response(dashboardText, { headers: jsonHeaders }));
+        } catch {}
+        return originalFetch(input, init);
+      };
+    })();
+  </script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script defer src="/gerant/dist/dashboard-components.umd.cjs"></script>
+</head>
+<body class="content-bg">
+  <div id="react-dashboard" class="container-fluid p-0"></div>
+  <script>
+    function init(){
+      var api = window.DashboardComponents;
+      if (api && typeof api.DashboardWidget === 'function') {
+        api.DashboardWidget({ containerId: 'react-dashboard' });
+      } else {
+        setTimeout(init, 50);
+      }
+    }
+    init();
+    document.addEventListener('click', function(e){
+      var a = e.target && e.target.closest ? e.target.closest('a') : null;
+      if (a && a.getAttribute){ e.preventDefault(); e.stopPropagation(); }
+    }, true);
+    document.addEventListener('submit', function(e){ e.preventDefault(); e.stopPropagation(); }, true);
+  </script>
+</body>
+</html>

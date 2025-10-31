@@ -1,75 +1,92 @@
 import React, { useState } from 'react';
 import { checkPassword } from '../services/user';
+import { Link } from 'react-router-dom';
 import '../assets/styles/login.css';
 
 const LoginFormName = ({ onPasswordCorrect }) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [passwordShown, setPasswordShown] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [errors, setErrors] = useState({});
+    const [loading, setLoading] = useState(false);
 
-  const togglePasswordVisibility = () => {
-    setPasswordShown(!passwordShown);
-  };
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        setErrors({});
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
+        let formErrors = {};
+        if (!email) formErrors.email = "L'email est obligatoire.";
+        if (!password) formErrors.password = "Le mot de passe est obligatoire.";
 
-    const isPasswordCorrect = await checkPassword(email, password);
-    setLoading(false);
+        if (Object.keys(formErrors).length > 0) {
+            setErrors(formErrors);
+            setLoading(false);
+            return;
+        }
 
-    if (isPasswordCorrect) {
-      // Sauvegarder les identifiants temporairement
-      localStorage.setItem('loginCredentials', JSON.stringify({ email, password }));
-      // Passer à l'étape suivante
-      onPasswordCorrect();
-    } else {
-      setError('Email ou mot de passe incorrect.');
-    }
-  };
+        try {
+            const isPasswordCorrect = await checkPassword(email, password);
 
-  return (
-    <div className="login-container">
-      <form className="login-form" onSubmit={handleSubmit}>
-        <div className="input-group">
-          <label htmlFor="email">Email</label>
-          <input type="email" id="email" name="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+            if (isPasswordCorrect) {
+                // === LA LOGIQUE MANQUANTE EST ICI ===
+                // On stocke les identifiants pour que l'étape 2 puisse les utiliser.
+                localStorage.setItem('loginCredentials', JSON.stringify({ email, password }));
+                
+                // On passe à l'étape suivante
+                onPasswordCorrect();
+            } else {
+                setErrors({ global: 'Email ou mot de passe incorrect.' });
+            }
+        } catch (error) {
+            console.error("Erreur lors de la vérification du mot de passe:", error);
+            setErrors({ global: 'Une erreur est survenue. Veuillez réessayer.' });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className="login-container">
+            <h2 className="text-center mb-4">Connexion</h2>
+            <form onSubmit={handleSubmit}>
+                {errors.global && <div className="error-message">{errors.global}</div>}
+                <div className="form-group">
+                    <label htmlFor="email">Email</label>
+                    <input
+                        type="email"
+                        id="email"
+                        className={`form-control ${errors.email ? 'is-invalid' : ''}`}
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        disabled={loading}
+                    />
+                    {errors.email && <div className="invalid-feedback">{errors.email}</div>}
+                </div>
+                <div className="form-group">
+                    <label htmlFor="password">Mot de passe</label>
+                    <input
+                        type="password"
+                        id="password"
+                        className={`form-control ${errors.password ? 'is-invalid' : ''}`}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        disabled={loading}
+                    />
+                    {errors.password && <div className="invalid-feedback">{errors.password}</div>}
+                </div>
+                <button type="submit" className="btn btn-primary w-100" disabled={loading}>
+                    {loading ? 'Vérification...' : 'Suivant'}
+                </button>
+                <div className="form-group text-end">
+                    <Link to="/forgot-password" style={{ fontSize: '0.9em' }}>Mot de passe oublié ?</Link>
+                </div>
+                <div className="text-center mt-3">
+                    <span className="text-muted">Pas de compte ? </span>
+                    <Link to="/signup">S'inscrire</Link>
+                </div>
+            </form>
         </div>
-        <div className="input-group">
-          <label htmlFor="password">Password</label>
-          <div className="password-wrapper">
-            <input type={passwordShown ? 'text' : 'password'} id="password" name="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-            <i className={`fa ${passwordShown ? 'fa-eye-slash' : 'fa-eye'} togglePassword`} onClick={togglePasswordVisibility}></i>
-          </div>
-        </div>
-        {error && (
-          <div className="error-message" style={{ display: 'block', textAlign: 'center', marginBottom: '1rem' }}>{error}</div>
-        )}
-        <button className="login-btn" type="submit" disabled={loading}>{loading ? 'Vérification...' : 'Continuer'}</button>
-        <div className="form-links">
-          <div className="signup-link">
-            <a href="/signup">Nouveau ? Créer un compte</a>
-          </div>
-          <div className="forgot-password-link">
-            <a href="#">Mot de passe oublié ?</a>
-          </div>
-        </div>
-        <div className="continue-with-container">
-          <hr />
-          <span>Ou continuer avec</span>
-          <hr />
-        </div>
-        <div className="social-login">
-          <a href="https://www.google.com" target="_blank" rel="noopener noreferrer">
-            <img src="/assets/images/googleLogo.svg" alt="Google" />
-          </a>
-        </div>
-      </form>
-    </div>
-  );
+    );
 };
 
 export default LoginFormName;

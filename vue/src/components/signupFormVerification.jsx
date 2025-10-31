@@ -13,6 +13,8 @@ function SignupFormVerification({ onPrevious, onNext }) {
     const [error, setError] = useState("");
     const [compteRebours, setCompteRebours] = useState(() => {
         const stored = localStorage.getItem('code_verification');
+        console.log('[SignupFormVerification] initial localStorage code_verification:', stored);
+        console.log('[SignupFormVerification] User from service:', User);
         if (!stored) return "10:00";
         const { expiresAt } = JSON.parse(stored);
         const timeLeft = expiresAt - Date.now();
@@ -27,6 +29,7 @@ function SignupFormVerification({ onPrevious, onNext }) {
 
     useEffect(() => {
         const stored = localStorage.getItem('code_verification');
+        console.log('[SignupFormVerification] useEffect mount - User.email:', User.email, 'stored code:', stored);
         if (User.email && stored) {
             const { expiresAt } = JSON.parse(stored);
             if (Date.now() < expiresAt) {
@@ -46,7 +49,9 @@ function SignupFormVerification({ onPrevious, onNext }) {
         setIsLoading(true); // 🔹 active le loader
 
         try {
+            console.log('[SignupFormVerification] Renvoyer email pour:', User.email);
             const emailSent = await envoyerEmail({ email: User.email });
+            console.log('[SignupFormVerification] envoyerEmail returned:', emailSent);
             if (emailSent) startVerificationCodeTimer(setCompteRebours, setIsTimerFinished);
         } catch (err) {
             console.error(err);
@@ -73,6 +78,7 @@ function SignupFormVerification({ onPrevious, onNext }) {
     };
 
     const handleNext = () => {
+        console.log('[SignupFormVerification] Validation du code - saisi:', code.join(''));
         const validationErrors = validateVerificationCode(code);
         if (Object.keys(validationErrors).length === 0) {
             onNext(); // ✅ code correct

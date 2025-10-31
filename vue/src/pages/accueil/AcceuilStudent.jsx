@@ -6,6 +6,7 @@ import MenuSection from './components/Section/MenuSection.jsx';
 import Footer from './components/Layout/Footer.jsx';
 import Dashboard from './components/Dashboard/Dashboard.jsx';
 import { getRestaurantById } from './services/resataurant.js';
+import { addToCart } from '../../services/Menu.js';
 import { getAuthInfo } from '../../services/user.js';
 
 function AcceuilStudent() {
@@ -15,6 +16,7 @@ function AcceuilStudent() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
   const [showDashboard, setShowDashboard] = useState(false);
+  const [initialDashboardPage, setInitialDashboardPage] = useState('dashboard');
 
   useEffect(() => {
     async function fetchRestaurant() {
@@ -53,14 +55,27 @@ function AcceuilStudent() {
   };
 
   const handleShowDashboard = () => {
-    if (isAuthenticated) setShowDashboard(true);
-    else alert('Veuillez vous connecter pour accéder au tableau de bord');
+    if (isAuthenticated) {
+      setInitialDashboardPage('dashboard');
+      setShowDashboard(true);
+    } else {
+      alert('Veuillez vous connecter pour accéder au tableau de bord');
+    }
   };
 
   const handleBackToHome = () => setShowDashboard(false);
 
+  const handleAddToCartAndShowPanier = (item) => {
+    addToCart(item);
+    setInitialDashboardPage('panier');
+    setShowDashboard(true);
+  };
+
   if (loading) return <div style={{ padding: 20, color: '#fff' }}>Chargement...</div>;
   if (error) return <div style={{ padding: 20, color: 'tomato' }}>{error}</div>;
+
+  const handleRequestLogin = () => window.location.href = '/login';
+
 
   return (
     <div className="home">
@@ -75,11 +90,15 @@ function AcceuilStudent() {
       />
 
       {showDashboard ? (
-        <Dashboard user={user} onClose={handleBackToHome} />
+        <Dashboard user={user} onClose={handleBackToHome} initialPage={initialDashboardPage} />
       ) : (
         <>
           <HeroCarousel />
-          <MenuSection isAuthenticated={isAuthenticated} onRequestLogin={() => setShowDashboard(false)} onShowMenu={() => setShowDashboard(true)} />
+          <MenuSection 
+            isAuthenticated={isAuthenticated} 
+            onRequestLogin={handleRequestLogin} 
+            onAddToCartAndShowPanier={handleAddToCartAndShowPanier} 
+          />
           <Footer />
         </>
       )}

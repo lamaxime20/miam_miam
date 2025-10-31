@@ -8,6 +8,7 @@ import Complaints from './views/Complaints';
 import Stats from './views/Stats';
 import Employees from './views/Employees';
 import { getEmployerDashboardKpis } from '../../services/employe';
+import { logout } from '../../services/user';
 import './employer.css';
 
 function DashboardView() {
@@ -107,12 +108,17 @@ export default function Employer() {
   }, [activeItem]);
 
   const toggleSidebar = useCallback(() => setIsOpen((v) => !v), []);
-  const handleNavigate = useCallback((route) => {
+  const handleNavigate = useCallback(async (route) => {
     if (route === '/' || route === '/home') {
       navigate('/');
       return;
     }
-    setActiveItem(route);
+    if (route === 'logout') {
+      await logout();
+      navigate('/');
+    } else {
+      setActiveItem(route);
+    }
   }, [navigate]);
 
   const renderView = () => {

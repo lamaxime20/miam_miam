@@ -73,14 +73,49 @@ export async function getImageBase64(id) {
         if (!response.ok) throw new Error(`Fichier introuvable : ${response.status}`);
 
         const data = await response.json();
+        console.log("data:", data);
 
-        // Vérifier que contenu_base64 existe
-        if (!data.contenu_base64) return "/placeholder.svg";
+        if(!data.url) return "/placeholder.svg";
 
-        return `data:image/${data.extension || "jpg"};base64,${data.contenu_base64}`;
+        return data.url;
     } catch (error) {
         console.error("Erreur récupération image :", error);
         return "/placeholder.svg"; // fallback
+    }
+}
+
+// Nouvelle API: récupère tous les menus de tous les restaurants avec promotions appliquées
+export async function getAllMenusWithPromotions() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/menus/daily`);
+        if (!response.ok) throw new Error(`Erreur HTTP : ${response.status}`);
+        const data = await response.json();
+
+        // Résolution des images (base64) si image_id fourni, sinon utiliser l'URL image si présente
+        const menus = await Promise.all((data || []).map(async (m) => {
+            console.log(m.image);
+            let imageUrl = m.image;
+            return {
+                id: m.id,
+                name: m.name,
+                description: m.description,
+                // prix final calculé côté backend si promo active
+                price: m.price,
+                // pour affichage prix barré si promo active
+                priceOriginal: m.priceOriginal ?? null,
+                discountPercent: m.discountPercent ?? 0,
+                category: m.category,
+                image: imageUrl,
+                // normalisation pour la recherche/affichage
+                nomResto: m.nom_restaurant || m.nomResto || '',
+                rating: m.rating ?? 0,
+                popular: m.popular ?? false,
+            };
+        }));
+        return menus;
+    } catch (e) {
+        console.error('Erreur getAllMenusWithPromotions:', e);
+        return [];
     }
 }
 
@@ -502,6 +537,26 @@ export function filterAndSearchMenus(menus, selectedCategory, searchQuery) {
 }
 
 /**
+ * Génère des suggestions de recherche à partir des menus et d'une requête donnée
+ */
+export function getSearchSuggestions(menus, query, limit = 8) {
+    if (!menus || !Array.isArray(menus)) return [];
+    if (!query || query.trim() === '') return [];
+    const q = query.toLowerCase().trim();
+
+    const set = new Set();
+
+    menus.forEach((m) => {
+        if (m.name && m.name.toLowerCase().includes(q)) set.add(m.name);
+        if (m.nomResto && m.nomResto.toLowerCase().includes(q)) set.add(m.nomResto);
+        if (m.category && m.category.toLowerCase().includes(q)) set.add(m.category);
+        if (m.description && m.description.toLowerCase().includes(q)) set.add(m.description.slice(0, 50) + '...');
+    });
+
+    return Array.from(set).slice(0, limit);
+}
+
+/**
  * Trie les menus selon différents critères
  */
 export function sortMenus(menus, sortBy = 'popularity') {
@@ -537,42 +592,4 @@ export function sortMenus(menus, sortBy = 'popularity') {
         default:
             return sortedMenus;
     }
-}
-
-/**
- * Obtient les suggestions de recherche basées sur les menus
- */
-export function getSearchSuggestions(menus, query, maxSuggestions = 5) {
-    if (!menus || !Array.isArray(menus) || !query || query.trim() === '') return [];
-    
-    const suggestions = new Set();
-    const searchQuery = query.toLowerCase().trim();
-    
-    menus.forEach(menu => {
-        // Suggestions basées sur le nom
-        if (menu.name && menu.name.toLowerCase().includes(searchQuery)) {
-            suggestions.add(menu.name);
-        }
-        
-        // Suggestions basées sur la catégorie
-        if (menu.category) {
-            const categoryLabels = {
-                'entree': 'Entrées',
-                'plat': 'Plats',
-                'dessert': 'Desserts',
-                'boisson': 'Boissons'
-            };
-            const categoryLabel = categoryLabels[menu.category];
-            if (categoryLabel && categoryLabel.toLowerCase().includes(searchQuery)) {
-                suggestions.add(categoryLabel);
-            }
-        }
-        
-        // Suggestions basées sur le restaurant
-        if (menu.nomResto && menu.nomResto.toLowerCase().includes(searchQuery)) {
-            suggestions.add(menu.nomResto);
-        }
-    });
-    
-    return Array.from(suggestions).slice(0, maxSuggestions);
 }

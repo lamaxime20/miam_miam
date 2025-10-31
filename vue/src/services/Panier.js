@@ -1,86 +1,129 @@
 import { useState, useEffect, useCallback } from "react";
 import { getCartFromStorage, removeFromCart } from "./Menu";
-import { AvoirRestaurantById } from "./restaurant";
 import { recupererToken, getAuthInfo, getUserByEmail } from "./user";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/";
 
-/**
- * Récupère les articles du panier depuis le localStorage et les regroupe par restaurant.
- * Le format de retour est adapté pour le composant ViewCommande.
- * @returns {Promise<Array<Object>>} Une promesse qui résout un tableau d'objets, chaque objet contenant les informations du restaurant et la liste des menus associés.
- */
+function computeDiscounted(price, percent) {
+    if (!percent || percent <= 0) return price;
+    const discounted = price * (1 - percent / 100);
+    return Math.round(discounted * 100) / 100;
+}
+
+async function fetchPromotionMapByMenuId() {
+    try {
+        const res = await fetch(`${API_BASE_URL}api/promotions/actives`);
+        if (!res.ok) return {};
+        const promos = await res.json();
+        const map = {};
+        if (!Array.isArray(promos)) return map;
+        // For each promo, fetch menus concerned
+        await Promise.all(promos.map(async (p) => {
+            const pid = p.id_promo || p.id || p.idPromo;
+            const percent = parseFloat(p.pourcentage_reduction || p.pourcentage || p.percent || 0);
+            if (!pid || !percent) return;
+            try {
+                const r = await fetch(`${API_BASE_URL}api/promotions/${pid}/menus`);
+                if (r.ok) {
+                    const menus = await r.json();
+                    const list = Array.isArray(menus) ? menus : (menus?.data || []);
+                    list.forEach((m) => {
+                        const mid = m.id_menu || m.id || m.menu_id;
+                        if (!mid) return;
+                        // If multiple promos, keep the best (max percent)
+                        map[mid] = Math.max(map[mid] || 0, percent);
+                    });
+                }
+            } catch (e) {}
+        }));
+        return map;
+    } catch (e) {
+        return {};
+    }
+}
+
 export async function getCartItemsGroupedByRestaurant() {
     const cartData = getCartFromStorage();
     const itemsArray = Object.values(cartData);
     const grouped = {};
 
-    for (const item of itemsArray) {
-        const restaurantId = item.idresto;
+    // Fetch active promotions mapping menuId -> percent
+    const promoMap = await fetchPromotionMapByMenuId();
 
+    for (const item of itemsArray) {
+        let restaurantId = item.idresto || item.restaurant_hote || null;
+        let restaurantName = item.nomResto || null;
+
+        if (!restaurantId || !restaurantName) {
+            try {
+                const resp = await fetch(`${API_BASE_URL}api/menu/${item.id}/restaurant`);
+                const result = await resp.json();
+                if (result && result.success && result.data) {
+                    restaurantId = result.data.id_restaurant;
+                    restaurantName = result.data.nom_restaurant;
+                }
+            } catch (e) {}
+        }
         if (!restaurantId) continue;
 
         if (!grouped[restaurantId]) {
-            try {
-                const restaurantInfo = await AvoirRestaurantById(restaurantId);
-                grouped[restaurantId] = {
-                    restaurant: {
-                        id: restaurantId,
-                        nom: restaurantInfo.nom_restaurant,
-                        localisation: restaurantInfo.localisation,
-                    },
-                    menus: [],
-                };
-            } catch (error) {
-                console.error(`Erreur lors de la récupération des informations pour le restaurant ${restaurantId}:`, error);
-                // Utiliser un restaurant par défaut en cas d'erreur
-                grouped[restaurantId] = {
-                    restaurant: { id: restaurantId, nom: item.nomResto || 'Restaurant inconnu', localisation: 'Localisation inconnue' },
-                    menus: [],
-                };
-            }
+            grouped[restaurantId] = {
+                restaurant: {
+                    id: restaurantId,
+                    nom: restaurantName || "Restaurant",
+                },
+                items: [],
+                totals: { real: 0, promo: 0 },
+            };
         }
 
-        // Adapter l'objet menu au format attendu par ViewCommande
-        grouped[restaurantId].menus.push({
-            id_menu: item.id,
-            nom_menu: item.name,
-            description_menu: item.description,
-            prix_menu: item.price,
-            image_menu: item.image.startsWith('data:image') ? item.image.split(',')[1] : null, // Extraire la partie base64
-            quantity: item.quantity,
-        });
+        const unit = item.price ?? item.prix_menu ?? 0;
+        const percent = promoMap[item.id] || promoMap[item.id_menu] || 0;
+        const unitPromo = computeDiscounted(unit, percent);
+        const quantity = item.quantity || 1;
+
+        const withResto = {
+            ...item,
+            nomResto: restaurantName || item.nomResto,
+            priceOriginal: unit,
+            promoPercent: percent,
+            pricePromo: unitPromo,
+        };
+        grouped[restaurantId].items.push(withResto);
+        grouped[restaurantId].totals.real += unit * quantity;
+        grouped[restaurantId].totals.promo += unitPromo * quantity;
     }
 
-    return Object.values(grouped);
+    // Round totals to 2 decimals
+    return Object.values(grouped).map(g => ({
+        ...g,
+        totals: {
+            real: Math.round(g.totals.real * 100) / 100,
+            promo: Math.round(g.totals.promo * 100) / 100,
+        }
+    }));
 }
 
-/**
- * Hook personnalisé pour charger et fournir les menus regroupés par restaurant.
- */
 export function useMenusGroupedByRestaurant() {
     const [groupedMenus, setGroupedMenus] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        getCartItemsGroupedByRestaurant()
+    const reload = useCallback(() => {
+        setLoading(true);
+        return getCartItemsGroupedByRestaurant()
             .then(data => {
                 setGroupedMenus(data);
-                setLoading(false);
             })
-            .catch(error => {
-                console.error("Erreur dans useMenusGroupedByRestaurant:", error);
-                setLoading(false);
-            });
+            .finally(() => setLoading(false));
     }, []);
 
-    return { groupedMenus, loading };
+    useEffect(() => {
+        reload();
+    }, [reload]);
+
+    return { groupedMenus, loading, reload };
 }
 
-/**
- * Hook personnalisé pour gérer le processus de commande.
- * @param {function} onCommandeSuccess - Callback à exécuter après une commande réussie.
- */
 export function useCommande(onCommandeSuccess) {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [menusToOrder, setMenusToOrder] = useState([]);
@@ -93,8 +136,8 @@ export function useCommande(onCommandeSuccess) {
     const openModal = useCallback((menus) => {
         setMenusToOrder(menus);
         setIsModalOpen(true);
-        setError(null); // Réinitialiser les erreurs à l'ouverture
-        setLocalisationEstimee(''); // Réinitialiser le champ
+        setError(null);
+        setLocalisationEstimee('');
     }, []);
 
     const closeModal = useCallback(() => {
@@ -103,54 +146,37 @@ export function useCommande(onCommandeSuccess) {
 
     const handleSubmit = useCallback(async () => {
         setError(null);
-
-        // Validation simple côté client
         if (typeLocalisation === 'estimation' && !localisationEstimee.trim()) {
             setError("Veuillez indiquer votre localisation estimée.");
             return;
         }
-
         setIsSubmitting(true);
-
         try {
             const token = recupererToken();
-            if (!token) {
-                throw new Error("Vous devez être connecté pour passer une commande.");
-            }
+            if (!token) throw new Error("Vous devez être connecté pour passer une commande.");
 
-            const acheteurId = getAuthInfo();
-            if (!acheteurId) {
-                throw new Error("Impossible de récupérer votre identification. Veuillez vous reconnecter.");
-            }
+            const authInfo = getAuthInfo();
+            if (!authInfo) throw new Error("Impossible de récupérer votre identification. Veuillez vous reconnecter.");
 
             const date = new Date();
             const [heure, minute] = heureLivraison.split(':');
             date.setHours(heure, minute, 0, 0);
-            // Formatte la date au format YYYY-MM-DD HH:MM:SS
             const date_heure_livraison = date.toISOString().slice(0, 19).replace('T', ' ');
 
-            const localisation_client = typeLocalisation === 'googleMap' ? 'Yatchika' : localisationEstimee;
+            const localisation_client = typeLocalisation === 'googleMap' ? 'yatchika' : localisationEstimee;
 
             const commandeDetails = {
                 date_heure_livraison,
                 localisation_client,
-                type_localisation: typeLocalisation, // Correction de la faute de frappe
-                acheteur: acheteurId,
+                type_localisation: typeLocalisation,
+                acheteur: authInfo,
                 menus: menusToOrder,
             };
 
             const resultat = await passerCommande(commandeDetails);
-
-            // Si la commande réussit, on vide le panier des articles commandés
-            menusToOrder.forEach(menu => {
-                removeFromCart(menu.id_menu);
-            });
-
+            menusToOrder.forEach(menu => removeFromCart(menu.id_menu));
             closeModal();
-            if (onCommandeSuccess) {
-                onCommandeSuccess(resultat); // Appeler le callback de succès
-            }
-
+            if (onCommandeSuccess) onCommandeSuccess(resultat);
         } catch (err) {
             setError(err.message || "Une erreur inattendue est survenue.");
         } finally {
@@ -158,15 +184,8 @@ export function useCommande(onCommandeSuccess) {
         }
     }, [heureLivraison, typeLocalisation, localisationEstimee, menusToOrder, onCommandeSuccess, closeModal]);
 
-    return {
-        isModalOpen, openModal, closeModal, handleSubmit,
-        heureLivraison, setHeureLivraison,
-        typeLocalisation, setTypeLocalisation,
-        localisationEstimee, setLocalisationEstimee,
-        isSubmitting, error
-    };
+    return { isModalOpen, openModal, closeModal, handleSubmit, heureLivraison, setHeureLivraison, typeLocalisation, setTypeLocalisation, localisationEstimee, setLocalisationEstimee, isSubmitting, error };
 }
-
 /**
  * Envoie une nouvelle commande à l'API.
  * @param {Object} commandeDetails - Les détails de la commande.
@@ -208,7 +227,7 @@ export async function passerCommande(commandeDetails) {
         menus: menus.map(menu => ({
             id_menu: menu.id_menu,
             quantite: menu.quantity,
-            prix_unitaire: menu.prix_menu
+            prix_unitaire: menu.pricePromo || menu.prix_menu
         }))
     };
 

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import { useNavigate } from "react-router-dom"
 import "./Dashboard.css"
 import {
   RiDashboardLine,
@@ -26,13 +27,15 @@ import {
   getPromotionsActives, 
   getNotificationsClient,
   marquerNotificationLue,
-  getTopClients
+  getTopClients,
 } from "../../../../services/Menu.js"
+import { logout } from "../../../../services/user.js"
 
-export default function Dashboard({ user }) {
+export default function Dashboard({ user, initialPage = 'dashboard' }) {
   const [isOpen, setIsOpen] = useState(true)
-  const [activePage, setActivePage] = useState("dashboard")
+  const [activePage, setActivePage] = useState(initialPage)
   const [cartCount] = useState(3)
+  const navigate = useNavigate()
   
   // États pour les données du backend
   const [dashboardStats, setDashboardStats] = useState({
@@ -99,6 +102,11 @@ export default function Dashboard({ user }) {
     loadDashboardData()
   }, [clientId])
 
+  const handleLogout = async () => {
+    await logout();
+    navigate('/');
+  }
+
   const menuItems = [
     { icon: RiDashboardLine, label: "Tableau de bord", key: "dashboard" },
     { icon: RiShoppingCart2Line, label: "Menu", key: "menu" },
@@ -108,6 +116,7 @@ export default function Dashboard({ user }) {
     { icon: RiFileList3Line, label: "Réclamations", key: "reclamations" },
     { icon: RiGiftLine, label: "Mini-jeux", key: "miniJeux" },
     { icon: RiSettings4Line, label: "Paramètres", key: "parametres" },
+    // { icon: RiStarFill, label: "Top Clients", key: "topClients" },
   ]
 
   // Fonction pour formater le prix
@@ -414,7 +423,7 @@ export default function Dashboard({ user }) {
       case "menu":
         return <Menu />
       case "panier":
-        return <Panier onCheckout={() => setActivePage("viewCommande")} />
+        return <Panier onCheckout={() => setActivePage("viewCommande")} onShowMenu={() => setActivePage("menu")} />
       case "commandes":
         return <MesCommandes />
       case "fidelite":
@@ -477,7 +486,7 @@ export default function Dashboard({ user }) {
         ))}
 
         <div className="sidebar-footer">
-          <button className="logout-btn">
+          <button className="logout-btn" onClick={handleLogout}>
             <span>🚪</span>
             {isOpen && <span>Déconnexion</span>}
           </button>

@@ -1,0 +1,581 @@
+:root {
+    --primary-color: #cfbd97;
+    --secondary-color: #000000;
+    --error-color: #dc3545;
+    --input-border: #ccc;
+    --input-focus-shadow: rgba(207, 189, 151, 0.5);
+    --button-hover-shadow: rgba(207, 189, 151, 0.3);
+    --warning-color: #c0392b;
+    --shadow: rgba(207, 189, 151, 0.15);
+}
+
+/* === Page principale === */
+.createRestaurant-page {
+    min-height: 100vh;
+    background-color: var(--background-color);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding-top: 3rem;
+    gap: 2rem;
+    font-family: 'Poppins', sans-serif;
+    position: relative;
+}
+
+/* === Lien "Continuer comme client" === */
+.createRestaurant-link {
+    text-decoration: none;
+    color: var(--secondary-color);
+    font-weight: 600;
+    background-color: #fff;
+    padding: 0.7rem 1.2rem;
+    border-radius: 10px;
+    border: 1px solid var(--primary-color);
+    box-shadow: 0 4px 12px var(--shadow);
+    transition: all 0.25s ease;
+    font-size: 0.95rem;
+}
+
+.createRestaurant-link:hover {
+    background-color: var(--primary-color);
+    color: #fff;
+    transform: translateY(-3px);
+    box-shadow: 0 6px 18px var(--shadow);
+}
+/* ==
+/* ==== Create Restaurant For Name ====
+/* ==
+
+/* === Conteneur principal === */
+.createRestaurantFormName-container {
+    background-color: #fff;
+    color: var(--secondary-color);
+    padding: 2rem;
+    border-radius: 15px;
+    box-shadow: 0 12px 30px rgba(207, 189, 151, 0.12);
+    max-width: 520px;
+    width: 90%;
+    margin: 5rem auto;
+    text-align: center;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.createRestaurantFormName-container:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 34px rgba(207, 189, 151, 0.2);
+}
+
+/* === Titre === */
+.createRestaurantFormName-title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 2rem;
+    color: var(--secondary-color);
+}
+
+/* === Groupes de champs === */
+.createRestaurantFormName-field {
+    margin-bottom: 1.25rem;
+    text-align: left;
+}
+
+.createRestaurantFormName-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: var(--secondary-color);
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+/* === Inputs === */
+.createRestaurantFormName-input {
+    width: 100%;
+    padding: 0.8rem 1rem;
+    border: 1px solid var(--input-border);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--secondary-color);
+    font-size: 1rem;
+    box-sizing: border-box;
+    transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.createRestaurantFormName-input::placeholder {
+    color: #a9a9a9;
+}
+
+.createRestaurantFormName-input:focus,
+.createRestaurantFormName-input:focus-visible {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 8px var(--input-focus-shadow);
+}
+
+/* === Groupe radio === */
+.createRestaurantFormName-radio-group {
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+    margin-top: 0.5rem;
+}
+
+.createRestaurantFormName-radio-option {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    cursor: pointer;
+    font-weight: 500;
+    color: #444;
+    transition: color 0.25s ease, transform 0.2s ease;
+}
+
+.createRestaurantFormName-radio-option input {
+    margin-right: 0.4rem;
+    accent-color: var(--primary-color);
+}
+
+.createRestaurantFormName-radio-option.active {
+    color: var(--primary-color);
+    transform: scale(1.02);
+}
+
+/* === Bouton Next === */
+.createRestaurantFormName-nextButton {
+    width: 100%;
+    background-color: var(--primary-color);
+    color: var(--secondary-color);
+    border: none;
+    padding: 0.9rem;
+    font-size: 1.05rem;
+    font-weight: 700;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    margin-top: 1.5rem;
+    box-shadow: 0 6px 14px rgba(207, 189, 151, 0.08);
+}
+
+.createRestaurantFormName-nextButton:hover {
+    background-color: #bba984;
+    transform: translateY(-3px);
+    box-shadow: 0 10px 20px rgba(207, 189, 151, 0.14);
+}
+
+/* === Validation (check vert sur “estimation”) === */
+.createRestaurantFormName-radio-option i.fa-check {
+    font-size: 0.9rem;
+    color: green;
+}
+
+/* === Message d'erreur générique (si besoin) === */
+.createRestaurantFormName-error-message {
+    color: var(--error-color);
+    font-size: 0.875rem;
+    margin-top: 0.4rem;
+    min-height: 1em;
+}
+
+/* ==
+/* ==== Create Restaurant For Logo ====
+/* == */
+.createRestaurantFormLogo-container {
+    background-color: #fff;
+    border-radius: 15px;
+    box-shadow: 0 8px 24px var(--shadow);
+    padding: 2rem;
+    text-align: center;
+    max-width: 520px;
+    width: 90%;
+    margin: 2rem auto;
+    transition: all 0.3s ease;
+}
+
+.createRestaurantFormLogo-title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--secondary-color);
+    margin-bottom: 1.5rem;
+}
+
+.createRestaurantFormLogo-dropzone {
+    border: 2px dashed var(--primary-color);
+    border-radius: 12px;
+    padding: 2rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    background-color: #faf9f7;
+}
+
+.createRestaurantFormLogo-dropzone:hover {
+    background-color: #f4f2ec;
+    transform: scale(1.01);
+}
+
+.createRestaurantFormLogo-dropzone.has-image {
+    border-style: solid;
+}
+
+.createRestaurantFormLogo-text {
+    color: #555;
+    font-weight: 500;
+}
+
+.createRestaurantFormLogo-preview {
+    width: 160px;
+    height: 160px;
+    object-fit: cover;
+    border-radius: 12px;
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.1);
+}
+
+/* Actions (change / remove) */
+.createRestaurantFormLogo-actions {
+    margin-top: 1rem;
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+}
+
+.createRestaurantFormLogo-button {
+    padding: 0.6rem 1.2rem;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.25s ease;
+}
+
+.createRestaurantFormLogo-button.change {
+    background-color: var(--primary-color);
+    color: var(--secondary-color);
+}
+
+.createRestaurantFormLogo-button.change:hover {
+    background-color: #bfa870;
+}
+
+.createRestaurantFormLogo-button.remove {
+    background-color: var(--error-color);
+    color: #fff;
+}
+
+.createRestaurantFormLogo-button.remove:hover {
+    background-color: #b02a37;
+}
+
+/* Messages */
+.createRestaurantFormLogo-error-message {
+    color: var(--error-color);
+    margin-top: 1rem;
+    font-weight: 500;
+}
+
+.createRestaurantFormLogo-warning-message {
+    color: var(--warning-color);
+    margin-top: 1rem;
+    font-weight: 500;
+}
+
+/* Navigation boutons */
+.createRestaurantFormLogo-nav {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 2rem;
+}
+
+.createRestaurantFormLogo-navButton {
+    padding: 0.8rem 1.4rem;
+    border: none;
+    border-radius: 8px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.25s ease;
+}
+
+.createRestaurantFormLogo-navButton.previous {
+    background-color: #eee;
+    color: #333;
+}
+
+.createRestaurantFormLogo-navButton.previous:hover {
+    background-color: #ddd;
+}
+
+.createRestaurantFormLogo-navButton.next {
+    background-color: var(--primary-color);
+    color: var(--secondary-color);
+}
+
+.createRestaurantFormLogo-navButton.next:hover {
+    background-color: #bfa870;
+}
+
+/* === Bouton Skip === */
+.createRestaurantFormLogo-navButton.skip {
+    background: transparent;
+    color: var(--primary-color, #0A84FF); /* même bleu que ton thème principal */
+    border: none;
+    text-decoration: underline;
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 1rem;
+    transition: color 0.3s ease, transform 0.2s ease;
+    padding: 0.5rem 1rem;
+}
+
+/* Effet au survol */
+.createRestaurantFormLogo-navButton.skip:hover {
+    color: var(--primary-hover, #0066cc);
+    transform: scale(1.05);
+    text-decoration-thickness: 2px;
+}
+
+/* Effet quand le bouton est désactivé (ex : loading) */
+.createRestaurantFormLogo-navButton.skip:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    text-decoration: none;
+    transform: none;
+}
+
+/* == 
+/* ==== Create Restaurant For Policy ====
+/* === */
+.createRestaurantFormPolicy-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 2rem;
+    background-color: #fff;
+    border-radius: 15px;
+    box-shadow: 0 12px 30px rgba(207, 189, 151, 0.12);
+    color: var(--secondary-color);
+    width: 100%;
+    max-width: 520px;
+    margin: 3rem auto;
+    text-align: center;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.createRestaurantFormPolicy-container:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 34px rgba(207, 189, 151, 0.2);
+}
+
+.createRestaurantFormPolicy-title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--secondary-color);
+    margin-bottom: 1rem;
+}
+
+.createRestaurantFormPolicy-form {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    gap: 1rem;
+}
+
+.createRestaurantFormPolicy-label {
+    text-align: left;
+    color: var(--secondary-color);
+    font-weight: 600;
+    font-size: 0.95rem;
+    margin-bottom: 0.3rem;
+}
+
+.createRestaurantFormPolicy-textarea {
+    width: 100%;
+    padding: 0.8rem 1rem;
+    border: 1px solid var(--input-border);
+    border-radius: 8px;
+    background-color: #fff;
+    color: var(--secondary-color);
+    font-size: 1rem;
+    resize: vertical;
+    box-sizing: border-box;
+    transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.createRestaurantFormPolicy-textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 8px var(--input-focus-shadow);
+}
+
+.createRestaurantFormPolicy-error-message {
+    color: var(--error-color);
+    font-size: 0.9rem;
+    margin-top: 0.3rem;
+    font-weight: 500;
+}
+
+.createRestaurantFormPolicy-nav {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 1.5rem;
+}
+
+.createRestaurantFormPolicy-navButton {
+    flex: 1;
+    max-width: 48%;
+    padding: 0.8rem;
+    border: none;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.25s ease;
+}
+
+/* Bouton Previous */
+.createRestaurantFormPolicy-navButton.previous {
+    background-color: #f7f7f7;
+    color: var(--secondary-color);
+    border: 1px solid #ccc;
+}
+
+.createRestaurantFormPolicy-navButton.previous:hover {
+    background-color: #eee;
+    box-shadow: 0 4px 12px var(--shadow);
+}
+
+/* Bouton Next */
+.createRestaurantFormPolicy-navButton.next {
+    background-color: var(--primary-color);
+    color: var(--secondary-color);
+    border: none;
+    box-shadow: 0 6px 14px rgba(207, 189, 151, 0.08);
+}
+
+.createRestaurantFormPolicy-navButton.next:hover {
+    background-color: #bba984;
+    transform: translateY(-3px);
+    box-shadow: 0 10px 20px rgba(207, 189, 151, 0.14);
+}
+
+/* == Create Restaurant Form Success
+/* === */
+.createRestaurantFormSuccess-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    text-align: center;
+    background: #fff;
+    border-radius: 20px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    animation: fadeIn 0.4s ease-in-out;
+}
+
+.createRestaurantFormSuccess-iconWrapper {
+    background-color: #e8f9f0;
+    border-radius: 50%;
+    padding: 25px;
+    margin-bottom: 20px;
+}
+
+.createRestaurantFormSuccess-icon {
+    color: #22c55e; /* vert moderne */
+    width: 80px;
+    height: 80px;
+}
+
+.createRestaurantFormSuccess-title {
+    font-size: 1.8rem;
+    color: #1e293b;
+    margin-bottom: 10px;
+}
+
+.createRestaurantFormSuccess-message {
+    color: #475569;
+    font-size: 1rem;
+    margin-bottom: 30px;
+}
+
+.createRestaurantFormSuccess-dashboardButton {
+    background-color: #22c55e;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 12px 24px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s ease-in-out;
+}
+
+.createRestaurantFormSuccess-dashboardButton:hover {
+    background-color: #16a34a;
+}
+
+/* animation douce */
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+/* === Progression Stepper (minimal) === */
+.progressionRestaurant {
+    width: 100%;
+    max-width: 640px;
+    margin: 0 auto 1.5rem auto;
+}
+
+.progressionRestaurant-track {
+    position: relative;
+    height: 6px;
+    background: #eee;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.progressionRestaurant-bar {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    background: var(--primary-color);
+    width: 0%;
+    transition: width 0.3s ease;
+}
+
+.progressionRestaurant-steps {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 0.5rem;
+}
+
+.progressionRestaurant-step {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.9rem;
+    border: 2px solid #ddd;
+    background: #fff;
+    color: #999;
+}
+
+.progressionRestaurant-step.completed {
+    border-color: var(--primary-color);
+    color: var(--secondary-color);
+    background: #f7f4eb;
+}
+
+.progressionRestaurant-step.active {
+    border-color: var(--primary-color);
+    color: var(--secondary-color);
+    background: #fff;
+    box-shadow: 0 0 0 4px rgba(207, 189, 151, 0.15);
+}
+
+.progressionRestaurant-index {
+    line-height: 1;
+}

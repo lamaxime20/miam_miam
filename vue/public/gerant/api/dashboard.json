@@ -1,0 +1,18 @@
+{
+  "stats": {
+    "orders_today": 247,
+    "revenue": "45900 FCFA",
+    "active_employees": 12,
+    "avg_wait": "15 min"
+  },
+  "sales": [2000,3000,3500,3300,4000,5000,4800],
+  "orders": [
+    {"id":"#CMD-2847","table":"Table 12","status":"En préparation","tag":"yellow"},
+    {"id":"#CMD-2848","table":"Table 5","status":"Prêt","tag":"green"},
+    {"id":"#CMD-2849","table":"Livraison","status":"En route","tag":"blue"}
+  ],
+  "alerts": [
+    {"type":"danger","title":"Stock faible - Ingrédient principal","text":"Tomates fraîches : 5 unités restantes"},
+    {"type":"warning","title":"Temps d'attente élevé","text":"Table 8 attend depuis 25 minutes"}
+  ]
+}

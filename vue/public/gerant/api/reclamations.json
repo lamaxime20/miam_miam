@@ -1,0 +1,14 @@
+{
+  "stats": {
+    "total": 247,
+    "pending": 42,
+    "processed": 186,
+    "rejected": 19
+  },
+  "claims": [
+    {"id":"#001","employee":"Sielenou noelle","email":"sielenou.noelle@company.com","subject":"Problème de congés non approuvés","date":"15/10/2024","status":"En attente"},
+    {"id":"#002","employee":"Mukam serge","email":"mukam.serge@company.com","subject":"Réclamation salariale","date":"14/10/2024","status":"Traité"},
+    {"id":"#003","employee":"Tim halan","email":"tim.halan@company.com","subject":"Harcèlement au travail","date":"13/10/2024","status":"En attente"},
+    {"id":"#004","employee":"Akeri rosni","email":"Akeri.rosni@company.com","subject":"Conditions de travail","date":"12/10/2024","status":"Rejetée"}
+  ]
+}

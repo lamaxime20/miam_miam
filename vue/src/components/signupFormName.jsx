@@ -11,6 +11,7 @@ const SignupFormName = ({ onNext }) => {
   const [isLoading, setIsLoading] = useState(false); // 🔹 état loading
 
   const handleNext = async () => {
+    console.log('[SignupFormName] handleNext appelé', { name, email, phone, initialEmail });
     setIsLoading(true); // 🔹 active le loader
 
     let validationErrors = {};
@@ -32,6 +33,7 @@ const SignupFormName = ({ onNext }) => {
       }
 
       if (Object.keys(validationErrors).length === 0) {
+        console.log('[SignupFormName] Validation OK, passage à l’étape suivante');
         onNext();
       } else {
         setErrors(validationErrors);

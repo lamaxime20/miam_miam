@@ -1,0 +1,291 @@
+{
+  "description": "Fichier d'exemple pour tester le Dashboard sans connexion BDD",
+  "instructions": "Utiliser ces données pour simuler les réponses API pendant le développement",
+  
+  "ventes_aujourdhui": {
+    "endpoint": "/api/dashboard/ventes-aujourdhui",
+    "method": "GET",
+    "response": {
+      "total_eur": 2847.50,
+      "pourcentage_vs_hier": 12.3
+    },
+    "notes": "Le montant est en EUR, sera converti en XAF automatiquement (2847.50 EUR = 1 867 432 XAF)"
+  },
+  
+  "ventes_semaine": {
+    "endpoint": "/api/dashboard/ventes-semaine",
+    "method": "GET",
+    "response": [
+      { "jour": "Lun", "ventes_eur": 2800 },
+      { "jour": "Mar", "ventes_eur": 3200 },
+      { "jour": "Mer", "ventes_eur": 2900 },
+      { "jour": "Jeu", "ventes_eur": 4500 },
+      { "jour": "Ven", "ventes_eur": 5100 },
+      { "jour": "Sam", "ventes_eur": 4800 },
+      { "jour": "Dim", "ventes_eur": 3500 }
+    ],
+    "notes": "Chaque montant sera converti en XAF pour l'affichage"
+  },
+  
+  "stats_dashboard": {
+    "endpoint": "/api/dashboard/stats",
+    "method": "GET",
+    "response": {
+      "ventes_aujourdhui_eur": 2847.50,
+      "utilisateurs_actifs": 1234,
+      "reclamations": 23,
+      "points_fidelite": 45678
+    },
+    "notes": "Statistiques globales du dashboard"
+  },
+  
+  "utilisateurs_actifs_mois": {
+    "endpoint": "/api/dashboard/utilisateurs-actifs-mois",
+    "method": "GET",
+    "response": {
+      "total": 1247,
+      "pourcentage_vs_mois_dernier": 8.2
+    },
+    "notes": "Nombre d'utilisateurs actifs ce mois-ci avec comparaison au mois précédent"
+  },
+  
+  "utilisateurs_par_mois": {
+    "endpoint": "/api/dashboard/utilisateurs-par-mois",
+    "method": "GET",
+    "response": [
+      { "mois": "Jan", "total": 1150 },
+      { "mois": "Fév", "total": 1200 },
+      { "mois": "Mar", "total": 1180 },
+      { "mois": "Avr", "total": 1220 },
+      { "mois": "Mai", "total": 1250 },
+      { "mois": "Juin", "total": 1280 },
+      { "mois": "Juil", "total": 1300 },
+      { "mois": "Août", "total": 1270 },
+      { "mois": "Sept", "total": 1290 },
+      { "mois": "Oct", "total": 1247 },
+      { "mois": "Nov", "total": 0 },
+      { "mois": "Déc", "total": 0 }
+    ],
+    "notes": "Utilisateurs actifs par mois sur les 12 derniers mois. Moyenne calculée côté frontend.",
+    "calcul_moyenne": "Somme des totaux / nombre de mois avec données = 1247 utilisateurs/mois"
+  },
+  
+  "utilisateurs_par_semaine": {
+    "endpoint": "/api/dashboard/utilisateurs-par-semaine",
+    "method": "GET",
+    "response": [
+      { "semaine": "Sem 35", "total": 280 },
+      { "semaine": "Sem 36", "total": 295 },
+      { "semaine": "Sem 37", "total": 310 },
+      { "semaine": "Sem 38", "total": 305 },
+      { "semaine": "Sem 39", "total": 320 },
+      { "semaine": "Sem 40", "total": 315 },
+      { "semaine": "Sem 41", "total": 330 },
+      { "semaine": "Sem 42", "total": 312 }
+    ],
+    "notes": "Utilisateurs actifs par semaine sur les 8 dernières semaines. Moyenne calculée côté frontend.",
+    "calcul_moyenne": "Somme des totaux / 8 semaines = 308 utilisateurs/semaine"
+  },
+  
+  "reclamations": {
+    "endpoint": "/api/dashboard/reclamations",
+    "method": "GET",
+    "response": {
+      "total": 23,
+      "non_traitees": 5,
+      "traitees": 18
+    },
+    "notes": "Nombre total de réclamations avec distinction traitées/non traitées"
+  },
+  
+  "reclamations_par_mois": {
+    "endpoint": "/api/dashboard/reclamations-par-mois",
+    "method": "GET",
+    "response": [
+      { "mois": "Jan", "total": 18, "ouvertes": 3, "en_traitement": 5, "fermees": 10 },
+      { "mois": "Fév", "total": 22, "ouvertes": 4, "en_traitement": 6, "fermees": 12 },
+      { "mois": "Mar", "total": 20, "ouvertes": 2, "en_traitement": 7, "fermees": 11 },
+      { "mois": "Avr", "total": 25, "ouvertes": 5, "en_traitement": 8, "fermees": 12 },
+      { "mois": "Mai", "total": 19, "ouvertes": 3, "en_traitement": 6, "fermees": 10 },
+      { "mois": "Juin", "total": 21, "ouvertes": 4, "en_traitement": 5, "fermees": 12 },
+      { "mois": "Juil", "total": 23, "ouvertes": 6, "en_traitement": 7, "fermees": 10 },
+      { "mois": "Août", "total": 17, "ouvertes": 2, "en_traitement": 5, "fermees": 10 },
+      { "mois": "Sept", "total": 24, "ouvertes": 5, "en_traitement": 8, "fermees": 11 },
+      { "mois": "Oct", "total": 23, "ouvertes": 5, "en_traitement": 6, "fermees": 12 }
+    ],
+    "notes": "Réclamations par mois sur les 12 derniers mois avec détail par statut. Moyenne calculée côté frontend.",
+    "calcul_moyenne": "Somme des totaux / nombre de mois = 21 réclamations/mois",
+    "total_annee": 212
+  },
+  
+  "reclamations_par_statut": {
+    "endpoint": "/api/dashboard/reclamations-par-statut",
+    "method": "GET",
+    "response": {
+      "ouverte": 5,
+      "en_traitement": 8,
+      "fermee": 10
+    },
+    "notes": "Répartition des réclamations par statut"
+  },
+  
+  "points_fidelite": {
+    "endpoint": "/api/dashboard/points-fidelite",
+    "method": "GET",
+    "response": {
+      "total_points": 45892,
+      "points_mois_actuel": 3250
+    },
+    "notes": "Total des points de fidélité distribués et points du mois en cours"
+  },
+  
+  "points_fidelite_par_mois": {
+    "endpoint": "/api/dashboard/points-fidelite-par-mois",
+    "method": "GET",
+    "response": [
+      { "mois": "Jan", "total_points": 3850, "nombre_clients": 125 },
+      { "mois": "Fév", "total_points": 4200, "nombre_clients": 138 },
+      { "mois": "Mar", "total_points": 3920, "nombre_clients": 130 },
+      { "mois": "Avr", "total_points": 4150, "nombre_clients": 142 },
+      { "mois": "Mai", "total_points": 4380, "nombre_clients": 145 },
+      { "mois": "Juin", "total_points": 4520, "nombre_clients": 150 },
+      { "mois": "Juil", "total_points": 4680, "nombre_clients": 155 },
+      { "mois": "Août", "total_points": 3750, "nombre_clients": 120 },
+      { "mois": "Sept", "total_points": 4420, "nombre_clients": 148 },
+      { "mois": "Oct", "total_points": 3250, "nombre_clients": 110 }
+    ],
+    "notes": "Points de fidélité distribués par mois sur les 12 derniers mois. Calculé à partir des commandes validées (10% du montant).",
+    "calcul": "Points = FLOOR(montant_commande * 0.1)",
+    "calcul_moyenne": "Somme des totaux / nombre de mois = 4,112 points/mois",
+    "total_annee": 41120
+  },
+  
+  "points_fidelite_stats": {
+    "endpoint": "/api/dashboard/points-fidelite-stats",
+    "method": "GET",
+    "response": {
+      "moyenne_par_client": 367,
+      "max_points": 5420,
+      "min_points": 0,
+      "clients_avec_points": 125
+    },
+    "notes": "Statistiques des points de fidélité par client"
+  },
+  
+  "repartition_clients": {
+    "endpoint": "/api/dashboard/repartition-clients",
+    "method": "GET",
+    "response": {
+      "clients_actifs": 450,
+      "nouveaux_clients": 280,
+      "clients_fideles": 380
+    },
+    "notes": "Répartition des clients par catégorie pour le graphique circulaire",
+    "logique_categorisation": {
+      "nouveaux_clients": "Inscrits dans les 30 derniers jours",
+      "clients_fideles": "Plus de 5 commandes validées ET plus de 500 points de fidélité",
+      "clients_actifs": "Tous les autres clients avec au moins 1 commande"
+    },
+    "total": 1110,
+    "pourcentages": {
+      "actifs": "41%",
+      "nouveaux": "25%",
+      "fideles": "34%"
+    }
+  },
+  
+  "commandes_recentes": {
+    "endpoint": "/api/dashboard/commandes-recentes",
+    "method": "GET",
+    "response": [
+      {
+        "id_commande": 1234,
+        "montant_total": 29.856,
+        "statut_commande": "validée",
+        "date_commande": "2025-10-27T14:25:00",
+        "client_nom": "Marie Dubois",
+        "client_email": "marie@example.com"
+      },
+      {
+        "id_commande": 1235,
+        "montant_total": 21.511,
+        "statut_commande": "en_cours",
+        "date_commande": "2025-10-27T14:18:00",
+        "client_nom": "Pierre Martin",
+        "client_email": "pierre@example.com"
+      }
+    ],
+    "notes": "Les 10 dernières commandes triées par date. Montants en EUR (convertis en XAF côté frontend).",
+    "nombre_elements": 10,
+    "tri": "date_commande DESC"
+  },
+  
+  "reclamations_recentes": {
+    "endpoint": "/api/dashboard/reclamations-recentes",
+    "method": "GET",
+    "response": [
+      {
+        "id_reclamation": 2341,
+        "sujet_reclamation": "Commande froide",
+        "description_reclamation": "La nourriture est arrivée froide malgré le délai respecté",
+        "statut_reclamation": "ouverte",
+        "date_reclamation": "2025-10-27T12:30:00",
+        "client_nom": "Marie Dubois",
+        "id_commande": 1234
+      },
+      {
+        "id_reclamation": 2340,
+        "sujet_reclamation": "Retard livraison",
+        "description_reclamation": "Ma commande a pris 45 minutes de retard",
+        "statut_reclamation": "en_traitement",
+        "date_reclamation": "2025-10-27T08:15:00",
+        "client_nom": "Pierre Martin",
+        "id_commande": 1230
+      }
+    ],
+    "notes": "Les 10 dernières réclamations triées par date. Priorité calculée côté frontend.",
+    "nombre_elements": 10,
+    "tri": "date_reclamation DESC",
+    "statuts": ["ouverte", "en_traitement", "fermée"]
+  },
+  
+  "conversion_eur_xaf": {
+    "taux": 655.957,
+    "exemples": [
+      {
+        "eur": 10,
+        "xaf": 6560,
+        "formate": "6 560 XAF"
+      },
+      {
+        "eur": 100,
+        "xaf": 65596,
+        "formate": "65 596 XAF"
+      },
+      {
+        "eur": 1000,
+        "xaf": 655957,
+        "formate": "655 957 XAF"
+      },
+      {
+        "eur": 2847.50,
+        "xaf": 1867432,
+        "formate": "1 867 432 XAF"
+      }
+    ]
+  },
+  
+  "requetes_sql_utiles": {
+    "ventes_aujourdhui": "SELECT get_ventes_aujourdhui();",
+    "ventes_semaine": "SELECT EXTRACT(DOW FROM p.date_paiement) as jour, SUM(p.montant) as total FROM Paiement p WHERE p.date_paiement >= CURRENT_DATE - INTERVAL '7 days' AND p.statut_paiement = 'reussi' GROUP BY jour;",
+    "stats_dashboard": "SELECT * FROM get_dashboard_stats();",
+    "commandes_recentes": "SELECT c.id_commande, c.montant_total, c.statut_commande, c.date_commande FROM Commande c ORDER BY c.date_commande DESC LIMIT 10;"
+  },
+  
+  "format_affichage": {
+    "devise": "XAF (Franc CFA)",
+    "separateur_milliers": " ",
+    "decimales": 0,
+    "exemple": "1 867 432 XAF"
+  }
+}
