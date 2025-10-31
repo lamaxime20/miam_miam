@@ -67,9 +67,15 @@ export function ReportsPage() {
     setLoading(true);
     setError(null);
     try {
+      const stored = localStorage.getItem('auth_token');
+      const restaurantId = stored ? Number(JSON.parse(stored)?.restaurant) : null;
+      if (!restaurantId) {
+        throw new Error('Aucun restaurant sélectionné');
+      }
+
       const dateRange = getDateRange(period);
       const data = await fetchReportsPageData({
-        restaurantId: 1, // TODO: get from context/props
+        restaurantId,
         startDate: dateRange.start,
         endDate: dateRange.end,
         months: 10,
@@ -83,7 +89,8 @@ export function ReportsPage() {
       setKpis(data.kpis);
       setSummary(data.summary);
     } catch (err) {
-      setError(err.message);
+      // @ts-ignore
+      setError((err && err.message) ? err.message : 'Erreur inconnue');
       console.error('Erreur chargement données:', err);
     } finally {
       setLoading(false);
@@ -140,7 +147,7 @@ export function ReportsPage() {
             <div className="flex items-start justify-between">
               <div className="space-y-1">
                 <p className="text-sm text-gray-500">Revenus Totaux</p>
-                <p className="text-2xl">{kpis.total_revenue.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}</p>
+                <p className="text-2xl">{kpis.total_revenue.toLocaleString('fr-FR', { style: 'currency', currency: 'XAF' })}</p>
               </div>
               <div className="bg-green-100 p-3 rounded-lg">
                 <DollarSign className="h-6 w-6 text-green-600" />
@@ -168,7 +175,7 @@ export function ReportsPage() {
             <div className="flex items-start justify-between">
               <div className="space-y-1">
                 <p className="text-sm text-gray-500">Panier Moyen</p>
-                <p className="text-2xl">{kpis.avg_basket.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}</p>
+                <p className="text-2xl">{kpis.avg_basket.toLocaleString('fr-FR', { style: 'currency', currency: 'XAF' })}</p>
               </div>
               <div className="bg-purple-100 p-3 rounded-lg">
                 <DollarSign className="h-6 w-6 text-purple-600" />
@@ -217,7 +224,7 @@ export function ReportsPage() {
                     border: '1px solid #e5e7eb',
                     borderRadius: '8px'
                   }}
-                  formatter={(value) => [value.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' }), 'Revenus']}
+                  formatter={(value) => [Number(value).toLocaleString('fr-FR', { style: 'currency', currency: 'XAF' }), 'Revenus']}
                 />
                 <Line 
                   type="monotone" 
@@ -324,7 +331,7 @@ export function ReportsPage() {
                     <p className="text-xs text-gray-500">{product.sales.toLocaleString('fr-FR')} ventes</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm">{product.revenue.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}</p>
+                    <p className="text-sm">{product.revenue.toLocaleString('fr-FR', { style: 'currency', currency: 'XAF' })}</p>
                   </div>
                 </div>
               ))}
