@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import CountUp from '../components/common/CountUp';
 import { getMenuEditable, saveMenuEditable } from '../services/mockApi';
 import { fetchMenuData, updateFile, createFile, createMenu, updateMenu, fetchMenusDuJourIds, addMenusDuJour, removeMenusDuJour } from '../../../services/MenusEmploye';
+import { getAuthInfo } from '../../../services/user';
 
 const IconForkSpoon = (props) => (
   <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
@@ -47,7 +48,7 @@ export default function MenuUpdate() {
   const [form, setForm] = useState({ name: '', description: '', category: 'Plat', price: 0, available: true, image: '', image_id: null });
   const [isSubmitting, setIsSubmitting] = useState(false); // Pour figer l'interface
   const [dragActive, setDragActive] = useState(false);
-  const restaurantId = 1; // TODO: remplacer par l'ID du restaurant de l'employé connecté
+  const restaurantId = getAuthInfo().restaurant; // TODO: remplacer par l'ID du restaurant de l'employé connecté
 
   const defaultRows = [
     { id: 1, name: 'Burger Maison', category: 'Plat', price: 2500, available: true, updatedAt: '2025-10-10' },
