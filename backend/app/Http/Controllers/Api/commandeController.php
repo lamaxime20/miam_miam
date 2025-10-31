@@ -40,21 +40,23 @@ class commandeController extends Controller
     public function employerIndex(Request $request)
     {
         $status = $request->query('status'); // 'all', 'non lu', 'en préparation', 'en livraison', 'validé', 'annulé'
+        $restaurantId = $request->query('restaurant_id'); // Nouveau paramètre pour filtrer par restaurant
 
-        // Récupère commandes + client + bon + livraison + menus
-        $rows = DB::select(<<<SQL
+        // Récupère commandes + client + bon + livraison + menus avec filtre par restaurant
+        $sql = <<<SQL
             SELECT c.id_commande,
-                   c.date_heure_livraison,
-                   c.localisation_client,
-                   c.type_localisation,
-                   c.statut_commande,
-                   u.nom_user AS nom_client,
-                   b.id_bon,
-                   b.statut_bon,
-                   l.id_livraison,
-                   l.statut_livraison,
-                   m.nom_menu,
-                   ct.quantite
+                c.date_heure_livraison,
+                c.localisation_client,
+                c.type_localisation,
+                c.statut_commande,
+                u.nom_user AS nom_client,
+                b.id_bon,
+                b.statut_bon,
+                l.id_livraison,
+                l.statut_livraison,
+                m.nom_menu,
+                ct.quantite,
+                m.restaurant_hote
             FROM Commande c
             JOIN Client cl ON cl.id_user = c.acheteur
             JOIN "Utilisateur" u ON u.id_user = cl.id_user
@@ -62,8 +64,15 @@ class commandeController extends Controller
             LEFT JOIN Livraison l ON l.bon_associe = b.id_bon
             LEFT JOIN Contenir ct ON ct.id_commande = c.id_commande
             LEFT JOIN Menu m ON m.id_menu = ct.id_menu
-            ORDER BY c.id_commande DESC
-        SQL);
+        SQL;
+
+        // Ajouter le filtre par restaurant si spécifié
+        if ($restaurantId) {
+            $sql .= " WHERE m.restaurant_hote = ?";
+            $rows = DB::select($sql . " ORDER BY c.id_commande DESC", [$restaurantId]);
+        } else {
+            $rows = DB::select($sql . " ORDER BY c.id_commande DESC");
+        }
 
         // Regrouper par commande et calculer le statut pour le frontend
         $map = [];
@@ -85,8 +94,16 @@ class commandeController extends Controller
                     ],
                 ];
             }
+            // Ajouter seulement les menus qui appartiennent au restaurant filtré
             if ($r->nom_menu) {
-                $map[$id]['menus'][] = [ 'nom' => $r->nom_menu, 'quantite' => (int)($r->quantite ?? 0) ];
+                // Si un restaurant_id est spécifié, vérifier que le menu lui appartient
+                if (!$restaurantId || ($restaurantId && $r->restaurant_hote == $restaurantId)) {
+                    $map[$id]['menus'][] = [ 
+                        'nom' => $r->nom_menu, 
+                        'quantite' => (int)($r->quantite ?? 0),
+                        'restaurant_id' => $r->restaurant_hote
+                    ];
+                }
             }
         }
 

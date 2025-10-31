@@ -1,3 +1,4 @@
+import { getAuthInfo } from "../../../services/user";
 /**
  * Récupère les commandes pour le tableau de bord de l'employeur via l'API.
  * @param {string} [statusFilter='all'] - Filtre de statut ('all','non lu','en préparation','en livraison','validé','annulé').
@@ -5,14 +6,23 @@
  */
 export async function getCommandesEmployeur(statusFilter = 'all') {
     const API_URL = import.meta.env.VITE_API_URL;
+    const restaurantId = getAuthInfo().restaurant;
     const params = new URLSearchParams();
-    if (statusFilter && statusFilter !== 'all') params.set('status', statusFilter);
+    
+    if (statusFilter && statusFilter !== 'all') {
+        params.set('status', statusFilter);
+    }
+    
+    if (restaurantId) {
+        params.set('restaurant_id', restaurantId);
+    }
 
     const res = await fetch(`${API_URL}api/employe/commandes?${params.toString()}`, {
         headers: {
             'Accept': 'application/json'
         }
     });
+    
     if (!res.ok) throw new Error(`Erreur serveur (${res.status})`);
     return await res.json();
 }
