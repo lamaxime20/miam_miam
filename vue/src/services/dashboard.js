@@ -15,17 +15,21 @@
 // CONFIGURATION
 // ============================================================================
 
-/**
- * Taux de conversion EUR -> XAF
- * 1 EUR = 655.957 XAF (taux fixe Franc CFA)
- */
-const TAUX_EUR_TO_XAF = 655.957;
-const API_URL = 'http://localhost:8000';
+import { getAuthInfo } from './user';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/';
+
+// helper pour récupérer l'id du restaurant courant depuis le token
+function getRestaurantId() {
+  const auth = getAuthInfo();
+  // valeurs possibles: string ou number dans le token
+  return auth?.restaurant ?? null;
+}
 
 /**
  * Formater un montant en XAF avec séparateurs de milliers
  * @param {number} montant - Montant à formater
- * @returns {string} - Montant formaté (ex: "1 865 432 XAF")
+ * @returns {string} - Montant formaté (ex: "1000 XAF")
  */
 export function formaterMontantXAF(montant) {
   return new Intl.NumberFormat('fr-FR', {
@@ -36,14 +40,6 @@ export function formaterMontantXAF(montant) {
   }).format(montant).replace('FCFA', 'XAF');
 }
 
-/**
- * Convertir EUR en XAF
- * @param {number} montantEUR - Montant en euros
- * @returns {number} - Montant en XAF
- */
-export function convertirEURversXAF(montantEUR) {
-  return Math.round(montantEUR * TAUX_EUR_TO_XAF);
-}
 
 // ============================================================================
 // VENTES AUJOURD'HUI
@@ -74,25 +70,23 @@ export function convertirEURversXAF(montantEUR) {
  */
 export async function getVentesAujourdhui() {
   try {
-    const response = await fetch(API_URL + '/api/dashboard/ventes-aujourdhui');
+    const restaurantId = getRestaurantId();
+    const url = new URL('api/dashboard/ventes-aujourdhui', API_URL);
+    if (restaurantId) url.searchParams.set('restaurant_id', restaurantId);
+    const response = await fetch(url.toString());
     const data = await response.json();
-    
-    // Conversion EUR -> XAF
-    const totalXAF = convertirEURversXAF(data.total_eur);
-    
+
+    // Backend renvoie déjà les montants en XAF
+    const totalXAF = Number(data.total_xaf ?? data.total ?? 0) || 0;
+
     return {
       total: totalXAF,
       totalFormate: formaterMontantXAF(totalXAF),
-      pourcentage_vs_hier: data.pourcentage_vs_hier
+      pourcentage_vs_hier: Number(data.pourcentage_vs_hier ?? 0) || 0,
     };
-    
   } catch (error) {
     console.error('Erreur lors de la récupération des ventes:', error);
-    return {
-      total: 0,
-      totalFormate: formaterMontantXAF(0),
-      pourcentage_vs_hier: 0
-    };
+    return { total: 0, totalFormate: formaterMontantXAF(0), pourcentage_vs_hier: 0 };
   }
 }
 
@@ -127,16 +121,20 @@ export async function getVentesAujourdhui() {
  */
 export async function getVentesSemaine() {
   try {
-    const response = await fetch('/api/dashboard/ventes-semaine');
+    const restaurantId = getRestaurantId();
+    const url = new URL('api/dashboard/ventes-semaine', API_URL);
+    if (restaurantId) url.searchParams.set('restaurant_id', restaurantId);
+    const response = await fetch(url.toString());
     const data = await response.json();
-    
-    // Conversion EUR -> XAF pour chaque jour
-    return data.map(jour => ({
-      jour: jour.jour,
-      ventes: convertirEURversXAF(jour.ventes_eur),
-      ventesFormatees: formaterMontantXAF(convertirEURversXAF(jour.ventes_eur))
-    }));
-    
+
+    return data.map(jour => {
+      const v = Number(jour.ventes_xaf ?? jour.ventes ?? 0) || 0;
+      return {
+        jour: jour.jour,
+        ventes: v,
+        ventesFormatees: formaterMontantXAF(v)
+      };
+    });
   } catch (error) {
     console.error('Erreur lors de la récupération des ventes de la semaine:', error);
     return [];
@@ -2028,23 +2026,27 @@ export async function getCategoriesMenu() {
 // Pour les statistiques principales
 export async function getStatsDashboard() {
   try {
-    const response = await fetch(API_URL + '/api/dashboard/stats');
+    const restaurantId = getRestaurantId();
+    const url = new URL('api/dashboard/stats', API_URL);
+    if (restaurantId) url.searchParams.set('restaurant_id', restaurantId);
+    const response = await fetch(url.toString());
     const data = await response.json();
-    
+
+    const totalXAF = Number(data.ventes_aujourdhui_xaf ?? data.ventes_aujourdhui ?? 0) || 0;
+
     return {
       ventesAujourdhui: {
-        total: convertirEURversXAF(data.ventes_aujourdhui_eur),
-        totalFormate: formaterMontantXAF(convertirEURversXAF(data.ventes_aujourdhui_eur))
+        total: totalXAF,
+        totalFormate: formaterMontantXAF(totalXAF)
       },
-      utilisateursActifs: data.utilisateurs_actifs,
-      reclamations: data.reclamations,
-      pointsFidelite: data.points_fidelite,
-      pourcentage_utilisateurs_ajoutes_ce_mois: data.pourcentage_utilisateurs_ajoutes_ce_mois,
-      reclamations_non_traitees: data.reclamations_non_traitees,
-      pourcentage_reclamation_non_traite_ajoute_ce_mois: data.pourcentage_reclamation_non_traite_ajoute_ce_mois,
-      pourcentage_points_donne_ce_mois: data.pourcentage_points_donne_ce_mois
+      utilisateursActifs: data.utilisateurs_actifs ?? 0,
+      reclamations: data.reclamations ?? 0,
+      pointsFidelite: data.points_fidelite ?? 0,
+      pourcentage_utilisateurs_ajoutes_ce_mois: data.pourcentage_utilisateurs_ajoutes_ce_mois ?? 0,
+      reclamations_non_traitees: data.reclamations_non_traitees ?? 0,
+      pourcentage_reclamation_non_traite_ajoute_ce_mois: data.pourcentage_reclamation_non_traite_ajoute_ce_mois ?? 0,
+      pourcentage_points_donne_ce_mois: data.pourcentage_points_donne_ce_mois ?? 0,
     };
-    
   } catch (error) {
     console.error('Erreur lors de la récupération des statistiques:', error);
     return null;
@@ -2053,17 +2055,26 @@ export async function getStatsDashboard() {
 
 // Pour les autres endpoints
 export async function getUserdistribution() {
-  const response = await fetch(API_URL + '/api/dashboard/user-distribution');
+  const restaurantId = getRestaurantId();
+  const url = new URL('api/dashboard/user-distribution', API_URL);
+  if (restaurantId) url.searchParams.set('restaurant_id', restaurantId);
+  const response = await fetch(url.toString());
   return await response.json();
 }
 
 export async function getRecentOrder(){
-  const response = await fetch(API_URL + '/api/dashboard/recent-orders');
+  const restaurantId = getRestaurantId();
+  const url = new URL('api/dashboard/recent-orders', API_URL);
+  if (restaurantId) url.searchParams.set('restaurant_id', restaurantId);
+  const response = await fetch(url.toString());
   return await response.json();
 }
 
 export async function getRecentComplaints() {
-  const response = await fetch(API_URL + '/api/dashboard/recent-complaints');
+  const restaurantId = getRestaurantId();
+  const url = new URL('api/dashboard/recent-complaints', API_URL);
+  if (restaurantId) url.searchParams.set('restaurant_id', restaurantId);
+  const response = await fetch(url.toString());
   return await response.json();
 }
 

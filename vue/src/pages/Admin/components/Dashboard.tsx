@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent } from './ui/card';
-import { TrendingUp, TrendingDown, Euro, Users, AlertTriangle, Gift } from 'lucide-react';
+import { TrendingUp, TrendingDown, Users, AlertTriangle, Gift, Coins } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { CheckCircle, Clock, Package } from 'lucide-react';
 import { getVentesAujourdhui, getVentesSemaine, getStatsDashboard, getUserdistribution, getRecentOrder, getRecentComplaints } from '../../../services/dashboard';
@@ -27,7 +27,8 @@ interface Complaint { id: string; title: string; client: string; time: string; p
 const formatCurrency = (value: number | string, currency: 'XAF' | 'EUR' = 'XAF') => {
   const num = typeof value === 'string' ? Number(value) : value;
   if (Number.isNaN(num)) return String(value);
-  return new Intl.NumberFormat('fr-FR', { style: 'currency', currency, maximumFractionDigits: 0 }).format(num);
+  const out = new Intl.NumberFormat('fr-FR', { style: 'currency', currency, maximumFractionDigits: 0 }).format(num);
+  return out.replace('XAF', 'FCFA');
 };
 
 const statusMeta: Record<string, { Icon: any; statusColor: string }> = {
@@ -56,7 +57,7 @@ const statsCardsInitiales = [
     value: 'Chargement...',
     change: '+0% vs hier',
     trend: 'up',
-    icon: Euro,
+    icon: Coins,
     bgColor: 'bg-green-100',
     iconColor: 'text-green-600',
   },
@@ -115,9 +116,9 @@ const userDistribution = [
  * TODO: Connecter à l'API pour récupérer les vraies commandes
  */
 const recentOrders = [
-  { id: '#1234', amount: '29 856 XAF', status: 'Livré', time: 'il y a 5 min', statusColor: 'bg-green-100 text-green-700', icon: CheckCircle },
-  { id: '#1235', amount: '21 511 XAF', status: 'En cours', time: 'il y a 12 min', statusColor: 'bg-yellow-100 text-yellow-700', icon: Clock },
-  { id: '#1236', amount: '18 957 XAF', status: 'Préparation', time: 'il y a 18 min', statusColor: 'bg-blue-100 text-blue-700', icon: Package },
+  { id: '#1234', amount: '29 856 FCFA', status: 'Livré', time: 'il y a 5 min', statusColor: 'bg-green-100 text-green-700', icon: CheckCircle },
+  { id: '#1235', amount: '21 511 FCFA', status: 'En cours', time: 'il y a 12 min', statusColor: 'bg-yellow-100 text-yellow-700', icon: Clock },
+  { id: '#1236', amount: '18 957 FCFA', status: 'Préparation', time: 'il y a 18 min', statusColor: 'bg-blue-100 text-blue-700', icon: Package },
 ];
 
 const recentComplaints = [
@@ -211,7 +212,7 @@ export function Dashboard() {
               value: ventesValue,
               change: `${pct >= 0 ? '+' : ''}${pct}% vs hier`,
               trend: pct >= 0 ? 'up' : 'down',
-              icon: Euro,
+              icon: Coins,
               bgColor: 'bg-green-100',
               iconColor: 'text-green-600',
             },
@@ -233,20 +234,11 @@ export function Dashboard() {
               bgColor: 'bg-red-100',
               iconColor: 'text-red-600',
             },
-            {
-              title: 'Points Fidélité',
-              value: statsData.pointsFidelite.toLocaleString('fr-FR'),
-              change: 'Points distribués',
-              trend: statsData.pourcentage_points_donne_ce_mois >= 0 ? 'up' : 'down',
-              icon: Gift,
-              bgColor: 'bg-[#cfbd97]/20',
-              iconColor: 'text-[#cfbd97]',
-            },
           ]);
         }
 
         if (ventesSemaineData && ventesSemaineData.length > 0) {
-          setSalesData(ventesSemaineData.map((jour) => ({ name: jour.jour, ventes: jour.ventes })));
+          setSalesData(ventesSemaineData.map((j: any) => ({ name: j.name ?? j.jour, ventes: j.ventes })));
         }
 
         if (userDistrib) {
@@ -390,7 +382,7 @@ export function Dashboard() {
                     borderRadius: '8px',
                     fontSize: '14px'
                   }}
-                  formatter={(value: number) => [formatCurrency(value, 'XAF'), 'Ventes (XAF)']}
+                  formatter={(value: number) => [formatCurrency(value, 'XAF'), 'Ventes (FCFA)']}
                 />
                 <Line 
                   type="monotone" 
