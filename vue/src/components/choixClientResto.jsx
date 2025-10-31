@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, genererTokenInscription } from '../services/user';
+import { User, genererTokenInscription, clearSignupStorageUser } from '../services/user';
 import LoaderOverlay from './loaderOverlay'; // 🔹 import du composant
 import '../assets/styles/signup.css';
 
@@ -11,19 +11,15 @@ const ChoixClientResto = () => {
     const handleContinueClient = async () => {
         setIsLoading(true); // 🔹 affiche le loader
 
+        console.log('[ChoixClientResto] Tentative création token inscription pour:', User.email);
         const tokenCree = await genererTokenInscription({ email: User.email, role: 'client', restaurant: '1' });
 
-        if(tokenCree){
-            [
-                'User',
-                'signupStep',
-                'verificationCode',
-                'codeExpiration',
-                'verificationTimer',
-                'isEmailVerified'
-            ].forEach(k => localStorage.removeItem(k));
-
-            console.log('max');
+        console.log('[ChoixClientResto] genererTokenInscription returned:', tokenCree);
+        if (tokenCree) {
+            console.log('[ChoixClientResto] Nettoyage du localStorage signup...');
+            // use centralised cleanup to avoid inconsistent key names
+            clearSignupStorageUser();
+            console.log('[ChoixClientResto] Nettoyage terminé, redirection vers /etudiants');
             navigate('/etudiants');
         }
 

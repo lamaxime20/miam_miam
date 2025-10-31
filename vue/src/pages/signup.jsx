@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import SignupFormName from '../components/signupFormName';
 import SignupFormVerification from '../components/signupFormVerification';
@@ -8,7 +8,11 @@ import { loadUserFromStorage } from '../services/user';
 import '../assets/styles/signup.css';
 
 function Signup() {
-    loadUserFromStorage(); // 🔹 charge les données avant le render
+    // Charge les données enregistrées pour le signup au montage.
+    // UseEffect avoids side-effects during render and keeps behaviour predictable.
+    useEffect(() => {
+        loadUserFromStorage(); // 🔹 charge les données avant le render
+    }, []);
     // 🔹 récupère la valeur stockée, sinon 1 par défaut
     const storedStep = parseInt(localStorage.getItem('signupStep'), 10) || 1;
     const [step, setStep] = useState(storedStep);
