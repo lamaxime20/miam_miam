@@ -244,9 +244,11 @@ CREATE TABLE IF NOT EXISTS Promotion (
   date_debut TIMESTAMP NOT NULL,
   date_fin TIMESTAMP NOT NULL,
   image_promo INT,
+  restaurant INT NOT NULL,
   pourcentage_reduction DECIMAL(5,2) NOT NULL,
   CONSTRAINT promotion_cc0 PRIMARY KEY (id_promo),
   CONSTRAINT promotion_cr0 FOREIGN KEY (image_promo) REFERENCES File(id_File) ON DELETE SET NULL,
+  CONSTRAINT promotion_cr1 FOREIGN KEY (restaurant) REFERENCES Restaurant(id_restaurant) ON DELETE SET NULL,
   CONSTRAINT promotion_ck0 CHECK (date_fin > date_debut),
   CONSTRAINT promotion_ck1 CHECK (pourcentage_reduction > 0 AND pourcentage_reduction <= 100)
 );

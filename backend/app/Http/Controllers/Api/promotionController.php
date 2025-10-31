@@ -11,10 +11,16 @@ class promotionController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
         try {
-            $results = DB::select('SELECT * FROM get_all_promotions()');
+            $restaurantId = $request->query('restaurant_id');
+
+            if (!$restaurantId) {
+                return response()->json(['error' => 'restaurant_id est requis'], 400);
+            }
+
+            $results = DB::select('SELECT * FROM get_all_promotions(?)', [$restaurantId]);
             
             $promotions = array_map(function($item) {
                 return [
@@ -54,19 +60,21 @@ class promotionController extends Controller
                 'discount' => 'required|numeric|min:0.01|max:100',
                 'startDate' => 'required|date',
                 'endDate' => 'required|date|after:startDate',
-                'id_file' => 'nullable|integer'
+                'id_file' => 'nullable|integer',
+                'restaurant_id' => 'required|integer'
             ]);
 
             // Convertir les dates en format TIMESTAMP
             $startDate = $request->input('startDate') . ' 00:00:00';
             $endDate = $request->input('endDate') . ' 23:59:59';
 
-            $result = DB::select('SELECT create_promotion(?, ?, ?, ?, ?, ?) as resultat', [
+            $result = DB::select('SELECT create_promotion(?, ?, ?, ?, ?, ?, ?) as resultat', [
                 $request->input('name'),
                 $request->input('description'),
                 $request->input('discount'),
                 $startDate,
                 $endDate,
+                $request->input('restaurant_id'),
                 $request->input('id_file')
             ]);
             
@@ -86,6 +94,9 @@ class promotionController extends Controller
             }
             
             switch ($resultat) {
+                case 'RESTAURANT_NON_TROUVE':
+                    return response()->json(['error' => 'Restaurant non trouvé'], 404);
+
                 case 'DATES_INVALIDES':
                     return response()->json(['error' => 'La date de fin doit être après la date de début'], 400);
                     
@@ -142,20 +153,22 @@ class promotionController extends Controller
                 'discount' => 'required|numeric|min:0.01|max:100',
                 'startDate' => 'required|date',
                 'endDate' => 'required|date|after:startDate',
-                'id_file' => 'nullable|integer'
+                'id_file' => 'nullable|integer',
+                'restaurant_id' => 'required|integer'
             ]);
 
             // Convertir les dates en format TIMESTAMP
             $startDate = $request->input('startDate') . ' 00:00:00';
             $endDate = $request->input('endDate') . ' 23:59:59';
 
-            $result = DB::select('SELECT update_promotion(?, ?, ?, ?, ?, ?, ?) as resultat', [
+            $result = DB::select('SELECT update_promotion(?, ?, ?, ?, ?, ?, ?, ?) as resultat', [
                 (int)$promotionId,
                 $request->input('name'),
                 $request->input('description'),
                 $request->input('discount'),
                 $startDate,
                 $endDate,
+                $request->input('restaurant_id'),
                 $request->input('id_file')
             ]);
             

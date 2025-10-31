@@ -28,11 +28,13 @@ const API_URL = import.meta.env.VITE_API_URL;
  *
  * @returns {Promise<Array>} - Liste des promotions
  */
-export async function getPromotions() {
+export async function getPromotions(restaurantId) {
   try {
-    // TODO: Remplacer par un appel API réel vers un endpoint qui retourne toutes les promotions.
-    // Pour l'instant, nous utilisons l'endpoint des promotions actives.
-    const response = await fetch(API_URL + 'api/promotions');
+    let url = API_URL + 'api/promotions';
+    if (restaurantId) {
+      url += `?restaurant_id=${restaurantId}`;
+    }
+    const response = await fetch(url);
     const data = await response.json();
     return data;
 
@@ -59,6 +61,7 @@ export async function getPromotions() {
  * @param {string} promoData.startDate - Date de début (YYYY-MM-DD).
  * @param {string} promoData.endDate - Date de fin (YYYY-MM-DD).
  * @param {number|undefined} promoData.id_file - ID de l'image (optionnel).
+ * @param {number|undefined} promoData.restaurant_id - ID du restaurant (optionnel).
  * @returns {Promise<Object>} - La promotion créée.
  */
 export async function createPromotion(promoData) {

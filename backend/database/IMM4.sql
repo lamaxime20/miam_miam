@@ -454,7 +454,9 @@ EXCEPTION
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION get_all_promotions()
+CREATE OR REPLACE FUNCTION get_all_promotions(
+    p_restaurant_id INT DEFAULT NULL
+)
 RETURNS TABLE(
     id_promo INT,
     titre TEXT,
@@ -468,6 +470,11 @@ RETURNS TABLE(
 LANGUAGE plpgsql
 AS $$
 BEGIN
+    -- Si aucun ID de restaurant n'est fourni, retourner un ensemble vide
+    IF p_restaurant_id IS NULL THEN
+        RETURN;
+    END IF;
+
     RETURN QUERY 
     SELECT 
         p.id_promo,
@@ -484,6 +491,7 @@ BEGIN
         END as statut
     FROM promotion p
     LEFT JOIN file f ON p.image_promo = f.id_file
+    WHERE p.restaurant = p_restaurant_id
     ORDER BY 
         CASE 
             WHEN p.date_debut > CURRENT_TIMESTAMP THEN 1  -- Programmées d'abord
@@ -501,7 +509,8 @@ CREATE OR REPLACE FUNCTION create_promotion(
     p_pourcentage_reduction DECIMAL(5,2),
     p_date_debut TIMESTAMP,
     p_date_fin TIMESTAMP,
-    p_image_promo INT DEFAULT NULL
+    p_restaurant_id INT,
+    p_image_promo INT DEFAULT NULL    
 )
 RETURNS TEXT 
 LANGUAGE plpgsql
@@ -509,6 +518,11 @@ AS $$
 DECLARE
     nouveau_id INT;
 BEGIN
+    -- Vérifier si le restaurant existe
+    IF NOT EXISTS (SELECT 1 FROM restaurant WHERE id_restaurant = p_restaurant_id) THEN
+        RETURN 'RESTAURANT_NON_TROUVE';
+    END IF;
+
     -- Validation des dates
     IF p_date_debut >= p_date_fin THEN
         RETURN 'DATES_INVALIDES';
@@ -535,9 +549,9 @@ BEGIN
         WHERE (
             (p_date_debut BETWEEN date_debut AND date_fin) OR
             (p_date_fin BETWEEN date_debut AND date_fin) OR
-            (date_debut BETWEEN p_date_debut AND p_date_fin) OR
-            (date_fin BETWEEN p_date_debut AND p_date_fin)
+            (date_debut BETWEEN p_date_debut AND p_date_fin)
         )
+        AND restaurant = p_restaurant_id
     ) THEN
         RETURN 'CONFLIT_DATES';
     END IF;
@@ -549,14 +563,16 @@ BEGIN
         date_debut,
         date_fin,
         image_promo,
-        pourcentage_reduction
+        pourcentage_reduction,
+        restaurant
     ) VALUES (
         p_titre,
         p_description_promotion,
         p_date_debut,
         p_date_fin,
         p_image_promo,
-        p_pourcentage_reduction
+        p_pourcentage_reduction,
+        p_restaurant_id
     )
     RETURNING id_promo INTO nouveau_id;
     
@@ -577,7 +593,8 @@ CREATE OR REPLACE FUNCTION update_promotion(
     p_pourcentage_reduction DECIMAL(5,2),
     p_date_debut TIMESTAMP,
     p_date_fin TIMESTAMP,
-    p_image_promo INT DEFAULT NULL
+    p_restaurant_id INT,
+    p_image_promo INT DEFAULT NULL    
 )
 RETURNS TEXT 
 LANGUAGE plpgsql
@@ -585,8 +602,11 @@ AS $$
 DECLARE
     rows_affected INT;
 BEGIN
-    -- Vérifier si la promotion existe
-    IF NOT EXISTS (SELECT 1 FROM promotion WHERE id_promo = p_id_promo) THEN
+    -- Vérifier si la promotion existe et appartient au bon restaurant
+    IF NOT EXISTS (
+        SELECT 1 FROM promotion 
+        WHERE id_promo = p_id_promo AND restaurant = p_restaurant_id
+    ) THEN
         RETURN 'PROMOTION_NON_TROUVEE';
     END IF;
     
@@ -610,11 +630,11 @@ BEGIN
         SELECT 1 
         FROM promotion 
         WHERE id_promo != p_id_promo
+        AND restaurant = p_restaurant_id
         AND (
             (p_date_debut BETWEEN date_debut AND date_fin) OR
             (p_date_fin BETWEEN date_debut AND date_fin) OR
-            (date_debut BETWEEN p_date_debut AND p_date_fin) OR
-            (date_fin BETWEEN p_date_debut AND p_date_fin)
+            (date_debut BETWEEN p_date_debut AND p_date_fin)
         )
     ) THEN
         RETURN 'CONFLIT_DATES';

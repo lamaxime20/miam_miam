@@ -22,6 +22,7 @@ import {
 } from './ui/select';
 import { getPromotions, createPromotion, updatePromotion, addMenusToPromotion, removeMenusFromPromotion, getPromotionMenus } from '../../../services/GestionPromotion';
 import { uploadImage, updateImage, getAllMenuItems } from '../../../services/GestionMenu';
+import { getAuthInfo } from '../../../services/user';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { Plus, Minus, Edit, Trash2, Tag, TrendingUp, Calendar, Percent, UploadCloud, X } from 'lucide-react';
 
@@ -162,7 +163,8 @@ export function PromotionsPage() {
     const fetchPromotions = async () => {
       setIsLoading(true);
       try {
-        const data = await getPromotions();
+        const authInfo = getAuthInfo();
+        const data = await getPromotions(authInfo?.restaurant);
         const formattedPromotions = data.map((p: any) => ({
           id: p.id_promo.toString(),
           name: p.titre,
@@ -287,6 +289,8 @@ export function PromotionsPage() {
 
       setIsLoading(true);
 
+      const authInfo = getAuthInfo();
+
       const newPromoData = {
         name: formData.name,
         description: formData.description,
@@ -294,12 +298,13 @@ export function PromotionsPage() {
         startDate: formData.startDate,
         endDate: formData.endDate,
         id_file: formData.id_file,
+        restaurant_id: authInfo?.restaurant,
       };
 
       await createPromotion(newPromoData);
 
       // Recharger les promotions pour afficher la nouvelle
-      const data = await getPromotions();
+      const data = await getPromotions(authInfo?.restaurant);
       const formattedPromotions = data.map((p: any) => ({
         id: p.id_promo.toString(), name: p.titre, description: p.description_promotion,
         discount: parseFloat(p.pourcentage_reduction), startDate: new Date(p.date_debut).toISOString().split('T')[0],
@@ -314,6 +319,8 @@ export function PromotionsPage() {
         discount: '',
         startDate: '',
         endDate: '',
+        imageUrl: '',
+        id_file: undefined,
       });
 
       setShowAddDialog(false);
@@ -350,6 +357,8 @@ export function PromotionsPage() {
 
       setIsLoading(true);
 
+      const authInfo = getAuthInfo();
+
       const updatedPromoData = {
         name: editFormData.name,
         description: editFormData.description,
@@ -357,12 +366,13 @@ export function PromotionsPage() {
         startDate: editFormData.startDate,
         endDate: editFormData.endDate,
         id_file: editFormData.id_file,
+        restaurant_id: authInfo?.restaurant,
       };
 
       await updatePromotion(selectedPromo.id, updatedPromoData);
 
       // Recharger les promotions pour afficher les modifications
-      const data = await getPromotions();
+      const data = await getPromotions(authInfo?.restaurant);
       const formattedPromotions = data.map((p: any) => ({
         id: p.id_promo.toString(), name: p.titre, description: p.description_promotion,
         discount: parseFloat(p.pourcentage_reduction), startDate: new Date(p.date_debut).toISOString().split('T')[0],
