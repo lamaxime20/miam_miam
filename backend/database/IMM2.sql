@@ -409,32 +409,31 @@ END;
 $$;
 
 -- =================================================================
--- Fonctions pour le Tableau de Bord Employeur
+-- 1. Compter le nombre de commandes du jour pour un restaurant spécifique
 -- =================================================================
-
--- 1. Récupérer le nombre total de commandes pour le jour actuel.
---    Utilise la table "Commande" et sa colonne "date_commande".
--- =================================================================
-CREATE OR REPLACE FUNCTION get_daily_orders_count()
+CREATE OR REPLACE FUNCTION get_daily_orders_count(p_id_restaurant INT)
 RETURNS INTEGER AS $$
 DECLARE
     order_count INTEGER;
 BEGIN
     SELECT COUNT(*)::INTEGER
     INTO order_count
-    FROM Commande
-    WHERE DATE(date_commande) = CURRENT_DATE;
+    FROM Commande c
+    JOIN Contenir ct ON c.id_commande = ct.id_commande
+    JOIN Menu m ON ct.id_menu = m.id_menu
+    WHERE DATE(c.date_commande) = CURRENT_DATE
+      AND m.restaurant_hote = p_id_restaurant;
 
     RETURN COALESCE(order_count, 0);
 END;
 $$ LANGUAGE plpgsql;
 
 -- =================================================================
--- 2. Calculer le chiffre d'affaires total pour les commandes livrées aujourd'hui.
+-- 2. Calculer le chiffre d'affaires total pour les commandes livrées aujourd'hui pour un restaurant spécifique
 --    Le CA est calculé sur les commandes avec le statut 'validée' et est la somme
 --    des (quantité * prix) de la table "Contenir".
 -- =================================================================
-CREATE OR REPLACE FUNCTION get_daily_revenue()
+CREATE OR REPLACE FUNCTION get_daily_revenue(p_id_restaurant INT)
 RETURNS NUMERIC AS $$
 DECLARE
     total_revenue NUMERIC;
@@ -443,18 +442,20 @@ BEGIN
     INTO total_revenue
     FROM Commande c
     JOIN Contenir ct ON c.id_commande = ct.id_commande
+    JOIN Menu m ON ct.id_menu = m.id_menu
     WHERE DATE(c.date_commande) = CURRENT_DATE
-      AND c.statut_commande = 'validée';
+      AND c.statut_commande = 'validée'
+      AND m.restaurant_hote = p_id_restaurant;
 
     RETURN total_revenue;
 END;
 $$ LANGUAGE plpgsql;
 
 -- =================================================================
--- 3. Compter le nombre de réclamations (tickets) avec le statut 'ouverte'.
+-- 3. Compter le nombre de réclamations (tickets) avec le statut 'ouverte' pour un restaurant spécifique
 --    Utilise la table "Reclamation" et sa colonne "statut_reclamation".
 -- =================================================================
-CREATE OR REPLACE FUNCTION get_open_complaints_count()
+CREATE OR REPLACE FUNCTION get_open_complaints_count(p_id_restaurant INT)
 RETURNS INTEGER AS $$
 DECLARE
     open_complaints_count INTEGER;
@@ -462,27 +463,37 @@ BEGIN
     SELECT COUNT(*)::INTEGER
     INTO open_complaints_count
     FROM Reclamation
-    WHERE statut_reclamation = 'ouverte';
+    WHERE statut_reclamation = 'ouverte'
+      AND restaurant_cible = p_id_restaurant;
 
     RETURN COALESCE(open_complaints_count, 0);
 END;
 $$ LANGUAGE plpgsql;
 
 -- =================================================================
--- 4. Compter le nombre d'employés actifs.
+-- 4. Compter le nombre d'employés actifs pour un restaurant spécifique
 --    Compte les utilisateurs dans la table "Employe" qui ont un statut 'actif'
 --    dans la table "Utilisateur".
 -- =================================================================
-CREATE OR REPLACE FUNCTION get_active_employees_count()
+CREATE OR REPLACE FUNCTION get_active_employees_count(p_id_restaurant INT)
 RETURNS INTEGER AS $$
 DECLARE
     active_employees_count INTEGER;
 BEGIN
-    SELECT COUNT(*)::INTEGER
+    SELECT COUNT(DISTINCT u.id_user)::INTEGER
     INTO active_employees_count
-    FROM Employe e
-    JOIN "Utilisateur" u ON e.id_user = u.id_user
-    WHERE u.statut_account = 'actif';
+    FROM "Utilisateur" u
+    WHERE u.statut_account = 'actif'
+      AND (
+          -- Gérants du restaurant
+          EXISTS (SELECT 1 FROM Gerer g WHERE g.id_gerant = u.id_user AND g.id_restaurant = p_id_restaurant AND g.service_employe = TRUE)
+          OR
+          -- Employés du restaurant
+          EXISTS (SELECT 1 FROM Travailler_pour tp WHERE tp.id_employe = u.id_user AND tp.id_restaurant = p_id_restaurant AND tp.service_employe = TRUE)
+          OR
+          -- Livreurs du restaurant
+          EXISTS (SELECT 1 FROM Etre_livreur el WHERE el.id_livreur = u.id_user AND el.id_restaurant = p_id_restaurant AND el.service_employe = TRUE)
+      );
 
     RETURN COALESCE(active_employees_count, 0);
 END;
@@ -492,14 +503,14 @@ $$ LANGUAGE plpgsql;
 -- BONUS: Une fonction qui retourne toutes les métriques d'un coup
 --        pour optimiser les appels à la base de données.
 -- =================================================================
-CREATE OR REPLACE FUNCTION get_dashboard_kpis()
+CREATE OR REPLACE FUNCTION get_dashboard_kpis(p_id_restaurant INT)
 RETURNS TABLE(daily_orders_count INTEGER, daily_revenue NUMERIC, open_complaints_count INTEGER, active_employees_count INTEGER) AS $$
 BEGIN
     RETURN QUERY
     SELECT
-        (SELECT get_daily_orders_count()),
-        (SELECT get_daily_revenue()),
-        (SELECT get_open_complaints_count()),
-        (SELECT get_active_employees_count());
+        (SELECT get_daily_orders_count(p_id_restaurant)),
+        (SELECT get_daily_revenue(p_id_restaurant)),
+        (SELECT get_open_complaints_count(p_id_restaurant)),
+        (SELECT get_active_employees_count(p_id_restaurant));
 END;
 $$ LANGUAGE plpgsql;

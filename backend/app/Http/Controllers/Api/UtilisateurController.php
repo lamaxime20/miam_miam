@@ -380,53 +380,104 @@ class UtilisateurController extends Controller
         }
     }
 
-    public function dashboardKpis()
-    {
-        try {
-            // D'abord tenter la fonction SQL si elle existe
-            try {
-                $kpis = DB::select('SELECT * FROM get_dashboard_kpis()');
-                if (!empty($kpis)) {
-                    return response()->json($kpis[0]);
+    public function dashboardKpis($restaurantId = null)
+{
+    try {
+        // Si aucun restaurantId n'est fourni, essayer de le récupérer depuis l'utilisateur connecté
+        if ($restaurantId === null) {
+            $user = auth()->user();
+            
+            // Si l'utilisateur est un gérant, récupérer son restaurant
+            if ($user && method_exists($user, 'gerantRestaurants')) {
+                $gerantRestaurant = $user->gerantRestaurants()->where('service_employe', true)->first();
+                if ($gerantRestaurant) {
+                    $restaurantId = $gerantRestaurant->id_restaurant;
                 }
-            } catch (\Throwable $ignored) {
-                // On tombera sur le calcul direct ci-dessous
             }
-
-            // Calcul direct des KPIs (aujourd'hui)
-            $dailyOrders = DB::selectOne('SELECT COUNT(*)::int AS c FROM Commande WHERE DATE(date_commande) = CURRENT_DATE');
-
-            // Revenu du jour: somme des (quantite*prix_unitaire) des commandes dont la livraison est validée aujourd'hui
-            $dailyRevenue = DB::selectOne(<<<SQL
-                SELECT COALESCE(SUM(ct.quantite * ct.prix_unitaire), 0)::numeric AS s
-                FROM Commande c
-                JOIN Bon_commande b ON b.commande_associe = c.id_commande
-                JOIN Livraison l ON l.bon_associe = b.id_bon
-                JOIN Contenir ct ON ct.id_commande = c.id_commande
-                WHERE l.statut_livraison = 'validée'
-                  AND DATE(l.date_livraison) = CURRENT_DATE
-            SQL);
-
-            $openComplaints = DB::selectOne("SELECT COUNT(*)::int AS c FROM Reclamation WHERE statut_reclamation = 'ouverte'");
-
-            $activeEmployees = DB::selectOne('SELECT COUNT(*)::int AS c FROM Travailler_pour WHERE service_employe = TRUE');
-
-            return response()->json([
-                'daily_orders_count' => (int)($dailyOrders->c ?? 0),
-                'daily_revenue' => (float)($dailyRevenue->s ?? 0),
-                'open_complaints_count' => (int)($openComplaints->c ?? 0),
-                'active_employees_count' => (int)($activeEmployees->c ?? 0),
-            ]);
-        } catch (\Exception $e) {
-            // Valeurs par défaut en cas d'erreur
-            return response()->json([
-                'daily_orders_count' => 0,
-                'daily_revenue' => 0,
-                'open_complaints_count' => 0,
-                'active_employees_count' => 0,
-            ]);
+            
+            // Si toujours pas d'ID, utiliser une valeur par défaut ou retourner une erreur
+            if ($restaurantId === null) {
+                return response()->json([
+                    'error' => 'Restaurant ID requis'
+                ], 400);
+            }
         }
+
+        // D'abord tenter la fonction SQL avec l'ID du restaurant
+        try {
+            $kpis = DB::select('SELECT * FROM get_dashboard_kpis(?)', [$restaurantId]);
+            if (!empty($kpis)) {
+                return response()->json($kpis[0]);
+            }
+        } catch (\Throwable $ignored) {
+            // On tombera sur le calcul direct ci-dessous
+        }
+
+        // Calcul direct des KPIs pour le restaurant spécifique (aujourd'hui)
+        $dailyOrders = DB::selectOne('
+            SELECT COUNT(*)::int AS c 
+            FROM Commande c
+            JOIN Contenir ct ON c.id_commande = ct.id_commande
+            JOIN Menu m ON ct.id_menu = m.id_menu
+            WHERE DATE(c.date_commande) = CURRENT_DATE
+            AND m.restaurant_hote = ?
+        ', [$restaurantId]);
+
+        // Revenu du jour pour le restaurant spécifique
+        $dailyRevenue = DB::selectOne('
+            SELECT COALESCE(SUM(ct.quantite * ct.prix_unitaire), 0)::numeric AS s
+            FROM Commande c
+            JOIN Bon_commande b ON b.commande_associe = c.id_commande
+            JOIN Livraison l ON l.bon_associe = b.id_bon
+            JOIN Contenir ct ON ct.id_commande = c.id_commande
+            JOIN Menu m ON ct.id_menu = m.id_menu
+            WHERE l.statut_livraison = \'validée\'
+            AND DATE(l.date_livraison) = CURRENT_DATE
+            AND m.restaurant_hote = ?
+        ', [$restaurantId]);
+
+        $openComplaints = DB::selectOne('
+            SELECT COUNT(*)::int AS c 
+            FROM Reclamation 
+            WHERE statut_reclamation = \'ouverte\' 
+            AND restaurant_cible = ?
+        ', [$restaurantId]);
+
+        $activeEmployees = DB::selectOne('
+            SELECT COUNT(DISTINCT u.id_user)::int AS c
+            FROM "Utilisateur" u
+            WHERE u.statut_account = \'actif\'
+            AND (
+                EXISTS (SELECT 1 FROM Gerer g WHERE g.id_gerant = u.id_user AND g.id_restaurant = ? AND g.service_employe = TRUE)
+                OR
+                EXISTS (SELECT 1 FROM Travailler_pour tp WHERE tp.id_employe = u.id_user AND tp.id_restaurant = ? AND tp.service_employe = TRUE)
+                OR
+                EXISTS (SELECT 1 FROM Etre_livreur el WHERE el.id_livreur = u.id_user AND el.id_restaurant = ? AND el.service_employe = TRUE)
+            )
+        ', [$restaurantId, $restaurantId, $restaurantId]);
+
+        return response()->json([
+            'daily_orders_count' => (int)($dailyOrders->c ?? 0),
+            'daily_revenue' => (float)($dailyRevenue->s ?? 0),
+            'open_complaints_count' => (int)($openComplaints->c ?? 0),
+            'active_employees_count' => (int)($activeEmployees->c ?? 0),
+            'restaurant_id' => $restaurantId
+        ]);
+    } catch (\Exception $e) {
+        // Log l'erreur pour le débogage
+        \Log::error('Dashboard KPIs Error: ' . $e->getMessage());
+        
+        // Valeurs par défaut en cas d'erreur
+        return response()->json([
+            'daily_orders_count' => 0,
+            'daily_revenue' => 0,
+            'open_complaints_count' => 0,
+            'active_employees_count' => 0,
+            'restaurant_id' => $restaurantId ?? null,
+            'error' => 'Erreur lors du calcul des statistiques'
+        ], 500);
     }
+}
 
     public function getRestaurantsUtilisateur(Request $request)
     {

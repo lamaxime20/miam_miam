@@ -152,7 +152,7 @@ Route::put('/reclamations/{id}/close', [reclamationController::class, 'close']);
 Route::get('/reclamations/{id}/reponses', [reponseController::class, 'index']);
 Route::post('/reclamations/{id}/reponses', [reponseController::class, 'store']);
 
-Route::get('/employe/dashboard/kpis', [UtilisateurController::class, 'dashboardKpis']);
+Route::get('/employe/dashboard/kpis/{restaurantId?}', [UtilisateurController::class, 'dashboardKpis']);
 Route::get('/menu/{id_restaurant}/items', [menuController::class, 'getAllMenuItems']);
 Route::post('/menu', [menuController::class, 'index']);
 Route::put('/menu/{id_menu}', [menuController::class, 'update']);

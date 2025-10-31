@@ -1,4 +1,4 @@
-import { recupererToken } from "./user";
+import { recupererToken, getAuthInfo } from "./user";
 
 const API_URL = import.meta.env.VITE_API_URL + 'api/';
 
@@ -7,9 +7,10 @@ const API_URL = import.meta.env.VITE_API_URL + 'api/';
  * @returns {Promise<Object>} Une promesse qui résout avec un objet contenant les KPIs.
  */
 export async function getEmployerDashboardKpis() {
+    const id_restaurant = getAuthInfo().restaurant;
     try {
         const token = recupererToken();
-        const response = await fetch(`${API_URL}employe/dashboard/kpis`, {
+        const response = await fetch(`${API_URL}employe/dashboard/kpis/${id_restaurant}`, {
             headers: {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json',
