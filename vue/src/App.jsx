@@ -10,6 +10,7 @@ import MentionsLegales from './pages/Legal_pages/MentionsLegales.jsx'
 import PolitiqueUtilisation from './pages/Legal_pages/PolitiqueUtilisation.jsx'
 import PolitiqueCookies from './pages/Legal_pages/PolitiquesCookies.jsx'
 import { getAuthInfo } from './services/user.js';
+import ForgotPassword from './pages/Forgotpassword.jsx';
 
 export const roleAdmin = 'administrateur'
 export const roleGerant = 'gerant'
@@ -35,6 +36,7 @@ function App() {
             <Route path="/politique-utilisation" element={<PolitiqueUtilisation />} />
             <Route path="/politique-cookies" element={<PolitiqueCookies />} />
             <Route path="/create-restaurant" element={<CreateRestaurant />} />
+            <Route path='/forgot-password' element={<ForgotPassword />} />
             <Route path='/admin' element={
                 <Guard allowed={token && token.role === roleAdmin && token.restaurant != null}>
                     <Admin />

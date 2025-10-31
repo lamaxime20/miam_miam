@@ -19,6 +19,7 @@ use App\Http\Controllers\Api\statsEmployerController;
 use App\Http\Controllers\Api\commandeController;
 use App\Http\Controllers\Api\livraisonController;
 use App\Http\Controllers\Api\etre_livreurController;
+use App\Http\Controllers\Api\password_resetController; // Password reset controller
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -46,6 +47,13 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::post('/login', [UtilisateurController::class, 'login']);
 Route::post('/inscription', [UtilisateurController::class, 'inscription']);
 Route::post('/token_inscription', [UtilisateurController::class, 'token_inscription']);
+
+// Password reset routes
+Route::prefix('password-reset')->group(function () {
+    Route::post('request', [password_resetController::class, 'requestReset']);
+    Route::post('verify', [password_resetController::class, 'verifyCode']);
+    Route::post('reset', [password_resetController::class, 'resetPassword']);
+});
 
 Route::get('/administrateurs', [administrateurController::class, 'index']);
 Route::get('/administrateurs/{id}', [administrateurController::class, 'show']);

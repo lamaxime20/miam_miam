@@ -9,6 +9,7 @@ class password_reset extends Model
 {
     use HasFactory;
 
+    // Match SQL: CREATE TABLE IF NOT EXISTS Password_Reset (...)
     protected $table = 'password_reset';
     protected $primaryKey = 'id_reset';
     public $incrementing = true;
