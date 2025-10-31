@@ -103,22 +103,28 @@ const LoginFormChoixRole = ({ onBack }) => {
             console.log(role);
             switch (role) {
                 case roleAdmin:
-                    navigate('/admin');
+                    console.log('admin');
+                    window.location.href = '/admin';
                     break;
                 case roleGerant:
-                    navigate('/gerant');
+                    console.log('gerant');
+                    window.location.href = '/gerant';
                     break;
                 case roleEmploye:
-                    navigate('/employer');
+                    console.log('employe');
+                    window.location.href = '/employer';
                     break;
                 case roleLivreur:
-                    navigate('/livreur-dashboard');
+                    console.log('livreur');
+                    window.location.href = '/livreur-dashboard';
                     break;
                 case 'client':
-                    navigate('/');
+                    console.log('client');
+                    window.location.href = '/';
                     break;
                 default:
-                    navigate('/');
+                    console.log('default');
+                    window.location.href = '/';
                     break;
             }
             localStorage.removeItem('loginCredentials');

@@ -33,7 +33,7 @@ function CreateRestaurant() {
 
     return (
         <>
-            {step != 4 && (<a>Continuer comme client</a>)}
+            {step != 4 && (<a href="/client">Continuer comme client</a>)}
             <ProgressionRestaurant NbreSteps={4} StepActu={step} />
             <div className="createRestaurant-container">
                 {step == 1 && (<CreateRestaurantFormName onNext={goNext}/>)}
