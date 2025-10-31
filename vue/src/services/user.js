@@ -519,6 +519,7 @@ export async function logout() {
         // noop
     } finally {
         localStorage.removeItem('auth_token');
+        localStorage.clear();
     }
     // Always resolve truthy so callers awaiting logout can proceed
     return true;

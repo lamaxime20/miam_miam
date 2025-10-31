@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Bell, Mail, User, LogOut, Settings, X } from 'lucide-react';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -16,6 +17,7 @@ import {
   PopoverTrigger,
 } from './ui/popover';
 import { ScrollArea } from './ui/scroll-area';
+import { getAuthInfo, logout } from '../../../services/user';
 
 interface Notification {
   id: string;
@@ -42,14 +44,49 @@ interface AdminProfile {
   avatar?: string;
 }
 
+const LoadingOverlay = ({ visible, message }: { visible: boolean; message: string }) => {
+  if (!visible) return null;
+  return (
+    <div style={{
+        position: 'fixed',
+        top: 0, left: 0,
+        width: '100vw', height: '100vh',
+        backgroundColor: 'rgba(0, 0, 0, 0.6)',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 9999,
+        flexDirection: 'column',
+        color: 'white',
+        fontSize: '1.2em'
+    }}>
+        <div className="loader" style={{
+            border: '6px solid #f3f3f3',
+            borderTop: '6px solid #cfbd97',
+            borderRadius: '50%',
+            width: '50px',
+            height: '50px',
+            animation: 'spin 1s linear infinite',
+            marginBottom: '15px'
+        }}></div>
+        <p>{message}</p>
+        <style>{`
+            @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        `}</style>
+    </div>
+  );
+};
+
 export function Header() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
+  const utilisateur = getAuthInfo();
   const [adminProfile, setAdminProfile] = useState<AdminProfile>({
     name: 'Admin',
     role: 'Administrateur',
-    email: 'admin@miammiam.com',
+    email: utilisateur.display_name,
   });
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
 
   // Charger les notifications
@@ -169,13 +206,11 @@ export function Header() {
   const handleLogout = async () => {
     try {
       setIsLoading(true);
-      // TODO: Remplacer par un appel API réel
-      // await fetch('/api/admin/logout', { method: 'POST' });
-      // window.location.href = '/login';
-
-      alert('Déconnexion réussie !');
+      await logout();
+      navigate('/'); // Redirige vers la page d'accueil/login
     } catch (error) {
       console.error('Erreur lors de la déconnexion:', error);
+      alert('Une erreur est survenue lors de la déconnexion.');
     } finally {
       setIsLoading(false);
     }
@@ -185,6 +220,7 @@ export function Header() {
   const unreadMessages = messages.filter(m => !m.read).length;
 
   return (
+    <>
     <header className="bg-white border-b border-gray-200 px-4 md:px-6 py-4">
       <div className="flex items-center justify-between">
         <div>
@@ -343,5 +379,7 @@ export function Header() {
         </div>
       </div>
     </header>
+    <LoadingOverlay visible={isLoading} message="Déconnexion en cours..." />
+    </>
   );
 }
