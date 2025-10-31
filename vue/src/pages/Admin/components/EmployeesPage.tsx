@@ -29,13 +29,14 @@ import {
 import { Label } from './ui/label'; // Assurez-vous que Label est importé
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { getEmployees, createEmployee, DesactiverEmploye } from '../../../services/GestionEmploye.js';
+import { getAuthInfo } from '../../../services/user.js';
 import { Search, Eye, Edit, Trash2, Plus, Users, CheckCircle, Calendar, UserPlus } from 'lucide-react';
 
 interface Employee {
   id: string;
   name: string;
   email: string;
-  position: string;
+  position_p: string;
   status: 'active' | 'inactive';
   hireDate: string;
   avatar?: string;
@@ -55,15 +56,17 @@ export function EmployeesPage() {
   const [viewMode, setViewMode] = useState<'view' | 'edit'>('view');
   const [isLoading, setIsLoading] = useState(true);
   const [newEmployeeEmail, setNewEmployeeEmail] = useState('');
-  const [newEmployeeRole, setNewEmployeeRole] = useState<'employe' | 'gerant' | 'livreur'>('employe');
+  const [newEmployeeRole, setNewEmployeeRole] = useState<'employé' | 'gérant' | 'livreur'>('employé');
   const [formError, setFormError] = useState<string | null>(null);
 
 
   useEffect(() => {
     const fetchEmployees = async () => {
       try {
+        const authInfo = getAuthInfo();
+        if (!authInfo || !authInfo.restaurant) throw new Error("Impossible de trouver l'ID du restaurant.");
         setIsLoading(true);
-        const data = await getEmployees(1);
+        const data = await getEmployees(authInfo.restaurant);
         setEmployees(data);
       } catch (error) {
         console.error("Erreur lors de la récupération des employés:", error);
@@ -78,9 +81,11 @@ export function EmployeesPage() {
 
   // Fonction pour recharger les employés après une action (création, suppression, etc.)
   const fetchEmployees = async () => {
+    const authInfo = getAuthInfo();
+    if (!authInfo || !authInfo.restaurant) return;
     try {
       setIsLoading(true);
-      const data = await getEmployees(1); // Supposons que l'ID du restaurant est 1
+      const data = await getEmployees(authInfo.restaurant);
       setEmployees(data);
     } catch (error) {
       console.error("Erreur lors de la récupération des employés:", error);
@@ -91,12 +96,14 @@ export function EmployeesPage() {
 
   const handleCreateEmployee = async () => {
     try {
+      const authInfo = getAuthInfo();
+      if (!authInfo || !authInfo.restaurant) throw new Error("Impossible de trouver l'ID du restaurant.");
       setFormError(null); // Réinitialiser les erreurs avant une nouvelle tentative
       setIsLoading(true);
       await createEmployee({
         email: newEmployeeEmail,
         role: newEmployeeRole,
-        restaurant: 1,
+        restaurant: authInfo.restaurant,
       });
       await fetchEmployees(); // Recharger la liste des employés après la création
       setShowAddDialog(false);
@@ -112,7 +119,7 @@ export function EmployeesPage() {
     const matchesSearch = 
       employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       employee.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      employee.position.toLowerCase().includes(searchTerm.toLowerCase());
+      employee.position_p.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesSearch;
   });
 
@@ -133,14 +140,16 @@ export function EmployeesPage() {
   };
 
   const deleteEmployee = async (employee: Employee) => {
-    if (!confirm(`Êtes-vous sûr de vouloir désactiver l'employé ${employee.name} (${employee.position}) ?`)) {
+    if (!confirm(`Êtes-vous sûr de vouloir désactiver l'employé ${employee.name} (${employee.position_p}) ?`)) {
       return;
     }
 
     try {
+      const authInfo = getAuthInfo();
+      if (!authInfo || !authInfo.restaurant) throw new Error("Impossible de trouver l'ID du restaurant.");
       setIsLoading(true);
       // Appel au service pour désactiver l'employé
-      const result = await DesactiverEmploye(employee.email, employee.position.toLowerCase(), 1); // Supposons restaurantId = 1
+      const result = await DesactiverEmploye(employee.email, employee.position_p.toLowerCase(), authInfo.restaurant);
 
       if (result === 'EMPLOYE_DESACTIVE') {
         await fetchEmployees(); // Recharger la liste des employés après la désactivation
@@ -157,7 +166,7 @@ export function EmployeesPage() {
 
   const resetAddForm = () => {
     setNewEmployeeEmail('');
-    setNewEmployeeRole('employe');
+    setNewEmployeeRole('employé');
     setFormError(null);
   };
 
@@ -307,7 +316,7 @@ export function EmployeesPage() {
                               </div>
                             </div>
                           </TableCell>
-                          <TableCell className="text-sm">{employee.position}</TableCell>
+                          <TableCell className="text-sm">{employee.position_p}</TableCell>
                           <TableCell>
                             <Badge className={`${statusConfig[employee.status].color} border`} variant="outline">
                               {statusConfig[employee.status].label}
@@ -381,7 +390,7 @@ export function EmployeesPage() {
                   </Avatar>
                   <div>
                     <h3 className="text-lg">{selectedEmployee.name}</h3>
-                    <p className="text-sm text-gray-500">{selectedEmployee.position}</p>
+                    <p className="text-sm text-gray-500">{selectedEmployee.position_p}</p>
                   </div>
                 </div>
 
@@ -445,7 +454,7 @@ export function EmployeesPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="role-add">Poste</Label>
-                <Select value={newEmployeeRole} onValueChange={(value: 'employe' | 'gerant' | 'livreur') => setNewEmployeeRole(value)}>
+                <Select value={newEmployeeRole} onValueChange={(value: 'employé' | 'gérant' | 'livreur') => setNewEmployeeRole(value)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Sélectionner un poste" />
                   </SelectTrigger>

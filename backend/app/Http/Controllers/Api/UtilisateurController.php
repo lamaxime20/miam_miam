@@ -492,4 +492,23 @@ class UtilisateurController extends Controller
             return response()->json(['est_employe' => false], 500);
         }
     }
+
+    public function getEmployeesByRestaurant($restaurantId)
+    {
+        try {
+            $employees = DB::select('SELECT * FROM get_employees_by_restaurant(?)', [$restaurantId]);
+            
+            // La fonction SQL retourne déjà les bons noms de colonnes.
+            // On peut juste ajuster le statut si besoin.
+            $formattedEmployees = array_map(function($emp) {
+                $emp->status = ($emp->status === 'actif') ? 'active' : 'inactive';
+                return $emp;
+            }, $employees);
+
+            return response()->json($formattedEmployees);
+
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Erreur lors de la récupération des employés: ' . $e->getMessage()], 500);
+        }
+    }
 }

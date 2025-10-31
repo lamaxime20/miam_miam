@@ -451,3 +451,44 @@ CREATE TABLE IF NOT EXISTS Log_Activite (
   date_action TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT log_activite_cr0 FOREIGN KEY (id_user) REFERENCES "Utilisateur"(id_user) ON DELETE SET NULL
 );
+
+-- ============================================================
+-- 14) Lister les employés d'un restaurant (tous rôles)
+-- ============================================================
+CREATE OR REPLACE FUNCTION get_employees_by_restaurant(p_id_restaurant INT)
+RETURNS TABLE(
+  id VARCHAR,
+  name VARCHAR,
+  email VARCHAR,
+  position VARCHAR,
+  status VARCHAR,
+  "hireDate" DATE,
+  phone VARCHAR
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  RETURN QUERY
+  -- Gérants
+  SELECT u.id_user::VARCHAR, u.nom_user, u.email_user, 'Gérant' AS position, u.statut_account, g.date_debut::DATE, u.num_user
+  FROM Gerer g
+  JOIN "Utilisateur" u ON u.id_user = g.id_gerant
+  WHERE g.id_restaurant = p_id_restaurant AND g.service_employe = TRUE
+
+  UNION ALL
+
+  -- Employés
+  SELECT u.id_user::VARCHAR, u.nom_user, u.email_user, 'Employé' AS position, u.statut_account, tp.date_debut::DATE, u.num_user
+  FROM Travailler_pour tp
+  JOIN "Utilisateur" u ON u.id_user = tp.id_employe
+  WHERE tp.id_restaurant = p_id_restaurant AND tp.service_employe = TRUE
+
+  UNION ALL
+
+  -- Livreurs
+  SELECT u.id_user::VARCHAR, u.nom_user, u.email_user, 'Livreur' AS position, u.statut_account, el.date_debut::DATE, u.num_user
+  FROM Etre_livreur el
+  JOIN "Utilisateur" u ON u.id_user = el.id_livreur
+  WHERE el.id_restaurant = p_id_restaurant AND el.service_employe = TRUE;
+END;
+$$;

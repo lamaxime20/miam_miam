@@ -104,7 +104,7 @@ export async function getEmployees(restaurantId) {
  * @param {string} employeeData.role - Rôle/Poste de l'employé ('employe', 'gerant', 'livreur').
  * @param {int} employeeData.restaurant
  * @returns {Promise<Object>} - L'employé créé.
- */
+ */ 
 export async function createEmployee(employeeData) {
   try {
     const emailExist = await VerifEmailExist(employeeData.email);
@@ -112,7 +112,11 @@ export async function createEmployee(employeeData) {
       throw new Error("L'utilisateur avec cet email n'existe pas.");
     }
 
-    const est_employe = await UserDejaEmploye(employeeData.email, employeeData.role);
+    const roleMapping = {
+      'employé': 'employe',
+      'gérant': 'gerant'
+    };
+    const est_employe = await UserDejaEmploye(employeeData.email, roleMapping[employeeData.role] || employeeData.role);
     if (est_employe) {
       throw new Error("Cet utilisateur est déjà employé avec ce rôle.");
     }
