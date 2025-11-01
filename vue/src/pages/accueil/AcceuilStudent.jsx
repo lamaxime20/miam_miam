@@ -7,7 +7,7 @@ import Footer from './components/Layout/Footer.jsx';
 import Dashboard from './components/Dashboard/Dashboard.jsx';
 import { getRestaurantById } from './services/resataurant.js';
 import { addToCart } from '../../services/Menu.js';
-import { getAuthInfo } from '../../services/user.js';
+import { getAuthInfo, logout } from '../../services/user.js';
 
 function AcceuilStudent() {
   const [restaurant, setRestaurant] = useState({});
@@ -51,7 +51,7 @@ function AcceuilStudent() {
     setIsAuthenticated(false);
     setUser(null);
     setShowDashboard(false);
-    localStorage.removeItem('auth_token');
+    logout();
   };
 
   const handleShowDashboard = () => {
