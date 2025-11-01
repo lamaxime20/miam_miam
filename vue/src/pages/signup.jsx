@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import SignupFormName from '../components/signupFormName';
 import SignupFormVerification from '../components/signupFormVerification';
-import SignupFormPassword from '../components/SignupFormPassword';
+import SignupFormPassword from '../components/signupFormPassword';
 import ChoixClientResto from '../components/choixClientResto';
 import { loadUserFromStorage } from '../services/user';
 import '../assets/styles/signup.css';
