@@ -13,8 +13,14 @@ RUN npm install
 # Étape 5 : Copier le reste du code
 COPY . .
 
-# Étape 6 : Exposer le port utilisé par Vite
+# Étape 6 : Build de production
+RUN npm run build
+
+# Étape 7 : Installer un serveur HTTP simple pour servir les fichiers static
+RUN npm install -g serve
+
+# Étape 8 : Exposer le port
 EXPOSE 5173
 
-# Étape 7 : Démarrer le serveur Vite
-CMD ["npm", "run", "dev", "--", "--host"]
+# Étape 9 : Servir les fichiers built
+CMD ["serve", "-s", "dist", "-l", "5173"]
