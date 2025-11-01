@@ -6,8 +6,7 @@ RUN npm install
 COPY . .
 RUN npm run build
 
-# Installer serve
 RUN npm install -g serve
 
-# Utiliser le port de Render (10000 par défaut) ou 5173 en fallback
-CMD ["serve", "-s", "dist", "-l", "${PORT:-5173}"]
+# Utiliser directement le port 10000 (standard Render)
+CMD ["serve", "-s", "dist", "-l", "10000"]

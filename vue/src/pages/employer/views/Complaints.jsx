@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { getComplaints, saveComplaints } from '../services/mockApi';
+import { fetchReclamationsByRestaurant, updateReclamationStatusDb, addReponse } from '../../../services/Reclamations';
+import { getAuthInfo, recupererUser } from '../../../services/user';
 
 const IconAlert = (props) => (
   <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
@@ -25,11 +26,9 @@ export default function Complaints() {
   const [page, setPage] = useState(1);
   const pageSize = 6;
 
-  const defaultRows = [
-    { id: 1, customer: 'Alice', type: 'service', status: 'open', createdAt: '2025-10-10', message: 'Attente trop longue' },
-    { id: 2, customer: 'Bob', type: 'livraison', status: 'in_progress', createdAt: '2025-10-11', message: 'Commande en retard' },
-    { id: 3, customer: 'Claire', type: 'produit', status: 'resolved', createdAt: '2025-10-12', message: 'Plat froid' }
-  ];
+  const auth = getAuthInfo();
+  const restaurantId = auth?.restaurant;
+
   const [rows, setRows] = useState([]);
 
   useEffect(() => {
@@ -37,17 +36,28 @@ export default function Complaints() {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
   useEffect(() => {
     let mounted = true;
-    getComplaints(defaultRows).then(data => { if (mounted) setRows(data); });
+    async function load() {
+      if (!restaurantId) { setRows([]); return; }
+      try {
+        const data = await fetchReclamationsByRestaurant(restaurantId);
+        if (mounted) setRows(data);
+      } catch (e) {
+        console.error('Erreur chargement réclamations restaurant', e);
+        if (mounted) setRows([]);
+      }
+    }
+    load();
     return () => { mounted = false; };
-  }, []);
+  }, [restaurantId]);
 
   const kpis = useMemo(() => {
     const total = rows.length;
-    const open = rows.filter(r=>r.status==='open').length;
-    const inProgress = rows.filter(r=>r.status==='in_progress').length;
-    const resolved = rows.filter(r=>r.status==='resolved').length;
+    const open = rows.filter(r=>r.status==='ouverte').length;
+    const inProgress = rows.filter(r=>r.status==='en_traitement').length;
+    const resolved = rows.filter(r=>r.status==='fermée').length;
     return { total, open, inProgress, resolved };
   }, [rows]);
 
@@ -62,9 +72,27 @@ export default function Complaints() {
   const pageItems = filtered.slice((page-1)*pageSize, page*pageSize);
 
   function setFlashMessage(m){ setFlash(m); setTimeout(()=>setFlash(''), 1500); }
-  function updateAndSave(next){ setRows(next); saveComplaints(next); }
-  function startProgress(id){ const next = rows.map(r=>r.id===id?{...r,status:'in_progress'}:r); updateAndSave(next); setFlashMessage('Réclamation en cours.'); }
-  function resolve(id){ const next = rows.map(r=>r.id===id?{...r,status:'resolved'}:r); updateAndSave(next); setFlashMessage('Réclamation résolue.'); }
+  function updateAndSave(next){ setRows(next); }
+  async function startProgress(id){
+    try {
+      await updateReclamationStatusDb(id, 'en_traitement');
+      const next = rows.map(r=>r.id===id?{...r,status:'en_traitement'}:r);
+      updateAndSave(next);
+      setFlashMessage('Réclamation en cours.');
+    } catch (e) {
+      console.error('Erreur MAJ statut', e);
+    }
+  }
+  async function resolve(id){
+    try {
+      await updateReclamationStatusDb(id, 'fermée');
+      const next = rows.map(r=>r.id===id?{...r,status:'fermée'}:r);
+      updateAndSave(next);
+      setFlashMessage('Réclamation résolue.');
+    } catch (e) {
+      console.error('Erreur MAJ statut', e);
+    }
+  }
 
   return (
     <section className="container reveal" style={{ paddingTop: 0, paddingBottom: '2rem' }}>

@@ -43,6 +43,25 @@ export async function fetchReclamationsByClient(idClient) {
   }));
 }
 
+// Employer: lister les réclamations pour un restaurant, mappées au format attendu par la page Employeur
+export async function fetchReclamationsByRestaurant(idRestaurant) {
+  const res = await fetch(`${API_BASE}reclamations/restaurant/${idRestaurant}`);
+  if (!res.ok) throw new Error('Erreur chargement réclamations restaurant');
+  const data = await res.json();
+  // Le backend peut renvoyer des colonnes différentes selon la jointure; on gère prudemment
+  return data.map(r => ({
+    id: String(r.id_reclamation ?? r.id ?? ''),
+    orderId: r.id_commande ? String(r.id_commande) : (r.order_id ?? ''),
+    customer: r.nom_client || r.client_nom || r.client || r.acheteur_nom || 'Client',
+    email: r.email_client || r.client_email || r.email || '',
+    subject: r.sujet || r.subject || 'Réclamation',
+    description: r.message_reclamation || r.description || '',
+    status: r.statut_reclamation || r.status || 'ouverte',
+    createdAt: r.date_soummission || r.created_at || new Date().toISOString(),
+    response: r.derniere_reponse || r.response || undefined,
+  }));
+}
+
 // Créer une réclamation
 export async function createReclamation({ message, restaurantId, acheteurId }) {
   const res = await fetch(`${API_BASE}reclamations`, {
@@ -118,12 +137,25 @@ export async function addReponse(idReclamation, { message, auteurId, statut /* o
   return await res.json(); // { id }
 }
 
-// Changer statut
+// Changer statut (UI mapping open/in-progress/resolved)
 export async function updateReclamationStatus(idReclamation, uiStatus) {
   const res = await fetch(`${API_BASE}reclamations/${idReclamation}/status`, {
     method: 'PUT',
     headers: jsonHeaders,
     body: JSON.stringify({ statut: toDbStatus(uiStatus) }),
+  });
+  if (!res.ok) throw new Error('Erreur mise à jour statut');
+  return await res.json();
+}
+
+// Changer statut en passant directement un statut DB ('ouverte'|'en_traitement'|'fermée')
+export async function updateReclamationStatusDb(idReclamation, dbStatus) {
+  const allowed = ['ouverte','en_traitement','fermée'];
+  const statut = allowed.includes(dbStatus) ? dbStatus : toDbStatus(dbStatus);
+  const res = await fetch(`${API_BASE}reclamations/${idReclamation}/status`, {
+    method: 'PUT',
+    headers: jsonHeaders,
+    body: JSON.stringify({ statut }),
   });
   if (!res.ok) throw new Error('Erreur mise à jour statut');
   return await res.json();
