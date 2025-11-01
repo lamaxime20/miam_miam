@@ -1,5 +1,5 @@
 
-const API_BASE_URL = "http://localhost:8000/api";
+const API_BASE_URL = "https://miam-miam-q5x4.onrender.com/api";
 
 export async function AvoirMenusJourAcceul() {
     try {

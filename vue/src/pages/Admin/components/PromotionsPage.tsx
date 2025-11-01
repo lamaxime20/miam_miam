@@ -55,7 +55,7 @@ const statusConfig = {
 };
 
 export function PromotionsPage() {
-  const API_URL = import.meta.env.VITE_API_URL;
+  const API_URL = "https://miam-miam-q5x4.onrender.com/";
   const URL_image = API_URL + 'storage/';
 
   const [promotions, setPromotions] = useState<Promotion[]>([]);

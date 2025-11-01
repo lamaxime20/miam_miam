@@ -3,7 +3,7 @@ import { creerAdmin, recupererUser, genererTokenConnexion, getAuthInfo } from ".
 
 export async function  AvoirRestaurantById(id) {
     try {
-        const response = await fetch(`http://localhost:8000/api/restaurants/${id}`);
+        const response = await fetch(`https://miam-miam-q5x4.onrender.com/api/restaurants/${id}`);
 
         if(!response.ok){
             throw new Error(`Erreur HTTP : ${response.status}`);
@@ -214,7 +214,7 @@ export const useRestaurantFormLogo = () => {
             formData.append("file", file);
 
             // Appel à ton endpoint Laravel : POST /api/files
-            const response = await fetch(`${import.meta.env.VITE_API_URL}api/files`, {
+            const response = await fetch(`${"https://miam-miam-q5x4.onrender.com/"}api/files`, {
                 method: "POST",
                 body: formData,
             });
@@ -256,7 +256,7 @@ export const useRestaurantFormLogo = () => {
         }
 
         try {
-            const response = await fetch(`${import.meta.env.VITE_API_URL}api/files/${fileId}`, {
+            const response = await fetch(`${"https://miam-miam-q5x4.onrender.com/"}api/files/${fileId}`, {
                 method: "DELETE",
             });
 
@@ -365,7 +365,7 @@ export const createRestaurant = async (administrateur) => {
 
 
         // Appel à l'API Laravel
-        const response = await fetch(`${import.meta.env.VITE_API_URL}api/restaurants`, {
+        const response = await fetch(`${"https://miam-miam-q5x4.onrender.com/"}api/restaurants`, {
             method: "POST",
             body: formData,
         });

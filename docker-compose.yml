@@ -32,5 +32,5 @@ services:
       - ./vue:/app
       - /app/node_modules
     environment:
-    - VITE_API_URL=http://localhost:8000/
+    - VITE_API_URL=https://miam-miam-q5x4.onrender.com/
     - CHOKIDAR_USEPOLLING=true

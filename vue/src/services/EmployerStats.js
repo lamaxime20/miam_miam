@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL + 'api/';
+const API_URL = "https://miam-miam-q5x4.onrender.com/" + 'api/';
 
 /**
  * Récupère les statistiques employeur depuis le backend.

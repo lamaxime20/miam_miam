@@ -1,4 +1,4 @@
-const API_BASE_URL = "http://localhost:8000/api";
+const API_BASE_URL = "https://miam-miam-q5x4.onrender.com/api";
 
 /**
  * Récupère les points de fidélité du client

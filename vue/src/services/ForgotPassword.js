@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = "https://miam-miam-q5x4.onrender.com/";
 
 export async function requestReset(email) {
   const res = await fetch(`${API_URL}api/password-reset/request`, {

@@ -154,7 +154,7 @@ const dataMockee = {
 };
 
 // APRÈS (appel API réel)
-const response = await fetch('http://localhost:8000/api/dashboard/ventes-aujourdhui');
+const response = await fetch('https://miam-miam-q5x4.onrender.com/api/dashboard/ventes-aujourdhui');
 const data = await response.json();
 ```
 
@@ -164,7 +164,7 @@ const data = await response.json();
 export async function getVentesAujourdhui() {
   try {
     // ✅ APPEL API RÉEL
-    const response = await fetch('http://localhost:8000/api/dashboard/ventes-aujourdhui', {
+    const response = await fetch('https://miam-miam-q5x4.onrender.com/api/dashboard/ventes-aujourdhui', {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -207,7 +207,7 @@ export async function getVentesAujourdhui() {
 
 ```bash
 # Tester les ventes du jour
-curl http://localhost:8000/api/dashboard/ventes-aujourdhui
+curl https://miam-miam-q5x4.onrender.com/api/dashboard/ventes-aujourdhui
 
 # Réponse attendue :
 # {"total_eur": 2847.50, "pourcentage_vs_hier": 12.3}

@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_URL + "api/" || 'http://localhost:8000/api/';
+const API_BASE = "https://miam-miam-q5x4.onrender.com/" + "api/" || 'https://miam-miam-q5x4.onrender.com/api/';
 
 const toFrontendStatus = (dbStatus) => {
   switch (dbStatus) {

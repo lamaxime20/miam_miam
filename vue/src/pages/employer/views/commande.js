@@ -5,7 +5,7 @@ import { getAuthInfo } from "../../../services/user";
  * @returns {Promise<Array<Object>>}
  */
 export async function getCommandesEmployeur(statusFilter = 'all') {
-    const API_URL = import.meta.env.VITE_API_URL;
+    const API_URL = "https://miam-miam-q5x4.onrender.com/";
     const restaurantId = getAuthInfo().restaurant;
     const params = new URLSearchParams();
     
@@ -34,7 +34,7 @@ export async function getCommandesEmployeur(statusFilter = 'all') {
  * @returns {Promise<Object>} Une promesse qui résout avec la commande mise à jour.
  */
 export async function updateCommandeStatus(orderId, newStatus) {
-    const API_URL = import.meta.env.VITE_API_URL;
+    const API_URL = "https://miam-miam-q5x4.onrender.com/";
     const res = await fetch(`${API_URL}api/commandes/${orderId}/status`, {
         method: 'PUT',
         headers: {
@@ -132,7 +132,7 @@ export async function fetchCommandes(status = 'all') {
  * @returns {Promise<Array<Object>>} La liste des livreurs.
  */
 export async function getLivreursDisponibles() {
-    const API_URL = import.meta.env.VITE_API_URL;
+    const API_URL = "https://miam-miam-q5x4.onrender.com/";
     const res = await fetch(`${API_URL}api/livreurs/disponibles`, {
         headers: { 'Accept': 'application/json' }
     });
@@ -147,7 +147,7 @@ export async function getLivreursDisponibles() {
  * @returns {Promise<Object>} Les détails de la livraison créée.
  */
 export async function assignerLivreur(commandeId, livreurId) {
-    const API_URL = import.meta.env.VITE_API_URL;
+    const API_URL = "https://miam-miam-q5x4.onrender.com/";
     const res = await fetch(`${API_URL}api/commandes/${commandeId}/assigner-livreur`, {
         method: 'POST',
         headers: {

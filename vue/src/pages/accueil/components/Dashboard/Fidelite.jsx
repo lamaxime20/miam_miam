@@ -5,7 +5,7 @@ import { Star, Gift, Users, Copy, Check } from "lucide-react";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { getAuthInfo, recupererToken } from "../../../../services/user";
 
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = "https://miam-miam-q5x4.onrender.com/";
 const URL_React = "http://localhost:5173/";
 
 const rewards = [

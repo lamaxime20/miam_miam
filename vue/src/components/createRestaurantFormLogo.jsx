@@ -3,7 +3,7 @@ import '../assets/styles/createRestaurant.css';
 import { restaurant } from "../services/restaurant";
 import LoaderOverlay from "./loaderOverlay"; // 🔹 import du loader
 import { uploadImage, updateImage } from "../services/GestionMenu";
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = "https://miam-miam-q5x4.onrender.com/";
 
 const CreateRestaurantFormLogo = ({ onNext, handlePrevious }) => {
     // On utilise maintenant l'état local pour gérer l'image et les messages

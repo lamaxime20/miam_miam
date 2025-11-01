@@ -17,7 +17,7 @@
 
 import { getAuthInfo } from './user';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/';
+const API_URL = "https://miam-miam-q5x4.onrender.com/" || 'https://miam-miam-q5x4.onrender.com/';
 
 // helper pour récupérer l'id du restaurant courant depuis le token
 function getRestaurantId() {

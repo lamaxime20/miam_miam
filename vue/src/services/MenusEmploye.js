@@ -15,7 +15,7 @@ function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/';
+const API_URL = "https://miam-miam-q5x4.onrender.com/" || 'https://miam-miam-q5x4.onrender.com/';
 
 /**
  * Récupère les données du menu pour l'employé.

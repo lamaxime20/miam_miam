@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { getCartFromStorage, removeFromCart, getImageBase64 } from "./Menu";
 import { recupererToken, getAuthInfo, getUserByEmail } from "./user";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/";
+const API_BASE_URL = "https://miam-miam-q5x4.onrender.com/" || "https://miam-miam-q5x4.onrender.com/";
 
 function computeDiscounted(price, percent) {
     if (!percent || percent <= 0) return price;

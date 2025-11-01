@@ -69,7 +69,7 @@ const categoryIcons = {
 };
 
 export function MenuPage() {
-  const API_URL = import.meta.env.VITE_API_URL;
+  const API_URL = "https://miam-miam-q5x4.onrender.com/";
 
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');

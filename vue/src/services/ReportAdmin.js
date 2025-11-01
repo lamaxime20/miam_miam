@@ -1,6 +1,6 @@
 // ReportAdmin.js
 // Fonctions pour récupérer les données de ReportsPage depuis l'API Laravel
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = "https://miam-miam-q5x4.onrender.com/";
 const API_BASE = API_URL + 'api/dashboard/reports';
 
 async function fetchJson(url) {

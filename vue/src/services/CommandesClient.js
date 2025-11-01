@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = "https://miam-miam-q5x4.onrender.com/";
 
 // Mappe les statuts métier (DB/Backend) vers les statuts utilisés dans l'UI
 // Règles fournies:
