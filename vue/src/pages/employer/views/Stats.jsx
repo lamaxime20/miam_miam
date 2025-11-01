@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import CountUp from '../components/common/CountUp';
 import SimpleLineChart from '../components/common/SimpleLineChart';
-import SimplePieChart from '../components/common/SimplePieChart';
 import SimpleBarChart from '../components/common/SimpleBarChart';
-import { getEmployerStats } from '../../../services/EmployerStats';
+import { getEmployerStats, getEmployerSeries } from '../../../services/EmployerStats';
+import { getAuthInfo } from '../../../services/user';
 
 const IconBars = (props) => (
   <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
@@ -13,13 +13,14 @@ const IconBars = (props) => (
   </svg>
 );
 
-const money = (n)=> new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XAF', maximumFractionDigits: 0 }).format(Math.round(Number(n||0)));
+const money = (n)=> new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XAF', maximumFractionDigits: 0 }).format(Math.round(Number(n||0))); // FCFA
 
 export default function Stats() {
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
   const [period, setPeriod] = useState('30');
 
   const [data, setData] = useState({ orders: 0, delivered: 0, revenue: 0, avgTicket: 0, complaints: 0, newDishes: 0 });
+  const [series, setSeries] = useState({ labels: [], orders: [], delivered: [], sales: [], avgTicketPerDay: [], complaints: [], newDishes: [] });
 
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
@@ -32,7 +33,13 @@ export default function Stats() {
     (async () => {
       try {
         const days = Number(period) || 30;
-        const stats = await getEmployerStats({ restaurantId: 1, days });
+        const info = getAuthInfo();
+        const restaurantId = Number(info?.restaurant);
+        if (!restaurantId) return;
+        const [stats, serie] = await Promise.all([
+          getEmployerStats({ restaurantId, days }),
+          getEmployerSeries({ restaurantId, days })
+        ]);
         if (!mounted) return;
         setData(d => ({
           ...d,
@@ -40,8 +47,20 @@ export default function Stats() {
           delivered: stats?.delivered ?? 0,
           revenue: stats?.revenue ?? 0,
           avgTicket: stats?.avgTicket ?? 0,
+          complaints: stats?.complaints ?? 0,
           newDishes: stats?.newDishes ?? 0,
         }));
+        setSeries({
+          labels: (serie?.labels || []).map((s) => {
+            try { return new Intl.DateTimeFormat('fr-FR', { weekday: 'short' }).format(new Date(s)); } catch { return String(s); }
+          }),
+          orders: serie?.orders || [],
+          delivered: serie?.delivered || [],
+          sales: serie?.sales || [],
+          avgTicketPerDay: serie?.avgTicketPerDay || [],
+          complaints: serie?.complaints || [],
+          newDishes: serie?.newDishes || [],
+        });
       } catch (e) {
         console.error('Erreur récupération stats employeur:', e);
       }
@@ -117,30 +136,28 @@ export default function Stats() {
       <div className="reveal" style={{ display:'grid', gridTemplateColumns: windowWidth > 992 ? '1fr 1fr' : '1fr', gap: 16, marginTop: 16 }}>
         <div style={{ background:'#fff', borderRadius:12, padding:16, boxShadow:'0 2px 6px rgba(0,0,0,0.05)' }}>
           <div style={{ fontWeight:600, marginBottom:8 }}>Taux de livraison (%)</div>
-          <SimpleLineChart height={120} data={[65,70,72,68,75,80,79]} labels={["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"]} color="#10b981" />
+          <SimpleLineChart height={120} data={series.labels.map((_, i) => {
+            const o = series.orders[i] || 0; const d = series.delivered[i] || 0; return o > 0 ? Math.round((d / o) * 100) : 0;
+          })} labels={series.labels} color="#10b981" />
         </div>
         <div style={{ background:'#fff', borderRadius:12, padding:16, boxShadow:'0 2px 6px rgba(0,0,0,0.05)' }}>
           <div style={{ fontWeight:600, marginBottom:8 }}>Revenu par commande (FCFA)</div>
-          <SimpleLineChart height={120} data={[38500,40200,39100,41000,42300,43000,42200]} labels={["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"]} color="#cfbd97" />
+          <SimpleLineChart height={120} data={series.avgTicketPerDay} labels={series.labels} color="#cfbd97" />
         </div>
         <div style={{ background:'#fff', borderRadius:12, padding:16, boxShadow:'0 2px 6px rgba(0,0,0,0.05)' }}>
           <div style={{ fontWeight:600, marginBottom:8 }}>Réclamations (nb)</div>
-          <SimpleBarChart height={120} data={[1,0,2,3,1,0,1]} labels={["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"]} color="#ef4444" />
+          <SimpleBarChart height={120} data={series.complaints} labels={series.labels} color="#ef4444" />
         </div>
         <div style={{ background:'#fff', borderRadius:12, padding:16, boxShadow:'0 2px 6px rgba(0,0,0,0.05)' }}>
           <div style={{ fontWeight:600, marginBottom:8 }}>Nouveaux plats (nb)</div>
-          <SimpleBarChart height={120} data={[0,1,0,0,2,1,1]} labels={["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"]} color="#8b5cf6" />
+          <SimpleBarChart height={120} data={series.newDishes} labels={series.labels} color="#8b5cf6" />
         </div>
       </div>
 
       <div className="reveal" style={{ display:'grid', gridTemplateColumns: windowWidth > 992 ? '1fr 1fr' : '1fr', gap: 16, marginTop: '1rem' }}>
         <div style={{ background:'#fff', borderRadius:12, padding:16, boxShadow:'0 2px 6px rgba(0,0,0,0.05)' }}>
-          <div style={{ fontWeight:600, marginBottom:10 }}>Ventes par jour</div>
-          <SimpleLineChart height={200} data={[2000,2400,2200,2800,3200,4100,3500]} labels={["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"]} color="#cfbd97" />
-        </div>
-        <div style={{ background:'#fff', borderRadius:12, padding:16, boxShadow:'0 2px 6px rgba(0,0,0,0.05)' }}>
-          <div style={{ fontWeight:600, marginBottom:10 }}>Répartition des commandes</div>
-          <SimplePieChart size={220} innerRadius={70} values={[45,30,25]} labels={["Sur place","Livraison","À emporter"]} colors={["#cfbd97","#6b7280","#111"]} />
+          <div style={{ fontWeight:600, marginBottom:10 }}>Ventes par jour (FCFA)</div>
+          <SimpleLineChart height={200} data={series.sales} labels={series.labels} color="#cfbd97" />
         </div>
       </div>
 

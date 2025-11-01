@@ -107,8 +107,9 @@ Route::get('/livreurs/disponibles', [etre_livreurController::class, 'disponibles
 // Livraison status update (optional for future steps)
 Route::put('/livraisons/{id}/status', [livraisonController::class, 'updateStatus']);
 
-// Employer stats (DB-driven; complaints remain static on frontend)
+// Employer stats
 Route::get('/employe/stats', [statsEmployerController::class, 'stats']);
+Route::get('/employe/series', [statsEmployerController::class, 'series']);
 
 // Routes pour les promotions
 Route::get('/promotions/actives', [promotionController::class, 'promotionsActives']);
