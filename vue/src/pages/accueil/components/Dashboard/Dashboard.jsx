@@ -92,6 +92,7 @@ export default function Dashboard({ user, initialPage = 'dashboard' }) {
         setDetailsFidelite(fidelite)
         setPromotions(promotionsData)
         setNotifications(notificationsData)
+        console.log(dashboardStats);
       } catch (error) {
         console.error("Erreur lors du chargement des données du dashboard :", error)
       } finally {
@@ -466,7 +467,7 @@ export default function Dashboard({ user, initialPage = 'dashboard' }) {
                 <RiStarFill className="star-icon" />
               </div>
               <div className="loyalty-points">
-                {loading ? "..." : dashboardStats.points_fidelite?.toLocaleString() || "0"}
+                {loading ? "..." : "0"}
               </div>
             </div>
           )}
