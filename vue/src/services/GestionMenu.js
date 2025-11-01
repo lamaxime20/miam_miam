@@ -1,5 +1,5 @@
 const API_URL = import.meta.env.VITE_API_URL;
-import { getAuthInfo } from './user';
+import { getAuthInfo, recupererToken } from './user';
 
 const mockMenuItemsEUR = [
   {
@@ -184,23 +184,30 @@ export function convertirPrix(prixFCFA) {
 export async function uploadImage(file) {
   const formData = new FormData();
   formData.append('file', file); // La clé 'file' doit correspondre à ce que votre backend attend
+  const votre_token = recupererToken();
+  console.log(votre_token);
 
   try {
+    console.log("Uploading new image")
     const response = await fetch(`${API_URL}api/files/upload`, {
       method: 'POST',
       body: formData,
       // Si une authentification est requise, ajoutez les en-têtes ici.
-      // headers: {
-      //   'Authorization': `Bearer ${votre_token}`,
-      // },
+      headers: {
+         'Authorization': `Bearer ${votre_token}`
+      },
     });
+
+    console.log(response)
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ message: 'Réponse non-JSON du serveur.' }));
       throw new Error(errorData.message || `Erreur HTTP ${response.status} lors du téléversement de l'image.`);
     }
 
-    return await response.json();
+    const answer = await response.json();
+    console.log(answer);
+    return answer;
   } catch (error) {
     console.error("Erreur lors du téléversement de l'image:", error);
     throw error; // Propage l'erreur pour la gérer dans le composant
@@ -283,6 +290,8 @@ export async function updateImage(oldImageId, file) {
   formData.append('file', file);
 
   try {
+    console.log("Updating image")
+
     const response = await fetch(`${API_URL}api/files/${oldImageId}`, {
       method: 'PUT',
       body: formData,

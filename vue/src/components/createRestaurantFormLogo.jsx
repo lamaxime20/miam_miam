@@ -41,6 +41,8 @@ const CreateRestaurantFormLogo = ({ onNext, handlePrevious }) => {
             const localPreviewUrl = URL.createObjectURL(file);
             setImage(localPreviewUrl);
 
+            console.log(`Trying to upload image: ${localPreviewUrl} ${file}`)
+
             const hasExisting = !!restaurant.restoIdFileLogo;
             const response = hasExisting
                 ? await updateImage(restaurant.restoIdFileLogo, file)

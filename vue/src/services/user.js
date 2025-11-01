@@ -343,7 +343,7 @@ export async function genererTokenInscription({ email, role, restaurant }) {
                 token_type: 'Bearer',
                 role: role || 'client',
                 restaurant: restaurant || '1',
-                display_name: User.name || 'Client',
+                display_name: User.email || 'Client',
                 expiresAt,
             };
             localStorage.setItem('auth_token', JSON.stringify(tokenData));
@@ -361,7 +361,7 @@ export async function genererTokenInscription({ email, role, restaurant }) {
                 token_type: data.token_type,
                 role: data.role,
                 restaurant: data.restaurant,
-                display_name: User.name || 'Client',
+                display_name: User.email || 'Client',
                 expiresAt: expiresAt
             };
 
