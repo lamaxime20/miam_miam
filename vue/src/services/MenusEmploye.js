@@ -166,6 +166,7 @@ export async function fetchMenusDuJourIds() {
 }
 
 export async function addMenusDuJour(id_employe, menus_plus) {
+    console.log(menus_plus);
     const res = await fetch(`${API_URL}api/menu-jour/ajouter`, {
         method: 'POST',
         headers: {
