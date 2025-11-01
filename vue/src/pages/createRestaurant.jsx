@@ -4,7 +4,7 @@ import ProgressionRestaurant from "../components/progressionRestaurant";
 import CreateRestaurantFormName from "../components/createRestaurantFormName";
 import CreateRestaurantFormLogo from "../components/createRestaurantFormLogo";
 import CreateRestaurantFormPolicy from "../components/createRestaurantFormPolicy";
-import CreateRestaurantFormSuccess from "../components/CreateRestaurantFormSuccess";
+import CreateRestaurantFormSuccess from "../components/CreateRestaurantFormSuccess.jsx";
 import { getRestaurantStep } from "../services/restaurant";
 
 
