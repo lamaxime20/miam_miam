@@ -80,11 +80,11 @@ export default function Dashboard({ user, initialPage = 'dashboard' }) {
           promotionsData,
           notificationsData
         ] = await Promise.all([
-          getDashboardStats(clientId),
-          getCommandesRecentes(clientId, 5),
-          getDetailsFidelite(clientId),
-          getPromotionsActives(),
-          getNotificationsClient(clientId)
+          0,
+          0,
+          0,
+          0,
+          0
         ])
 
         setDashboardStats(stats)

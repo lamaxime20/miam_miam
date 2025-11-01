@@ -166,20 +166,43 @@ export async function fetchMenusDuJourIds() {
 }
 
 export async function addMenusDuJour(id_employe, menus_plus) {
-    console.log(menus_plus);
-    const res = await fetch(`${API_URL}api/menu-jour/ajouter`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-        },
-        body: JSON.stringify({ id_employe, menus_plus }),
-    });
-    if (!res.ok) {
-        const err = await safeJson(res);
-        throw new Error(err?.message || `Erreur API: ${res.status}`);
+    console.log('Envoi des données:', { id_employe, menus_plus });
+    
+    try {
+        const res = await fetch(`http://localhost:8000/api/menu-jour/ajouter`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+            },
+            body: JSON.stringify({
+                id_employe: id_employe, 
+                menus_plus: menus_plus 
+            }),
+        });
+
+        console.log('Status HTTP:', res.status);
+        
+        if (!res.ok) {
+            // Essayez de récupérer le message d'erreur du backend
+            let errorData;
+            try {
+                errorData = await res.json();
+            } catch (e) {
+                const text = await res.text();
+                throw new Error(`Erreur ${res.status}: ${text}`);
+            }
+            throw new Error(errorData.message || `Erreur ${res.status}`);
+        }
+
+        const result = await res.json();
+        console.log('Réponse API:', result);
+        return result;
+        
+    } catch (error) {
+        console.error('Erreur complète dans addMenusDuJour:', error);
+        throw error;
     }
-    return await res.json();
 }
 
 export async function removeMenusDuJour(menus_moins) {

@@ -9,7 +9,8 @@ import {
   doitAfficherBoutons,
   getConfigBoutonValider,
   updateCommandeStatus,
-  fetchCommandes as fetchCommandesService
+  fetchCommandes as fetchCommandesService,
+  assignerLivreur // AJOUT IMPORTANT
 } from './commande';
 import { getEmployerDashboardKpis } from '../../../services/employe';
 import ChoixLivreurCommande from '../../../components/choixLivreurCommande';
@@ -60,8 +61,9 @@ export default function Orders() {
   const [selectedCommande, setSelectedCommande] = useState(null);
 
   const [rows, setRows] = useState([]);
-  const [commandes, setCommandes] = useState([]); // État pour les nouvelles commandes
-  const [loading, setLoading] = useState(true); // État de chargement
+  const [commandes, setCommandes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [updatingCommandes, setUpdatingCommandes] = useState(new Set());
   const [employerKpis, setEmployerKpis] = useState({ daily_orders_count: 0, daily_revenue: 0, open_complaints_count: 0, active_employees_count: 0 });
   const defaultRows = [];
 
@@ -124,10 +126,8 @@ export default function Orders() {
   const money = (n)=> new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XAF', maximumFractionDigits: 0 }).format(Math.round(Number(n||0)));
 
   const kpis = useMemo(() => {
-    // total et revenue depuis l'API backend
     const total = Number(employerKpis?.daily_orders_count || 0);
     const revenue = Number(employerKpis?.daily_revenue || 0);
-    // pending et delivered dérivés de la liste réelle des commandes (front)
     const pending = (commandes || []).filter(c => ['non lu','en préparation','en livraison'].includes((c.statut||'').toLowerCase())).length;
     const delivered = (commandes || []).filter(c => (c.statut||'').toLowerCase() === 'validé').length;
     return { total, pending, delivered, revenue };
@@ -151,38 +151,79 @@ export default function Orders() {
 
   // Gestionnaire pour la validation des commandes
   const handleValider = async (id) => {
+    setUpdatingCommandes(prev => new Set(prev).add(id));
     try {
       const commande = commandes.find(c => c.id_commande === id);
       if (!commande) return;
 
       let commandeModifiee;
+      
       if (commande.statut === 'non lu') {
         commandeModifiee = await validerCommandeNonLue(id);
+        setCommandes(prev => prev.map(c => 
+          c.id_commande === id ? { ...c, statut: commandeModifiee.statut } : c
+        ));
+        setFlashMessage(`Commande ${id} mise en préparation`);
+        
       } else if (commande.statut === 'en préparation') {
-        commandeModifiee = await validerCommandeEnPreparation(id);
         // Ouvrir la fenêtre de sélection du livreur
-        setSelectedCommande(commandeModifiee);
+        setSelectedCommande(commande);
         setIsLivreurModalOpen(true);
+        // Ne pas mettre à jour le statut tant que le livreur n'est pas choisi
+        return;
       }
 
-      // Mettre à jour la liste des commandes
-      setCommandes(prev => prev.map(c => 
-        c.id_commande === id ? { ...c, statut: commandeModifiee.statut } : c
-      ));
-
-      setFlashMessage(`Commande ${id} ${commande.statut === 'non lu' ? 'mise en préparation' : 'validée'}`);
     } catch (error) {
       console.error('Erreur lors de la validation de la commande:', error);
       setFlashMessage('Erreur lors de la validation de la commande');
+    } finally {
+      setUpdatingCommandes(prev => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
     }
+  };
+
+  // Gestionnaire pour la sélection du livreur
+  const handleLivreurSelected = async (livreur, result) => {
+    if (!selectedCommande) return;
+
+    try {
+      setUpdatingCommandes(prev => new Set(prev).add(selectedCommande.id_commande));
+      
+      // Mettre à jour la liste des commandes avec le nouveau statut
+      setCommandes(prev => prev.map(c => 
+        c.id_commande === selectedCommande.id_commande ? { ...c, statut: result.statut } : c
+      ));
+
+      setFlashMessage(`Livreur ${livreur.nom} assigné à la commande ${selectedCommande.id_commande}`);
+      setIsLivreurModalOpen(false);
+      
+    } catch (error) {
+      console.error('Erreur lors de l\'assignation du livreur:', error);
+      setFlashMessage('Erreur lors de l\'assignation du livreur');
+    } finally {
+      setUpdatingCommandes(prev => {
+        const next = new Set(prev);
+        next.delete(selectedCommande.id_commande);
+        return next;
+      });
+    }
+  };
+
+  // Handler pour la fermeture de la modal livreur sans sélection
+  const handleLivreurModalClose = () => {
+    setIsLivreurModalOpen(false);
+    // La commande reste en préparation si l'utilisateur ferme sans choisir
   };
 
   // Gestionnaire pour l'annulation des commandes
   const handleAnnuler = async (id) => {
+    setUpdatingCommandes(prev => new Set(prev).add(id));
     try {
       await annulerCommande(id);
       
-      // Mettre à jour la liste des commandes
       setCommandes(prev => prev.map(c => 
         c.id_commande === id ? { ...c, statut: 'annulé' } : c
       ));
@@ -191,6 +232,12 @@ export default function Orders() {
     } catch (error) {
       console.error('Erreur lors de l\'annulation de la commande:', error);
       setFlashMessage('Erreur lors de l\'annulation de la commande');
+    } finally {
+      setUpdatingCommandes(prev => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
     }
   };
   
@@ -200,23 +247,6 @@ export default function Orders() {
     if (commande) {
       setSelectedCommande(commande);
       setIsModalOpen(true);
-    }
-  };
-
-  // Gestionnaire pour remettre une commande en préparation
-  const handleValiderRetourEnPreparation = async (commandeId) => {
-    if (!commandeId) return;
-    try {
-      console.log('Commande à remettre en préparation:', commandeId);
-      const commandeModifiee = await updateCommandeStatus(commandeId, 'en préparation');
-      console.log('Commande mise en préparation:', commandeModifiee);
-      setCommandes(prev => prev.map(c => 
-        c.id_commande === commandeId ? { ...c, statut: 'en préparation' } : c
-      ));
-      setFlashMessage('Commande remise en préparation');
-    } catch (error) {
-      console.error('Erreur lors de la remise en préparation:', error);
-      setFlashMessage('Erreur lors de la remise en préparation');
     }
   };
 
@@ -267,7 +297,8 @@ export default function Orders() {
         <div className="d-flex flex-wrap gap-2">
           <button className={`btn ${status === 'all' ? 'btn-dark' : 'btn-outline-secondary'} btn-sm`} onClick={() => setStatus('all')}>Tous</button>
           <button className={`btn ${status === 'non lu' ? 'btn-dark' : 'btn-outline-secondary'} btn-sm`} onClick={() => setStatus('non lu')}>Non lues</button>
-          <button className={`btn ${status === 'en cours' ? 'btn-dark' : 'btn-outline-secondary'} btn-sm`} onClick={() => setStatus('en cours')}>En cours</button>
+          <button className={`btn ${status === 'en préparation' ? 'btn-dark' : 'btn-outline-secondary'} btn-sm`} onClick={() => setStatus('en préparation')}>En préparation</button>
+          <button className={`btn ${status === 'en livraison' ? 'btn-dark' : 'btn-outline-secondary'} btn-sm`} onClick={() => setStatus('en livraison')}>En livraison</button>
           <button className={`btn ${status === 'validé' ? 'btn-dark' : 'btn-outline-secondary'} btn-sm`} onClick={() => setStatus('validé')}>Validées</button>
         </div>
       </div>
@@ -290,6 +321,7 @@ export default function Orders() {
               id_commande={commande.id_commande}
               nom_client={commande.nom_client}
               statut={commande.statut}
+              isUpdating={updatingCommandes.has(commande.id_commande)}
               onValider={() => handleValider(commande.id_commande)}
               onAnnuler={() => handleAnnuler(commande.id_commande)}
               onDetails={() => handleDetails(commande.id_commande)}
@@ -312,30 +344,18 @@ export default function Orders() {
             onValider={() => handleValider(selectedCommande.id_commande)}
             onAnnuler={() => handleAnnuler(selectedCommande.id_commande)}
           />
-          {selectedCommande.statut === 'validé' && (
-            <ChoixLivreurCommande
-              isOpen={isLivreurModalOpen}
-              onClose={() => {
-                handleValiderRetourEnPreparation(selectedCommande.id_commande);
-                setIsLivreurModalOpen(false);
-                handleCloseModal();
-              }}
-              commande={selectedCommande}
-              onSuccess={(livreur) => {
-                setFlashMessage(`Livreur ${livreur.nom} assigné à la commande ${selectedCommande.id_commande}`);
-                setIsLivreurModalOpen(false);
-                handleCloseModal();
-                // Rafraîchir la liste des commandes
-                fetchCommandes();
-              }}
-              onError={(error) => {
-                setFlashMessage('Erreur lors de l\'assignation du livreur');
-                handleValiderRetourEnPreparation(selectedCommande.id_commande);
-                setIsLivreurModalOpen(false);
-                handleCloseModal();
-              }}
-            />
-          )}
+          
+          {/* Modal pour choisir le livreur - s'ouvre quand on clique sur "Terminer préparation" */}
+          <ChoixLivreurCommande
+            isOpen={isLivreurModalOpen}
+            onClose={handleLivreurModalClose}
+            commande={selectedCommande}
+            onSuccess={handleLivreurSelected}
+            onError={(error) => {
+              setFlashMessage('Erreur lors de l\'assignation du livreur');
+              setIsLivreurModalOpen(false);
+            }}
+          />
         </>
       )}
 

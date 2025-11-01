@@ -61,15 +61,21 @@ export async function validerCommandeNonLue(orderId) {
  * @param {string|number} orderId L'identifiant de la commande.
  * @returns {Promise<Object>} La commande mise à jour.
  */
-export async function validerCommandeEnPreparation(orderId) {
-    try {
-        const commandeValidee = await updateCommandeStatus(orderId, 'validé');
-        return commandeValidee;
-    } catch (error) {
-        console.error('Erreur lors de la validation de la commande:', error);
-        throw error;
-    }
-}
+export const validerCommandeEnPreparation = async (idCommande) => {
+  const response = await fetch(`/api/commandes/${idCommande}/status`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ statut: 'validé' }),
+  });
+  
+  if (!response.ok) {
+    throw new Error('Erreur lors de la validation de la commande');
+  }
+  
+  return await response.json();
+};
 
 /**
  * Annule une commande quel que soit son état actuel.
@@ -146,16 +152,19 @@ export async function getLivreursDisponibles() {
  * @param {string|number} livreurId - L'ID du livreur.
  * @returns {Promise<Object>} Les détails de la livraison créée.
  */
-export async function assignerLivreur(commandeId, livreurId) {
-    const API_URL = import.meta.env.VITE_API_URL;
-    const res = await fetch(`${API_URL}api/commandes/${commandeId}/assigner-livreur`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-        },
-        body: JSON.stringify({ livreur_id: livreurId })
-    });
-    if (!res.ok) throw new Error(`Erreur assignation livreur (${res.status})`);
-    return await res.json();
-}
+export const assignerLivreur = async (idCommande, idLivreur) => {
+  const API_URL = import.meta.env.VITE_API_URL;
+  const response = await fetch(`${API_URL}api/commandes/${idCommande}/assigner-livreur`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ livreur_id: idLivreur }),
+  });
+  
+  if (!response.ok) {
+    throw new Error('Erreur lors de l\'assignation du livreur');
+  }
+  
+  return await response.json();
+};

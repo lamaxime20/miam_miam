@@ -1,5 +1,6 @@
 import React from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
+import { Spinner } from 'react-bootstrap';
 import { doitAfficherBoutons, getConfigBoutonValider } from '../pages/employer/views/commande';
 
 /**

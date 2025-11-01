@@ -42,33 +42,33 @@ function ChoixLivreurCommande({ isOpen, onClose, commande, onSuccess, onError })
         setSelectedLivreur(livreur);
     };
 
-    const handleConfirmer = async () => {
-        if (!selectedLivreur) return;
+    // Modifiez la fonction handleConfirmer pour appeler onSuccess avec les bonnes données
+const handleConfirmer = async () => {
+  if (!selectedLivreur) return;
 
-        try {
-            setAssigning(true);
-            setError(null);
+  try {
+    setAssigning(true);
+    setError(null);
 
-            await assignerLivreur(commande.id_commande, selectedLivreur.id);
-            
-            if (onSuccess) {
-                onSuccess(selectedLivreur);
-            }
-            
-            onClose();
-        } catch (err) {
-            setError('Erreur lors de l\'assignation du livreur');
-            console.error('Erreur:', err);
-            
-            // L'erreur sera gérée par le composant parent via onError
-
-            if (onError) {
-                onError(err);
-            }
-        } finally {
-            setAssigning(false);
-        }
-    };
+    // Appeler l'API pour assigner le livreur
+    const result = await assignerLivreur(commande.id_commande, selectedLivreur.id);
+    
+    if (onSuccess) {
+      onSuccess(selectedLivreur, result);
+    }
+    
+    onClose();
+  } catch (err) {
+    setError('Erreur lors de l\'assignation du livreur');
+    console.error('Erreur:', err);
+    
+    if (onError) {
+      onError(err);
+    }
+  } finally {
+    setAssigning(false);
+  }
+};
 
     const handleCancel = () => {
         onClose();
