@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Star, Gift, Users, Copy, Check } from "lucide-react";
 import "bootstrap/dist/css/bootstrap.min.css";
-import { getAuthInfo, recupererToken } from "../../../../services/user";
+import { getAuthInfo, recupererToken, getUserByEmail } from "../../../../services/user";
 
 const API_URL = import.meta.env.VITE_API_URL;
 const URL_React = "http://localhost:5173/";
@@ -26,28 +26,58 @@ function Fidelite() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [bonusClaimedToday, setBonusClaimedToday] = useState(false);
+  const [clientId, setClientId] = useState(null); // ✅ Changé en état React
 
   const auth = useMemo(() => getAuthInfo(), []);
-  const restaurantId = auth?.restaurant ? parseInt(auth.restaurant, 10) : undefined; // ne pas mettre 1 par défaut
+  const restaurantId = auth?.restaurant ? parseInt(auth.restaurant, 10) : undefined;
   const token = useMemo(() => recupererToken(), []);
-
-  // ID du client (à adapter selon votre logique d'authentification)
-  const clientId = 1;
 
   useEffect(() => {
     async function bootstrap() {
       try {
-        setLoading(true);
+        setLoading(true); 
+        setError(null);
+        
+        // Vérifier si l'utilisateur est connecté
+        const authInfo = getAuthInfo();
+        console.log("Auth info:", authInfo);
+        
+        if (!authInfo || !authInfo.display_name) {
+          throw new Error("Aucun utilisateur connecté");
+        }
+
+        const emailClient = authInfo.display_name;
+        console.log("Email client:", emailClient);
+        
+        // Récupérer les infos du client
+        const client = await getUserByEmail(emailClient);
+        console.log("Client récupéré:", client);
+        
+        if (!client || !client.id_user) {
+          throw new Error("Client non trouvé dans la base de données");
+        }
+
+        // ✅ Stocker l'ID client dans l'état React
+        setClientId(client.id_user);
+        console.log("ID Client défini:", client.id_user);
+
+        // Charger les données de fidélité
         await Promise.all([
-          fetchPoints(clientId).then((p) => setCurrentPoints(p)),
-          fetchReferralDetails(clientId).then((d) => {
+          fetchPoints(client.id_user).then((p) => {
+            console.log("Points récupérés:", p);
+            setCurrentPoints(p);
+          }),
+          fetchReferralDetails(client.id_user).then((d) => {
+            console.log("Détails parrainage:", d);
             if (d?.referral?.code) setReferralCode(d.referral.code);
             if (Array.isArray(d?.referrals)) setReferrals(d.referrals);
             if (typeof d?.referral?.total_points === 'number') setTotalReferralPoints(d.referral.total_points);
           })
         ]);
+        
       } catch (e) {
-        setError("Impossible de charger les données de fidélité");
+        console.error("Erreur détaillée:", e);
+        setError(`Impossible de charger les données de fidélité: ${e.message}`);
       } finally {
         setLoading(false);
       }
@@ -62,9 +92,11 @@ function Fidelite() {
   }, [referralCode]);
 
   useEffect(() => {
-    const key = makeDailyBonusKey(clientId, restaurantId);
-    if (key && localStorage.getItem(key) === '1') {
-      setBonusClaimedToday(true);
+    if (clientId && restaurantId) {
+      const key = makeDailyBonusKey(clientId, restaurantId);
+      if (key && localStorage.getItem(key) === '1') {
+        setBonusClaimedToday(true);
+      }
     }
   }, [clientId, restaurantId]);
 
@@ -76,6 +108,11 @@ function Fidelite() {
   };
 
   const onClaimBonus = async () => {
+    if (!clientId || !restaurantId) {
+      setError("Client ou restaurant non identifié");
+      return;
+    }
+
     try {
       const res = await claimDailyBonusAndRefresh(clientId, restaurantId, token);
       if (res.success) {
@@ -92,6 +129,7 @@ function Fidelite() {
         setError(res.message);
       }
     } catch (e) {
+      console.error("Erreur bonus:", e);
       setError("Échec de la récupération du bonus");
     }
   };
@@ -100,10 +138,46 @@ function Fidelite() {
   const progress = progressToNextReward ? (currentPoints / progressToNextReward.points) * 100 : 100;
 
   if (loading) {
-    return <div className="container py-4">Chargement...</div>;
+    return (
+      <div className="container py-4">
+        <div className="d-flex justify-content-center align-items-center" style={{ height: '200px' }}>
+          <div className="spinner-border text-warning" role="status">
+            <span className="visually-hidden">Chargement...</span>
+          </div>
+          <span className="ms-3">Chargement de vos données de fidélité...</span>
+        </div>
+      </div>
+    );
   }
+
   if (error) {
-    return <div className="container py-4 text-danger">{error}</div>;
+    return (
+      <div className="container py-4">
+        <div className="alert alert-danger" role="alert">
+          <h5>Erreur</h5>
+          <p>{error}</p>
+          <div className="mt-2">
+            <button 
+              className="btn btn-warning btn-sm" 
+              onClick={() => window.location.reload()}
+            >
+              Réessayer
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!clientId) {
+    return (
+      <div className="container py-4">
+        <div className="alert alert-warning" role="alert">
+          <h5>Connexion requise</h5>
+          <p>Veuillez vous connecter pour accéder à votre programme de fidélité.</p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -150,7 +224,13 @@ function Fidelite() {
             <Gift size={32} className="mb-2" />
             <h6>Bonus du jour</h6>
             <p className="small">Connectez-vous chaque jour pour gagner des points</p>
-            <button onClick={onClaimBonus} disabled={bonusClaimedToday || !restaurantId} className="btn btn-light btn-sm text-orange-600 w-100">{bonusClaimedToday ? "Déjà récupéré aujourd'hui" : "Récupérer 1 point"}</button>
+            <button 
+              onClick={onClaimBonus} 
+              disabled={bonusClaimedToday || !restaurantId || !clientId} 
+              className="btn btn-light btn-sm text-orange-600 w-100"
+            >
+              {bonusClaimedToday ? "Déjà récupéré aujourd'hui" : "Récupérer 1 point"}
+            </button>
           </div>
         </div>
       </div>
@@ -170,9 +250,16 @@ function Fidelite() {
         <div className="card p-3 mb-3 bg-light text-center">
           <div className="mb-2">Votre lien de parrainage</div>
           <div className="d-flex justify-content-center gap-2 mb-2">
-            <div className="bg-white px-3 py-2 rounded fw-bold">{linkParrainage || "Chargement..."}</div>
-            <button onClick={copyReferralCode} disabled={!linkParrainage} className="btn btn-warning btn-sm d-flex align-items-center gap-1">
-              {copied ? <Check size={16} /> : <Copy size={16} />} {copied ? "Copié !" : "Copier"}
+            <div className="bg-white px-3 py-2 rounded fw-bold text-break" style={{ maxWidth: '300px' }}>
+              {linkParrainage || "Chargement..."}
+            </div>
+            <button 
+              onClick={copyReferralCode} 
+              disabled={!linkParrainage} 
+              className="btn btn-warning btn-sm d-flex align-items-center gap-1"
+            >
+              {copied ? <Check size={16} /> : <Copy size={16} />} 
+              {copied ? "Copié !" : "Copier"}
             </button>
           </div>
           <small className="text-muted">Partagez ce lien avec vos amis pour gagner des points</small>
@@ -180,29 +267,35 @@ function Fidelite() {
 
         <h6>Vos filleuls ({referrals.length})</h6>
         <div className="list-group">
-          {referrals.map((r, idx) => (
-            <div key={idx} className="list-group-item d-flex justify-content-between align-items-center">
-              <div className="d-flex align-items-center gap-3">
-                <div className="bg-warning text-white rounded-circle d-flex align-items-center justify-content-center" style={{ width: 40, height: 40 }}>
-                  {(r.nom || r.name || "?").toString().split(" ").map(n => n[0]).join("")}
-                </div>
-                <div>
-                  <div>{r.nom || r.name || "Client"}</div>
-                  {r.date && <small className="text-muted">Inscrit le {r.date}</small>}
-                </div>
-              </div>
-              <div className="text-end">
-                {r.status === "active" || r.actif ? (
-                  <>
-                    <div className="text-success mb-1">✓ Actif</div>
-                    {typeof r.points === 'number' && <div className="text-warning">+{r.points} points</div>}
-                  </>
-                ) : (
-                  <div className="text-warning">En attente</div>
-                )}
-              </div>
+          {referrals.length === 0 ? (
+            <div className="list-group-item text-center text-muted py-4">
+              Aucun filleul pour le moment
             </div>
-          ))}
+          ) : (
+            referrals.map((r, idx) => (
+              <div key={idx} className="list-group-item d-flex justify-content-between align-items-center">
+                <div className="d-flex align-items-center gap-3">
+                  <div className="bg-warning text-white rounded-circle d-flex align-items-center justify-content-center" style={{ width: 40, height: 40 }}>
+                    {(r.nom || r.name || "?").toString().split(" ").map(n => n[0]).join("")}
+                  </div>
+                  <div>
+                    <div>{r.nom || r.name || "Client"}</div>
+                    {r.date && <small className="text-muted">Inscrit le {r.date}</small>}
+                  </div>
+                </div>
+                <div className="text-end">
+                  {r.status === "active" || r.actif ? (
+                    <>
+                      <div className="text-success mb-1">✓ Actif</div>
+                      {typeof r.points === 'number' && <div className="text-warning">+{r.points} points</div>}
+                    </>
+                  ) : (
+                    <div className="text-warning">En attente</div>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>
@@ -223,20 +316,48 @@ function makeDailyBonusKey(clientId, restaurantId) {
 
 // ===== Helpers API
 async function fetchPoints(clientId) {
-  const res = await fetch(`${API_URL}api/client/${clientId}/points`);
-  if (!res.ok) return 0;
-  const data = await res.json();
-  return typeof data?.points_fidelite === 'number' ? data.points_fidelite : 0;
+  try {
+    console.log(`Fetching points for client ${clientId}`);
+    const res = await fetch(`${API_URL}api/client/${clientId}/points`);
+    console.log("Points response status:", res.status);
+    
+    if (!res.ok) {
+      console.error("Points fetch failed:", res.status, res.statusText);
+      return 0;
+    }
+    
+    const data = await res.json();
+    console.log("Points data:", data);
+    return typeof data?.points_fidelite === 'number' ? data.points_fidelite : 0;
+  } catch (error) {
+    console.error("Erreur fetchPoints:", error);
+    return 0;
+  }
 }
 
 async function fetchReferralDetails(clientId) {
-  const res = await fetch(`${API_URL}api/client/${clientId}/referral-details`);
-  if (!res.ok) return { referral: null, referrals: [] };
-  return res.json();
+  try {
+    console.log(`Fetching referral details for client ${clientId}`);
+    const res = await fetch(`${API_URL}api/client/${clientId}/referral-details`);
+    console.log("Referral response status:", res.status);
+    
+    if (!res.ok) {
+      console.error("Referral fetch failed:", res.status, res.statusText);
+      return { referral: null, referrals: [] };
+    }
+    
+    const data = await res.json();
+    console.log("Referral data:", data);
+    return data;
+  } catch (error) {
+    console.error("Erreur fetchReferralDetails:", error);
+    return { referral: null, referrals: [] };
+  }
 }
 
 async function claimDailyBonusAndRefresh(clientId, restaurantId, token) {
   try {
+    console.log(`Claiming bonus for client ${clientId}, restaurant ${restaurantId}`);
     const res = await fetch(`${API_URL}api/client/${clientId}/claim-daily-bonus`, {
       method: 'POST',
       headers: {
@@ -245,12 +366,16 @@ async function claimDailyBonusAndRefresh(clientId, restaurantId, token) {
       },
       body: JSON.stringify({ restaurant_id: restaurantId })
     });
+    
     const data = await res.json().catch(() => ({}));
+    console.log("Bonus claim response:", data);
+    
     if (!res.ok) {
       return { success: false, message: data?.message || 'Erreur' };
     }
     return { success: !!data.success, new_points: data.new_points };
   } catch (e) {
+    console.error("Erreur claimDailyBonusAndRefresh:", e);
     return { success: false, message: 'Erreur réseau' };
   }
 }
