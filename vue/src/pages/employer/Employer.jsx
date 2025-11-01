@@ -8,7 +8,7 @@ import Complaints from './views/Complaints';
 import Stats from './views/Stats';
 import Employees from './views/Employees';
 import { getEmployerDashboardKpis } from '../../services/employe';
-import { logout } from '../../services/user';
+import { logout, getAuthInfo } from '../../services/user';
 import './employer.css';
 
 function DashboardView() {
@@ -122,13 +122,15 @@ export default function Employer() {
   }, [navigate]);
 
   const renderView = () => {
+    const auth = getAuthInfo();
+    const restaurantId = auth?.restaurant;
     switch (activeItem) {
       case 'admin-dashboard':
         return <DashboardView />;
       case 'orders':
         return <Orders />;
       case 'menu-update':
-        return <MenuUpdate />;
+        return <MenuUpdate restaurantId={restaurantId} />;
       case 'complaints':
         return <Complaints />;
       case 'stats':

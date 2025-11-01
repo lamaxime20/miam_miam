@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from 'react';
 import CountUp from '../components/common/CountUp';
 import { getMenuEditable, saveMenuEditable } from '../services/mockApi';
 import { fetchMenuData, updateFile, createFile, createMenu, updateMenu, fetchMenusDuJourIds, addMenusDuJour, removeMenusDuJour } from '../../../services/MenusEmploye';
-import { getAuthInfo } from '../../../services/user';
 
 const IconForkSpoon = (props) => (
   <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
@@ -32,7 +31,7 @@ const IconCheck = (props) => (
 
 const money = (n)=> new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XAF', maximumFractionDigits: 0 }).format(Math.round(Number(n||0)));
 
-export default function MenuUpdate() {
+export default function MenuUpdate({ restaurantId }) {
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
 
   const [search, setSearch] = useState('');
@@ -48,8 +47,6 @@ export default function MenuUpdate() {
   const [form, setForm] = useState({ name: '', description: '', category: 'Plat', price: 0, available: true, image: '', image_id: null });
   const [isSubmitting, setIsSubmitting] = useState(false); // Pour figer l'interface
   const [dragActive, setDragActive] = useState(false);
-  const auth = getAuthInfo();
-  const restaurantId = auth?.restaurant; // TODO: remplacer par l'ID du restaurant de l'employé connecté
 
   const defaultRows = [
     { id: 1, name: 'Burger Maison', category: 'Plat', price: 2500, available: true, updatedAt: '2025-10-10' },
