@@ -91,10 +91,20 @@ export async function getAllMenusWithPromotions() {
         if (!response.ok) throw new Error(`Erreur HTTP : ${response.status}`);
         const data = await response.json();
 
-        // Résolution des images (base64) si image_id fourni, sinon utiliser l'URL image si présente
+        // Résolution des images: si l'API renvoie un ID, on le convertit en URL exploitable
         const menus = await Promise.all((data || []).map(async (m) => {
-            console.log(m.image);
-            let imageUrl = m.image;
+            let imageUrl = "/placeholder.svg";
+            try {
+                if (m.image) {
+                    if (typeof m.image === 'string' && (m.image.startsWith('http') || m.image.startsWith('/'))) {
+                        imageUrl = m.image;
+                    } else {
+                        imageUrl = await getImageBase64(m.image);
+                    }
+                }
+            } catch (e) {
+                console.warn('Erreur résolution image menu', m.id, e);
+            }
             return {
                 id: m.id,
                 name: m.name,

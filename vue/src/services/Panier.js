@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { getCartFromStorage, removeFromCart } from "./Menu";
+import { getCartFromStorage, removeFromCart, getImageBase64 } from "./Menu";
 import { recupererToken, getAuthInfo, getUserByEmail } from "./user";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/";
@@ -54,6 +54,18 @@ export async function getCartItemsGroupedByRestaurant() {
         let restaurantId = item.idresto || item.restaurant_hote || null;
         let restaurantName = item.nomResto || null;
 
+        // Normaliser l'image: si on a un ID (ou une valeur non-URL), on le convertit en URL
+        let imageUrl = item.image;
+        try {
+            const isString = typeof imageUrl === 'string';
+            const looksLikeUrl = isString && (imageUrl?.startsWith('http') || imageUrl?.startsWith('/'));
+            if (!looksLikeUrl && imageUrl) {
+                imageUrl = await getImageBase64(imageUrl);
+            }
+        } catch (_) {
+            imageUrl = "/placeholder.svg";
+        }
+
         if (!restaurantId || !restaurantName) {
             try {
                 const resp = await fetch(`${API_BASE_URL}api/menu/${item.id}/restaurant`);
@@ -84,6 +96,7 @@ export async function getCartItemsGroupedByRestaurant() {
 
         const withResto = {
             ...item,
+            image: imageUrl,
             nomResto: restaurantName || item.nomResto,
             priceOriginal: unit,
             promoPercent: percent,
