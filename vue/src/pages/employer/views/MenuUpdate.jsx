@@ -48,7 +48,8 @@ export default function MenuUpdate() {
   const [form, setForm] = useState({ name: '', description: '', category: 'Plat', price: 0, available: true, image: '', image_id: null });
   const [isSubmitting, setIsSubmitting] = useState(false); // Pour figer l'interface
   const [dragActive, setDragActive] = useState(false);
-  const restaurantId = getAuthInfo().restaurant; // TODO: remplacer par l'ID du restaurant de l'employé connecté
+  const auth = getAuthInfo();
+  const restaurantId = auth?.restaurant; // TODO: remplacer par l'ID du restaurant de l'employé connecté
 
   const defaultRows = [
     { id: 1, name: 'Burger Maison', category: 'Plat', price: 2500, available: true, updatedAt: '2025-10-10' },
@@ -90,8 +91,9 @@ export default function MenuUpdate() {
         setLoading(false);
       }
     }
+    if (!restaurantId) { setLoading(false); return; }
     loadMenu();
-  }, []);
+  }, [restaurantId]);
 
   const kpis = useMemo(() => {
     const total = rows.length;

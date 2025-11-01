@@ -20,9 +20,11 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/';
 /**
  * Récupère les données du menu pour l'employé.
  * NOTE: Actuellement, cette fonction retourne des données statiques.
+ * @param {number} restaurantId - L'ID du restaurant.
  * @returns {Promise<Array<Object>>}
  */
-export async function fetchMenuData(restaurantId = 1) {
+export async function fetchMenuData(restaurantId) {
+    if (!restaurantId) throw new Error('restaurantId requis');
     const res = await fetch(`${API_URL}api/menus?restaurant_id=${restaurantId}`);
     if (!res.ok) throw new Error(`Erreur API: ${res.status}`);
     return await res.json();
@@ -108,9 +110,11 @@ export async function updateFile(file, oldImageId) {
  * @param {string} menuData.category - La catégorie du menu ('Entree', 'Plat', 'Dessert', 'Boisson').
  * @param {boolean} menuData.available - La disponibilité du menu.
  * @param {number|null} menuData.image_id - L'ID de l'image associée.
+ * @param {number} restaurantId - L'ID du restaurant.
  * @returns {Promise<Object>} Le nouvel objet menu créé.
  */
-export async function createMenu(menuData, restaurantId = 1) {
+export async function createMenu(menuData, restaurantId) {
+    if (!restaurantId) throw new Error('restaurantId requis');
     const response = await fetch(`${API_URL}api/menus`, {
         method: 'POST',
         headers: {
@@ -134,7 +138,8 @@ export async function createMenu(menuData, restaurantId = 1) {
     return await response.json();
 }
 
-export async function updateMenu(menuId, menuData, restaurantId = 1) {
+export async function updateMenu(menuId, menuData, restaurantId) {
+    if (!restaurantId) throw new Error('restaurantId requis');
     const response = await fetch(`${API_URL}api/menus/${menuId}`, {
         method: 'PUT',
         headers: {

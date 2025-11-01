@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { RiCloseLine, RiMailLine } from 'react-icons/ri';
-import '../assets/styles/ForgotPassword.css';
+import '../assets/styles/Forgotpassword.css';
 import { requestReset, verifyCode, resetPassword } from '../services/ForgotPassword';
 
 const ForgotPassword = ({ onClose, onSwitchToLogin }) => {
